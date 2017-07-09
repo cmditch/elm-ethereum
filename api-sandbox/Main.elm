@@ -23,7 +23,7 @@ type Msg
 
 type alias Model =
     { blockNumber : Maybe String
-    , web3 : Web3State Msg
+    , web3 : Web3.Model Msg
     , error : Maybe String
     }
 
@@ -43,9 +43,6 @@ view model =
         [ div [] [ text <| viewBlockNumber model ]
         , button [ onClick GetBlockNumber ] [ text "Get Block" ]
         , viewError model
-        , br [] []
-        , div [] [ text "Converting a type to look like a function. Perhaps useful." ]
-        , div [] [ text <| web3Func <| deCapitalize <| toString GetBlockNumber ]
         ]
 
 
@@ -87,17 +84,6 @@ update msg model =
 
                 Just msg ->
                     update (msg result) model
-
-
-web3Func : String -> String
-web3Func func =
-    "web3.eth." ++ func ++ "()"
-
-
-deCapitalize : String -> String
-deCapitalize word =
-    (String.slice 1 (String.length word) word)
-        |> (++) (String.toLower (String.slice 0 1 word))
 
 
 subscriptions : Model -> Sub Msg
