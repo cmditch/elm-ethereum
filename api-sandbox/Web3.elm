@@ -4,6 +4,7 @@ port module Web3
         , Request
         , Response
         , init
+        , handleResponse
         , getBlockNumber
         , request
         , response
@@ -34,7 +35,7 @@ type alias Request =
 
 
 type alias Response =
-    String
+    { id : Int, result : String }
 
 
 type Web3Function
@@ -49,6 +50,11 @@ type BasicFunction
 
 type EthFunction
     = GetBlockNumber
+
+
+handleResponse : Web3State msg -> Int -> Maybe (String -> msg)
+handleResponse (Web3State state) id =
+    Dict.get id state
 
 
 getBlockNumber : Web3State msg -> (String -> msg) -> ( Web3State msg, Cmd msg )

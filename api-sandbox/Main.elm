@@ -24,6 +24,7 @@ type Msg
 type alias Model =
     { blockNumber : Maybe String
     , web3 : Web3State Msg
+    , error : Maybe String
     }
 
 
@@ -31,6 +32,7 @@ init : ( Model, Cmd Msg )
 init =
     { blockNumber = Nothing
     , web3 = Web3.init
+    , error = Nothing
     }
         ! []
 
@@ -38,17 +40,28 @@ init =
 view : Model -> Html Msg
 view model =
     div []
-        [ div [] [ viewBlockNumber model ]
+        [ div [] [ text <| viewBlockNumber model ]
         , button [ onClick GetBlockNumber ] [ text "Get Block" ]
+        , viewError model
         , br [] []
         , div [] [ text "Converting a type to look like a function. Perhaps useful." ]
-        , div [] [ text <| web3Func <| deCapitalize <| GetBlockNumber ]
+        , div [] [ text <| web3Func <| deCapitalize <| toString GetBlockNumber ]
         ]
 
 
-viewBlockNumber : Model -> Html Msg
+viewBlockNumber : Model -> String
 viewBlockNumber model =
     model.blockNumber |> Maybe.withDefault "Press button plz"
+
+
+viewError : Model -> Html Msg
+viewError model =
+    case model.error of
+        Nothing ->
+            span [] []
+
+        Just err ->
+            div [] [ text err ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -59,16 +72,21 @@ update msg model =
                 ( web3_, cmd ) =
                     Web3.getBlockNumber model.web3 GetBlockNumberResponse
             in
-                ({ model | web3 = web3_ }) ! [ cmd ]
+                { model | web3 = web3_ } ! [ cmd ]
 
         GetBlockNumberResponse blockNumber ->
             ( { model | blockNumber = Just blockNumber }, Cmd.none )
 
-        Web3Response response ->
+        Web3Response { id, result } ->
             -- TODO
             -- we know this will be a string at the moment, but will likely need
             -- custom decoders for each function (some results are objects)
-            { model | response = response } ! []
+            case Web3.handleResponse model.web3 id of
+                Nothing ->
+                    { model | error = Just "could get Msg from web3 state" } ! []
+
+                Just msg ->
+                    update (msg result) model
 
 
 web3Func : String -> String
