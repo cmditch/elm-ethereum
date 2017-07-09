@@ -20,7 +20,11 @@ init =
 
 
 type Model msg
-    = Model (Dict Int (String -> msg))
+    = Model (Dict Id (String -> msg))
+
+
+type alias Id =
+    Int
 
 
 type alias Request =
@@ -36,7 +40,7 @@ type alias Response =
     }
 
 
-handleResponse : Model msg -> Int -> Maybe (String -> msg)
+handleResponse : Model msg -> Id -> Maybe (String -> msg)
 handleResponse (Model state) id =
     Dict.get id state
 
