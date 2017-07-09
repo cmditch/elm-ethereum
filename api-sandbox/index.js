@@ -1,13 +1,13 @@
 var elm = Elm.Main.embed(document.getElementById("app"));
 
-elm.ports.web3request.subscribe( function(data) {
-  console.log(data)
-  web3Func = eval("web3." + data.func)
+elm.ports.request.subscribe( function(data) {
+  console.log(data);
+  web3Func = eval("web3." + data.func);
   web3Func.apply(null,
     data.args.concat( (e,r) =>
-      elm.ports.web3response.send( r.toString() )
+      elm.ports.response.send( { id: data.id, result: r.toString() } )
     )
-  )
+  );
 });
 
 window.addEventListener('load', function() {

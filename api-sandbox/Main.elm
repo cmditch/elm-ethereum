@@ -1,4 +1,4 @@
-port module Main exposing (..)
+module Main exposing (..)
 
 import Html exposing (..)
 import Html.Events exposing (onClick)
@@ -17,13 +17,13 @@ main =
 
 type Msg
     = GetBlockNumber
-    | Web3Response String
+    | GetBlockNumberResponse String
+    | Web3Response Web3.Response
 
 
 type alias Model =
-    { blockNumber : Maybe Int
-    , web3 : Web3.Model
-    , response : String
+    { blockNumber : Maybe String
+    , web3 : Web3State Msg
     }
 
 
@@ -31,7 +31,6 @@ init : ( Model, Cmd Msg )
 init =
     { blockNumber = Nothing
     , web3 = Web3.init
-    , response = "No Blocks yet"
     }
         ! []
 
@@ -41,21 +40,15 @@ view model =
     div []
         [ div [] [ viewBlockNumber model ]
         , button [ onClick GetBlockNumber ] [ text "Get Block" ]
-        , div [] [ text model.response ]
         , br [] []
         , div [] [ text "Converting a type to look like a function. Perhaps useful." ]
-        , div [] [ text <| web3Func <| deCapitalize <| toString GetBlockNumber ]
+        , div [] [ text <| web3Func <| deCapitalize <| GetBlockNumber ]
         ]
 
 
 viewBlockNumber : Model -> Html Msg
 viewBlockNumber model =
-    case model.blockNumber of
-        Nothing ->
-            text "Press button plz"
-
-        Just n ->
-            text (toString n)
+    model.blockNumber |> Maybe.withDefault "Press button plz"
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -63,12 +56,18 @@ update msg model =
     case msg of
         GetBlockNumber ->
             let
-                request =
-                    Web3.Request "eth.getBlockNumber" [] 1
+                ( web3_, cmd ) =
+                    Web3.getBlockNumber model.web3 GetBlockNumberResponse
             in
-                model ! [ web3request request ]
+                ({ model | web3 = web3_ }) ! [ cmd ]
+
+        GetBlockNumberResponse blockNumber ->
+            ( { model | blockNumber = Just blockNumber }, Cmd.none )
 
         Web3Response response ->
+            -- TODO
+            -- we know this will be a string at the moment, but will likely need
+            -- custom decoders for each function (some results are objects)
             { model | response = response } ! []
 
 
@@ -83,13 +82,7 @@ deCapitalize word =
         |> (++) (String.toLower (String.slice 0 1 word))
 
 
-port web3request : Web3.Request -> Cmd msg
-
-
-port web3response : (Web3.Response -> msg) -> Sub msg
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ web3response Web3Response ]
+        [ Web3.response Web3Response ]
