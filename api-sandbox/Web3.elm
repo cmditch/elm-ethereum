@@ -1,20 +1,30 @@
-module Web3 exposing (..)
+port module Web3
+    exposing
+        ( Model
+        , Request
+        , Response
+        , init
+        , handleResponse
+        , getBlockNumber
+        , request
+        , response
+        )
 
 import Dict exposing (..)
 import Json.Decode exposing (..)
 
 
-type alias Model =
-    { requestMap : Dict Int (Decoder Web3Response) }
-
-
-init : Model
+init : Model msg
 init =
-    { requestMap = Dict.empty }
+    Model Dict.empty
 
 
-type Web3Response
-    = Block Int
+type Model msg
+    = Model (Dict Id (String -> msg))
+
+
+type alias Id =
+    Int
 
 
 type alias Request =
@@ -25,18 +35,35 @@ type alias Request =
 
 
 type alias Response =
-    String
+    { id : Int
+    , result : String
+    }
 
 
-type Web3Function
-    = Basic BasicFunction
-    | Eth EthFunction
+handleResponse : Model msg -> Id -> Maybe (String -> msg)
+handleResponse (Model state) id =
+    Dict.get id state
 
 
-type BasicFunction
-    = ToWei
-    | FromWei
+getBlockNumber : Model msg -> (String -> msg) -> ( Model msg, Cmd msg )
+getBlockNumber (Model state) msg =
+    let
+        id =
+            1
+
+        state_ =
+            Dict.insert id msg state
+    in
+        ( Model state_
+        , request
+            { func = "eth.getBlockNumber"
+            , args = []
+            , id = id
+            }
+        )
 
 
-type EthFunction
-    = GetBlockNumber
+port request : Request -> Cmd msg
+
+
+port response : (Response -> msg) -> Sub msg
