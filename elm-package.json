@@ -5,7 +5,9 @@
     "license": "BSD3",
     "source-directories": [
         ".",
-        "./api-sandbox"
+        "./src",
+        "./sandbox",
+        "./examples"
     ],
     "exposed-modules": [],
     "dependencies": {

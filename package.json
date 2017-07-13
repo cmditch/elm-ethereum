@@ -1,12 +1,12 @@
 {
-  "name": "elm-web3-api-sandbox",
+  "name": "elm-web3",
   "version": "0.0.1",
-  "description": "Messing around with API design before we start getting serious",
+  "description": "An elm wrapper for Web3.js",
   "scripts": {
     "rpc": "testrpc -s 1 -b 4 -i 42",
     "web": "python -m SimpleHTTPServer 8000",
-    "build": "elm-make api-sandbox/Main.elm --output api-sandbox/elm.js --yes --debug"
+    "example-build": "elm-make examples/Main.elm --output examples/elm.js --yes --debug"
   },
   "author": "Coury Ditch and Nick Miller",
-  "license": "to kill."
+  "license": "to decentrlize!"
 }

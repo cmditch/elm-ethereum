@@ -3,7 +3,7 @@
 
 ```
 git clone https://github.com/cmditch/elm-web3.git
-cd elm-web3/api-sandbox/
-npm run build && npm run web
+cd elm-web3/
+npm run example-build && npm run web
 ```
 open localhost:8000 in browser

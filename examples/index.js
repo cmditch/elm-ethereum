@@ -7,7 +7,7 @@ elm.ports.request.subscribe( function(data) {
     data.args.concat( (e,r) =>
       {
         elm.ports.response.send( { id: data.id, data: JSON.stringify(r) } );
-        console.log(r)
+        console.log(JSON.stringify(r))
       }
     )
   );
