@@ -8,19 +8,20 @@ port module Web3
         , getBlockNumber
         , request
         , response
+        , decodeBlockNumber
         )
 
 import Dict exposing (..)
-import Json.Decode exposing (..)
+import Json.Decode exposing (Value, string, decodeValue)
 
 
 init : Model msg
 init =
-    Model Dict.empty
+    Model 0 Dict.empty
 
 
 type Model msg
-    = Model (Dict Id (String -> msg))
+    = Model Int (Dict Id (Value -> msg))
 
 
 type alias Id =
@@ -36,31 +37,41 @@ type alias Request =
 
 type alias Response =
     { id : Int
-    , result : String
+    , data : Value
     }
 
 
-handleResponse : Model msg -> Id -> Maybe (String -> msg)
-handleResponse (Model state) id =
-    Dict.get id state
+handleResponse : Model msg -> Id -> Maybe (Value -> msg)
+handleResponse (Model counter dict) id =
+    Dict.get id dict
 
 
-getBlockNumber : Model msg -> (String -> msg) -> ( Model msg, Cmd msg )
-getBlockNumber (Model state) msg =
+getBlockNumber : Model msg -> (Value -> msg) -> ( Model msg, Cmd msg )
+getBlockNumber (Model counter dict) msg =
     let
-        id =
-            1
+        newCounter =
+            counter + 1
 
         state_ =
-            Dict.insert id msg state
+            Dict.insert counter msg dict
     in
-        ( Model state_
+        ( Model newCounter state_
         , request
             { func = "eth.getBlockNumber"
             , args = []
-            , id = id
+            , id = counter
             }
         )
+
+
+decodeBlockNumber : Value -> Result String Int
+decodeBlockNumber blockNumber =
+    case decodeValue string blockNumber of
+        Ok blockNumber ->
+            String.toInt blockNumber
+
+        Err error ->
+            Err error
 
 
 port request : Request -> Cmd msg

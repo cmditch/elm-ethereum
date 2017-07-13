@@ -3,6 +3,7 @@ module Main exposing (..)
 import Html exposing (..)
 import Html.Events exposing (onClick)
 import Web3 exposing (..)
+import Json.Decode exposing (Value)
 
 
 main : Program Never Model Msg
@@ -17,12 +18,12 @@ main =
 
 type Msg
     = GetBlockNumber
-    | GetBlockNumberResponse String
+    | GetBlockNumberResponse Value
     | Web3Response Web3.Response
 
 
 type alias Model =
-    { blockNumber : Maybe String
+    { blockNumber : Maybe Int
     , web3 : Web3.Model Msg
     , error : Maybe String
     }
@@ -48,7 +49,7 @@ view model =
 
 viewBlockNumber : Model -> String
 viewBlockNumber model =
-    model.blockNumber |> Maybe.withDefault "Press button plz"
+    model.blockNumber |> Maybe.withDefault |> toString
 
 
 viewError : Model -> Html Msg
@@ -71,19 +72,21 @@ update msg model =
             in
                 { model | web3 = web3_ } ! [ cmd ]
 
-        GetBlockNumberResponse blockNumber ->
-            ( { model | blockNumber = Just blockNumber }, Cmd.none )
+        GetBlockNumberResponse blockNumber_ ->
+            case Web3.decodeBlockNumber blockNumber_ of
+                Ok blockNumber ->
+                    ( { model | blockNumber = Just blockNumber }, Cmd.none )
 
-        Web3Response { id, result } ->
-            -- TODO
-            -- we know this will be a string at the moment, but will likely need
-            -- custom decoders for each function (some results are objects)
+                Err error ->
+                    ( { model | error = Just error }, Cmd.none )
+
+        Web3Response { id, data } ->
             case Web3.handleResponse model.web3 id of
                 Nothing ->
                     { model | error = Just "could get Msg from web3 state" } ! []
 
                 Just msg ->
-                    update (msg result) model
+                    update (msg data) model
 
 
 subscriptions : Model -> Sub Msg
