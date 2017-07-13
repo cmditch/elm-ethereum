@@ -5,7 +5,10 @@ elm.ports.request.subscribe( function(data) {
   web3Func = eval("web3." + data.func);
   web3Func.apply(null,
     data.args.concat( (e,r) =>
-      elm.ports.response.send( { id: data.id, data: JSON.stringify(r) } )
+      {
+        elm.ports.response.send( { id: data.id, data: JSON.stringify(r) } );
+        console.log(r)
+      }
     )
   );
 });

@@ -19,11 +19,14 @@ main =
 type Msg
     = GetBlockNumber
     | GetBlockNumberResponse Value
+    | GetBlock Int
+    | GetBlockResponse Value
     | Web3Response Web3.Response
 
 
 type alias Model =
     { blockNumber : Maybe Int
+    , block : Maybe Block
     , web3 : Web3.Model Msg
     , error : Maybe String
     }
@@ -32,6 +35,7 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     { blockNumber = Nothing
+    , block = Nothing
     , web3 = Web3.init
     , error = Nothing
     }
@@ -43,6 +47,8 @@ view model =
     div []
         [ div [] [ text <| viewBlockNumber model ]
         , button [ onClick GetBlockNumber ] [ text "Get Block" ]
+        , div [] [ text <| toString model.block ]
+        , button [ onClick (GetBlock 4000000) ] [ text "Get Block" ]
         , viewError model
         ]
 
@@ -76,6 +82,21 @@ update msg model =
             case Web3.decodeBlockNumber blockNumber_ of
                 Ok blockNumber ->
                     ( { model | blockNumber = Just blockNumber }, Cmd.none )
+
+                Err error ->
+                    ( { model | error = Just error }, Cmd.none )
+
+        GetBlock int ->
+            let
+                ( web3_, cmd ) =
+                    Web3.getBlock model.web3 GetBlockResponse int
+            in
+                { model | web3 = web3_ } ! [ cmd ]
+
+        GetBlockResponse block_ ->
+            case Web3.decodeBlock block_ of
+                Ok block ->
+                    ( { model | block = Just block }, Cmd.none )
 
                 Err error ->
                     ( { model | error = Just error }, Cmd.none )
