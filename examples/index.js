@@ -7,7 +7,11 @@ elm.ports.request.subscribe( function(data) {
     data.args.concat( (e,r) =>
       {
         elm.ports.response.send( { id: data.id, data: JSON.stringify(r) } );
-        console.log(JSON.stringify(r))
+        stringyResponse = JSON.stringify(r);
+        console.log("Type of response: ", typeof r)
+        console.log("Type of JSON.stringify(response): ", typeof stringyResponse);
+        console.log("Raw response: ", r);
+        console.log("JSON.stringify(response): ", r);
       }
     )
   );
