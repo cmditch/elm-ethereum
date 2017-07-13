@@ -5,7 +5,7 @@
   "scripts": {
     "rpc": "testrpc -s 1 -b 4 -i 42",
     "web": "python -m SimpleHTTPServer 8000",
-    "build": "elm-make Main.elm --output elm.js --yes"
+    "build": "elm-make api-sandbox/Main.elm --output api-sandbox/elm.js --yes --debug"
   },
   "author": "Coury Ditch and Nick Miller",
   "license": "to kill."
