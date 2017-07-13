@@ -49,7 +49,7 @@ view model =
 
 viewBlockNumber : Model -> String
 viewBlockNumber model =
-    model.blockNumber |> Maybe.withDefault |> toString
+    model.blockNumber |> Maybe.withDefault 0 |> toString
 
 
 viewError : Model -> Html Msg
