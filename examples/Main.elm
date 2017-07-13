@@ -114,7 +114,7 @@ update msg model =
         GetBlockNumberResponse blockNumber_ ->
             case Web3.Eth.decodeBlockNumber blockNumber_ of
                 Ok blockNumber ->
-                    ( { model | currentBlockNumber = Just blockNumber }, Cmd.none )
+                    ( { model | currentBlockNumber = Just blockNumber, error = Nothing }, Cmd.none )
 
                 Err error ->
                     ( { model | error = Just error }, Cmd.none )
@@ -134,7 +134,7 @@ update msg model =
         GetBlockResponse block_ ->
             case Web3.Eth.decodeBlock block_ of
                 Ok block ->
-                    ( { model | block = Just block }, Cmd.none )
+                    ( { model | block = Just block, error = Nothing }, Cmd.none )
 
                 Err error ->
                     ( { model | error = Just error }, Cmd.none )
