@@ -33,12 +33,7 @@ getBlockNumber (Model counter dict) msg =
 
 decodeBlockNumber : String -> Result String Int
 decodeBlockNumber blockNumber =
-    case Decode.decodeString string blockNumber of
-        Ok blockNumber ->
-            String.toInt blockNumber
-
-        Err error ->
-            Err error
+    String.toInt blockNumber
 
 
 getBlock : Model msg -> (String -> msg) -> Int -> ( Model msg, Cmd msg )

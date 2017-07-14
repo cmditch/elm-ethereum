@@ -117,12 +117,12 @@ update msg model =
                     ( { model | currentBlockNumber = Just blockNumber, error = Nothing }, Cmd.none )
 
                 Err error ->
-                    ( { model | error = Just error }, Cmd.none )
+                    ( { model | currentBlockNumber = Nothing, error = Just error }, Cmd.none )
 
         GetBlock int ->
             case int of
                 Nothing ->
-                    { model | error = Just "Block number invalid" } ! []
+                    { model | block = Nothing, error = Just "Block number invalid" } ! []
 
                 Just int_ ->
                     let
@@ -137,7 +137,7 @@ update msg model =
                     ( { model | block = Just block, error = Nothing }, Cmd.none )
 
                 Err error ->
-                    ( { model | error = Just error }, Cmd.none )
+                    ( { model | block = Nothing, error = Just error }, Cmd.none )
 
         Web3Response { id, data } ->
             case Web3.handleResponse model.web3 id of
