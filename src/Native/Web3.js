@@ -7,18 +7,21 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     function request(data) {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             // console.log(data);
-
-            var f = eval("web3." + data.func);
-            f.apply(null,
-                data.args.concat((e, r) => {
-                    if (e) {
-                        console.log("Error is: " + e.toString());
-                        return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));
+            try {
+                var f = eval("web3." + data.func);
+                f.apply(null,
+                    data.args.concat( (e, r) => {
+                        if (e !== null) {
+                            console.log("Error is: " + e.toString());
+                            return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Web3Error' }));
+                        }
+                          console.log("This isn't being called.")
+                          return callback(_elm_lang$core$Native_Scheduler.succeed(JSON.stringify(r)));
                     }
-
-                    return callback(_elm_lang$core$Native_Scheduler.succeed(JSON.stringify(r)));
-                }
-            ));
+                ));
+            } catch (e) {
+              console.log("ALL YOUR EXCEPTION ARE BELONG TO US!");
+            }
         });
     }
 

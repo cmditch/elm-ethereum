@@ -14,7 +14,7 @@ import Task
 
 
 type Error
-    = Error String
+    = Web3Error
 
 
 getBlockNumber : (Result Error String -> msg) -> Cmd msg

@@ -96,9 +96,9 @@ update msg model =
                     ( { model | currentBlockNumber = Just blockNumber, error = Nothing }, Cmd.none )
 
                 Err error ->
-                    { model | currentBlockNumber = Nothing, error = Just error } ! [ Debug.log error Cmd.none ]
+                    { model | currentBlockNumber = Nothing, error = Just "This is decode error" } ! []
 
         GetBlockNumberResponse (Err error_) ->
             case error_ of
-                Error error ->
-                    { model | currentBlockNumber = Nothing, error = Just error } ! []
+                Web3Error ->
+                    { model | currentBlockNumber = Nothing, error = Just "A Web3 error occured" } ! []
