@@ -1,18 +1,5 @@
 var elm = Elm.Main.embed(document.getElementById("app"));
 
-elm.ports.request.subscribe( function(data) {
-  console.log(data);
-  web3Func = eval("web3." + data.func);
-  web3Func.apply(null,
-    data.args.concat( (e,r) =>
-      {
-        var stringyResponse = JSON.stringify(r);
-        elm.ports.response.send( { id: data.id, data: stringyResponse } );
-      }
-    )
-  );
-});
-
 window.addEventListener('load', function() {
   // Checking if Web3 has been injected by the browser (Mist/MetaMask)
   if (typeof web3 !== 'undefined') {
