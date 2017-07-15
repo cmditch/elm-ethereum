@@ -3,9 +3,11 @@ module Main exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (value)
 import Html.Events exposing (onClick, onInput)
+import Native.Number
 import Web3 exposing (..)
 import Web3.Eth exposing (getBlockNumber, getBlock, decodeBlockNumber)
 import Web3.Eth.Types exposing (Block)
+import Task
 
 
 main : Program Never Model Msg
@@ -35,7 +37,7 @@ init =
     , web3 = Web3.init
     , error = Nothing
     }
-        ! []
+        ! [ Task.perform NumberResponse (Native.Number.getNumber 1) ]
 
 
 view : Model -> Html Msg
@@ -96,6 +98,7 @@ type Msg
     | GetBlock (Maybe Int)
     | GetBlockResponse String
     | Web3Response Web3.Response
+    | NumberResponse Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -146,6 +149,13 @@ update msg model =
 
                 Just msg ->
                     update (msg data) model
+
+        NumberResponse n ->
+            let
+                _ =
+                    Debug.log "got number" n
+            in
+                model ! []
 
 
 subscriptions : Model -> Sub Msg

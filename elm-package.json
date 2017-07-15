@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
-    "summary": "helpful summary of your project, less than 80 characters",
-    "repository": "https://github.com/user/project.git",
+    "summary": "feed the tree some ether.",
+    "repository": "https://github.com/cmditch/elm-web3.git",
     "license": "BSD3",
     "source-directories": [
         ".",
@@ -10,6 +10,7 @@
         "./examples"
     ],
     "exposed-modules": [],
+    "native-modules": true,
     "dependencies": {
         "NoRedInk/elm-decode-pipeline": "3.0.0 <= v < 4.0.0",
         "elm-lang/core": "5.1.1 <= v < 6.0.0",
