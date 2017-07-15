@@ -34,26 +34,3 @@ getBlockNumber (Model counter dict) msg =
 decodeBlockNumber : String -> Result String Int
 decodeBlockNumber blockNumber =
     String.toInt blockNumber
-
-
-getBlock : Model msg -> (String -> msg) -> Int -> ( Model msg, Cmd msg )
-getBlock (Model counter dict) msg blockNumber =
-    let
-        newCounter =
-            counter + 1
-
-        state_ =
-            Dict.insert counter msg dict
-    in
-        ( Model newCounter state_
-        , Web3.request
-            { func = "eth.getBlock"
-            , args = [ toString blockNumber ]
-            , id = counter
-            }
-        )
-
-
-decodeBlock : String -> Result String Block
-decodeBlock block =
-    Decode.decodeString blockDecoder block
