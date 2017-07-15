@@ -3,8 +3,8 @@ module Main exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (value)
 import Html.Events exposing (onClick, onInput)
-import Web3 exposing (Error(..))
-import Web3.Eth exposing (getBlockNumber)
+import Web3
+import Web3.Eth exposing (getBlockNumber, getBlock)
 import Web3.Eth.Types exposing (Block)
 import Task
 
@@ -21,6 +21,7 @@ main =
 
 type alias Model =
     { currentBlockNumber : Maybe Int
+    , currentBlock : Maybe Block
     , error : Maybe String
     }
 
@@ -28,6 +29,7 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     { currentBlockNumber = Nothing
+    , currentBlock = Nothing
     , error = Nothing
     }
         ! []
@@ -40,6 +42,8 @@ view model =
         , button [ onClick GetBlockNumber ] [ text "Get BlockNumber" ]
         , br [] []
         , br [] []
+        , viewBlock model.currentBlock
+        , button [ onClick (GetBlock 4000000) ] [ text "Get Block Number 4,000,000" ]
         , viewError model
         ]
 
@@ -82,6 +86,8 @@ stringToMaybeInt =
 type Msg
     = GetBlockNumber
     | GetBlockNumberResponse (Result Web3.Error Int)
+    | GetBlock Int
+    | GetBlockResponse (Result Web3.Error Block)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -90,10 +96,21 @@ update msg model =
         GetBlockNumber ->
             model ! [ getBlockNumber GetBlockNumberResponse ]
 
-        GetBlockNumberResponse (Ok blockNumber) ->
-            ( { model | currentBlockNumber = Just blockNumber, error = Nothing }, Cmd.none )
+        GetBlock int ->
+            model ! [ getBlock GetBlockResponse int ]
 
-        GetBlockNumberResponse (Err error_) ->
-            case error_ of
-                Error error ->
+        GetBlockNumberResponse response ->
+            case response of
+                Ok blockNumber ->
+                    ( { model | currentBlockNumber = Just blockNumber, error = Nothing }, Cmd.none )
+
+                Err (Web3.Error error) ->
                     { model | currentBlockNumber = Nothing, error = Just error } ! []
+
+        GetBlockResponse response ->
+            case response of
+                Ok block ->
+                    ( { model | currentBlock = Just block, error = Nothing }, Cmd.none )
+
+                Err (Web3.Error error) ->
+                    { model | currentBlock = Nothing, error = Just error } ! []

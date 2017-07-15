@@ -32,8 +32,8 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     }
 
     return {
-        expectStringResponse: expectStringResponse,
-        request: request
+        request: request,
+        expectStringResponse: expectStringResponse
     };
 
 }();

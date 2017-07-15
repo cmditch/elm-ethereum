@@ -1,13 +1,13 @@
 module Web3.Eth
     exposing
         ( getBlockNumber
+        , getBlock
         )
 
 import Web3 exposing (Error)
 import Web3.Eth.Types exposing (Block)
 import Web3.Eth.Decoders exposing (blockDecoder)
-import Web3.Internal exposing (expectInt)
-import Json.Decode as Decode exposing (string, decodeString)
+import Web3.Internal exposing (expectInt, expectJson)
 import Json.Encode exposing (list, int)
 import Native.Web3
 import Task
@@ -24,7 +24,12 @@ getBlockNumber msg =
         )
 
 
-
--- TODO: Thread an expected return type and decoder through to handle more complex data types.
--- See elm-lang/elm-http for inspiration
--- getBlock : Int -> (Block -> msg) -> Cmd msg
+getBlock : (Result Error Block -> msg) -> Int -> Cmd msg
+getBlock msg blockNum =
+    Task.attempt msg
+        (Native.Web3.request
+            { func = "eth.getBlock"
+            , args = list [ int blockNum ]
+            , expect = expectJson blockDecoder
+            }
+        )
