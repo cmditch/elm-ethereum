@@ -25,3 +25,11 @@ getBlockNumber msg =
 decodeBlockNumber : String -> Result String Int
 decodeBlockNumber blockNumber =
     String.toInt blockNumber
+
+
+
+-- TODO: Thread an expected return type and decoder through to handle more complex data types.
+-- See elm-lang/elm-http for inspiration
+
+
+getBlock : Int -> (Block -> msg) -> Cmd msg
