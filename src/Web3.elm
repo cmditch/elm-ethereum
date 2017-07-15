@@ -1,17 +1,19 @@
 module Web3
     exposing
         ( Request
-        , Response
+        , Error(..)
         )
 
 import Native.Web3
+import Web3.Internal exposing (Expect)
 
 
-type alias Request =
+type alias Request a =
     { func : String
     , args : List String
+    , expect : Expect a
     }
 
 
-type alias Response =
-    String
+type Error
+    = Error String
