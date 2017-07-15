@@ -14,12 +14,12 @@ import Task
 
 
 type Error
-    = Web3Error
+    = Error String
 
 
 getBlockNumber : (Result Error String -> msg) -> Cmd msg
 getBlockNumber msg =
-    Task.perform msg
+    Task.attempt msg
         (Native.Web3.request
             { func = "eth.getBlockNumber"
             , args = list []

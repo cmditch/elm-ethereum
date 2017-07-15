@@ -13,7 +13,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     data.args.concat( (e, r) => {
                         if (e !== null) {
                             console.log("Error is: " + e.toString());
-                            return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Web3Error' }));
+                            return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));
                         }
                           console.log("This isn't being called.")
                           return callback(_elm_lang$core$Native_Scheduler.succeed(JSON.stringify(r)));

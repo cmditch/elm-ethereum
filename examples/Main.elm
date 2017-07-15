@@ -100,5 +100,5 @@ update msg model =
 
         GetBlockNumberResponse (Err error_) ->
             case error_ of
-                Web3Error ->
-                    { model | currentBlockNumber = Nothing, error = Just "A Web3 error occured" } ! []
+                Error error ->
+                    { model | currentBlockNumber = Nothing, error = Just error } ! []
