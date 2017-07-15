@@ -1,32 +1,23 @@
 module Web3.Eth
     exposing
-        ( decodeBlock
-        , getBlockNumber
-        , getBlock
+        ( getBlockNumber
         , decodeBlockNumber
         )
 
-import Web3 exposing (Model(..))
 import Web3.Eth.Types exposing (Block)
 import Web3.Eth.Decoders exposing (blockDecoder)
 import Json.Decode as Decode exposing (string, decodeString)
-import Dict
+import Json.Encode exposing (list, int)
+import Native.Web3
+import Task
 
 
-getBlockNumber : Model msg -> (String -> msg) -> ( Model msg, Cmd msg )
-getBlockNumber (Model counter dict) msg =
-    let
-        newCounter =
-            counter + 1
-
-        state_ =
-            Dict.insert counter msg dict
-    in
-        ( Model newCounter state_
-        , Web3.request
+getBlockNumber : (String -> msg) -> Cmd msg
+getBlockNumber msg =
+    Task.perform msg
+        (Native.Web3.request
             { func = "eth.getBlockNumber"
-            , args = []
-            , id = counter
+            , args = list []
             }
         )
 

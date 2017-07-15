@@ -2,10 +2,6 @@ module Web3
     exposing
         ( Request
         , Response
-        , init
-        , handleResponse
-        , request
-        , response
         )
 
 import Native.Web3
