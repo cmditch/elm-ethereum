@@ -4,7 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (value)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (..)
-import Web3.Eth exposing (getBlockNumber, decodeBlockNumber)
+import Web3.Eth exposing (getBlockNumber, decodeBlockNumber, Error(..))
 import Web3.Eth.Types exposing (Block)
 import Task
 
@@ -81,7 +81,7 @@ stringToMaybeInt =
 
 type Msg
     = GetBlockNumber
-    | GetBlockNumberResponse String
+    | GetBlockNumberResponse (Result Web3.Eth.Error String)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -90,10 +90,15 @@ update msg model =
         GetBlockNumber ->
             model ! [ getBlockNumber GetBlockNumberResponse ]
 
-        GetBlockNumberResponse blockNumber_ ->
+        GetBlockNumberResponse (Ok blockNumber_) ->
             case Web3.Eth.decodeBlockNumber blockNumber_ of
                 Ok blockNumber ->
                     ( { model | currentBlockNumber = Just blockNumber, error = Nothing }, Cmd.none )
 
                 Err error ->
-                    ( { model | currentBlockNumber = Nothing, error = Just error }, Cmd.none )
+                    { model | currentBlockNumber = Nothing, error = Just error } ! [ Debug.log error Cmd.none ]
+
+        GetBlockNumberResponse (Err error_) ->
+            case error_ of
+                Error error ->
+                    { model | currentBlockNumber = Nothing, error = Just error } ! []

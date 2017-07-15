@@ -2,6 +2,7 @@ module Web3.Eth
     exposing
         ( getBlockNumber
         , decodeBlockNumber
+        , Error(..)
         )
 
 import Web3.Eth.Types exposing (Block)
@@ -12,7 +13,11 @@ import Native.Web3
 import Task
 
 
-getBlockNumber : (String -> msg) -> Cmd msg
+type Error
+    = Error String
+
+
+getBlockNumber : (Result Error String -> msg) -> Cmd msg
 getBlockNumber msg =
     Task.perform msg
         (Native.Web3.request
@@ -30,6 +35,4 @@ decodeBlockNumber blockNumber =
 
 -- TODO: Thread an expected return type and decoder through to handle more complex data types.
 -- See elm-lang/elm-http for inspiration
-
-
-getBlock : Int -> (Block -> msg) -> Cmd msg
+-- getBlock : Int -> (Block -> msg) -> Cmd msg

@@ -7,6 +7,6 @@ window.addEventListener('load', function() {
     window.web3 = new Web3(web3.currentProvider);
   } else {
     // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
-    window.web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io/metamask:8545"));
+    window.web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infu.io/metamask:8545"));
   }
 });
