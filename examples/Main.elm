@@ -1,12 +1,12 @@
 module Main exposing (..)
 
+import Task
 import Html exposing (..)
-import Html.Attributes exposing (value)
 import Html.Events exposing (onClick, onInput)
 import Web3
 import Web3.Eth exposing (getBlockNumber, getBlock)
 import Web3.Eth.Types exposing (Block)
-import Task
+import BigInt
 
 
 main : Program Never Model Msg
@@ -43,7 +43,7 @@ view model =
         , br [] []
         , br [] []
         , viewBlock model.currentBlock
-        , button [ onClick (GetBlock 4000000) ] [ text "Get Block Number 4,000,000" ]
+        , button [ onClick (GetBlock 10000000) ] [ text "Get Block Number 10,000,000" ]
         , viewError model
         ]
 
@@ -62,10 +62,10 @@ viewBlock : Maybe Block -> Html Msg
 viewBlock block =
     case block of
         Nothing ->
-            div [] [ text "Press to retrieve block data" ]
+            div [] [ text "Press to retrieve block data (should fail, because block 10,000,000 hasn't been mined yet)" ]
 
         Just block_ ->
-            div [] [ text <| toString block_ ]
+            div [] [ text <| BigInt.toString block_.difficulty ]
 
 
 viewError : Model -> Html Msg
