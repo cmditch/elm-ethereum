@@ -1,5 +1,8 @@
 module Web3.Eth.Types exposing (..)
 
+{-| Web3.Eth.Types
+-}
+
 import BigInt exposing (BigInt)
 
 

@@ -94,10 +94,10 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         GetBlockNumber ->
-            model ! [ getBlockNumber GetBlockNumberResponse ]
+            model ! [ Web3.send GetBlockNumberResponse getBlockNumber ]
 
-        GetBlock int ->
-            model ! [ getBlock GetBlockResponse int ]
+        GetBlock n ->
+            model ! [ Web3.send GetBlockResponse (getBlock n) ]
 
         GetBlockNumberResponse response ->
             case response of
