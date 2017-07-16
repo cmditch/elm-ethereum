@@ -3,7 +3,7 @@ module Main exposing (..)
 import Task
 import Html exposing (..)
 import Html.Events exposing (onClick, onInput)
-import Web3 exposing (toTask)
+import Web3 exposing (Error(..), toTask)
 import Web3.Eth exposing (getBlockNumber, getBlock)
 import Web3.Eth.Types exposing (Block)
 import BigInt
@@ -86,5 +86,10 @@ update msg model =
                 Ok block ->
                     { model | latestBlock = Just block, error = Nothing } ! []
 
-                Err (Web3.Error error) ->
-                    { model | latestBlock = Nothing, error = Just error } ! []
+                Err error ->
+                    case error of
+                        Web3.Error e ->
+                            { model | latestBlock = Nothing, error = Just e } ! []
+
+                        Web3.BadPayload e ->
+                            { model | latestBlock = Nothing, error = Just ("decoding error: " ++ e) } ! []
