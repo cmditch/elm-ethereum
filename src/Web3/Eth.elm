@@ -4,32 +4,41 @@ module Web3.Eth
         , getBlock
         )
 
-import Web3 exposing (Error)
+{-| Web3.Eth
+-}
+
+import Web3 exposing (Error, Request)
 import Web3.Eth.Types exposing (Block)
 import Web3.Eth.Decoders exposing (blockDecoder)
-import Web3.Internal exposing (expectInt, expectJson)
-import Json.Encode exposing (list, int)
+import Web3.Internal as Internal exposing (Expect, expectInt, expectJson)
+import Json.Encode as Encode
 import Native.Web3
 import Task
 
 
-getBlockNumber : (Result Error Int -> msg) -> Cmd msg
-getBlockNumber msg =
-    Task.attempt msg
-        (Native.Web3.request
-            { func = "eth.getBlockNumber"
-            , args = list []
-            , expect = expectInt
-            }
-        )
+request :
+    { func : String
+    , args : Encode.Value
+    , expect : Expect a
+    }
+    -> Request a
+request =
+    Internal.Request
 
 
-getBlock : (Result Error Block -> msg) -> Int -> Cmd msg
-getBlock msg blockNum =
-    Task.attempt msg
-        (Native.Web3.request
-            { func = "eth.getBlock"
-            , args = list [ int blockNum ]
-            , expect = expectJson blockDecoder
-            }
-        )
+getBlockNumber : Request Int
+getBlockNumber =
+    request
+        { func = "eth.getBlockNumber"
+        , args = Encode.list []
+        , expect = expectInt
+        }
+
+
+getBlock : Int -> Request Block
+getBlock blockNum =
+    request
+        { func = "eth.getBlock"
+        , args = Encode.list [ Encode.int blockNum ]
+        , expect = expectJson blockDecoder
+        }

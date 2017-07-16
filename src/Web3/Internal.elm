@@ -1,12 +1,26 @@
 module Web3.Internal
     exposing
         ( Expect
+        , Request(..)
+        , RawRequest
         , expectStringResponse
         , expectInt
         , expectJson
         )
 
 import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode
+
+
+type Request a
+    = Request (RawRequest a)
+
+
+type alias RawRequest a =
+    { func : String
+    , args : Encode.Value
+    , expect : Expect a
+    }
 
 
 type alias Response =

@@ -9,23 +9,24 @@ var _cmditch$elm_web3$Native_Web3 = function() {
       undefinedResposnse: "Web3 responded with undefined."
     }
 
-    function request(data) {
+    function toTask(request) {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
-                var f = eval("web3." + data.func);
+                var f = eval("web3." + request.func);
                 f.apply(null,
-                    data.args.concat( (e, r) => {
-                        if (e !== null) {
-                            return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));
-                        }
+                    request.args.concat( (e, r) => {
 
                         if (r === null) {
-                          return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: web3Errors.nullResponse }));
+                            return callback(_elm_lang$core$Native_Scheduler.fail(
+                                { ctor: 'Error', _0: web3Errors.nullResponse }
+                            ));
                         } else if (r === undefined) {
-                          return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: web3Errors.undefinedResposnse }));
+                            return callback(_elm_lang$core$Native_Scheduler.fail(
+                                { ctor: 'Error', _0: web3Errors.undefinedResposnse }
+                            ));
                         }
 
-                        var result = data.expect.responseToResult(JSON.stringify(r));
+                        var result = request.expect.responseToResult(JSON.stringify(r));
                         return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
                     }
                 ));
@@ -42,7 +43,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     }
 
     return {
-        request: request,
+        toTask: toTask,
         expectStringResponse: expectStringResponse
     };
 
