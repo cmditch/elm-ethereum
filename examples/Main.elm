@@ -1,12 +1,12 @@
 module Main exposing (..)
 
+import Task
 import Html exposing (..)
-import Html.Attributes exposing (value)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (toTask)
 import Web3.Eth exposing (getBlockNumber, getBlock)
 import Web3.Eth.Types exposing (Block)
-import Task
+import BigInt
 
 
 main : Program Never Model Msg
@@ -50,8 +50,8 @@ viewBlock block =
         Nothing ->
             div [] [ text "Hit that button, son" ]
 
-        Just block_ ->
-            div [] [ text <| toString block_ ]
+        Just b ->
+            div [] [ text <| toString b ]
 
 
 viewError : Model -> Html Msg
