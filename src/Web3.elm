@@ -24,6 +24,7 @@ type alias Request a =
 
 type Error
     = Error String
+    | BadPayload String
 
 
 toTask : Request a -> Task Error a

@@ -16,6 +16,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 f.apply(null,
                     request.args.concat( (e, r) => {
 
+                        // Map response errors to error type
                         if (r === null) {
                             return callback(_elm_lang$core$Native_Scheduler.fail(
                                 { ctor: 'Error', _0: web3Errors.nullResponse }
@@ -26,7 +27,16 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                             ));
                         }
 
+                        // Decode the payload
                         var result = request.expect.responseToResult(JSON.stringify(r));
+                        if (result.ctor !== 'Ok') {
+                            // resolve with decoding error
+                            return callback(_elm_lang$core$Native_Scheduler.fail(
+                                {ctor: 'BadPayload', _0: result._0}
+                            ));
+                        }
+
+                        // success
                         return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
                     }
                 ));
