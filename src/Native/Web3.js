@@ -9,7 +9,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
       undefinedResposnse: "Web3 responded with undefined."
     }
 
-    function toTask(data) {
+    function toTask(request) {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
                 var f = eval("web3." + request.func);
