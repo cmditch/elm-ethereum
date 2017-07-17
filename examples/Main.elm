@@ -5,8 +5,9 @@ import Html exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
 import Web3.Eth exposing (getBlockNumber, getBlock)
-import Web3.Eth.Types exposing (Block)
-import BigInt
+import Web3.Eth.Types exposing (Address, Block)
+import HodlBox exposing (hodling)
+import BigInt exposing (BigInt)
 
 
 main : Program Never Model Msg
@@ -67,6 +68,7 @@ viewError model =
 type Msg
     = LatestBlock
     | LatestResponse (Result Web3.Error Block)
+    | HodlingResponse (Result Web3.Error BigInt)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -76,9 +78,9 @@ update msg model =
             model
                 ! [ Task.attempt LatestResponse
                         (getBlockNumber
-                            |> toTask
-                            |> Task.andThen (\latest -> getBlock latest |> toTask)
+                            |> Task.andThen (\latest -> getBlock latest)
                         )
+                  , Task.attempt HodlingResponse (hodling <| Web3.Eth.Types.Address "Testing console output")
                   ]
 
         LatestResponse response ->
@@ -93,3 +95,8 @@ update msg model =
 
                         Web3.BadPayload e ->
                             { model | latestBlock = Nothing, error = Just ("decoding error: " ++ e) } ! []
+
+        HodlingResponse response ->
+            case response of
+                _ ->
+                    model ! []

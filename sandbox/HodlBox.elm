@@ -10,9 +10,9 @@
 
 module HodlBox exposing (..)
 
-import Web3 exposing (Address, Error)
-import Web3.Eth.Types exposing (TxParams, TxId)
-import Web3.Eth.Contract exposing (sendTransaction, call)
+import Web3 exposing (Error)
+import Web3.Eth.Types exposing (Address, TxParams, TxId)
+import Web3.Eth.Contract as Contract exposing (sendTransaction, call)
 import BigInt exposing (BigInt)
 import Task exposing (Task)
 import Json.Encode as Encode exposing (Value)
@@ -23,9 +23,9 @@ abi =
     Encode.string "[]"
 
 
-deposit : Result Error TxId -> Address -> TxParams -> Task Error TxId
-deposit msg address txParams =
-    Web3.Eth.Contract.sendTransaction msg
+deposit : Address -> TxParams -> Task Error TxId
+deposit address txParams =
+    Contract.sendTransaction
         { abi = abi
         , address = address
         , params = txParams
@@ -34,18 +34,18 @@ deposit msg address txParams =
         }
 
 
-hodler : Address -> Result Error Address -> Task Error Address
-hodler address msg =
-    Web3.Eth.Contract.call msg
+hodler : Address -> Task Error Address
+hodler address =
+    Contract.call
         { abi = abi
         , address = address
         , args = Nothing
         }
 
 
-hodling : Address -> Result Error BigInt -> Task Error BigInt
-hodling address msg =
-    Web3.Eth.Contract.call msg
+hodling : Address -> Task Error BigInt
+hodling address =
+    Contract.call
         { abi = abi
         , address = address
         , args = Nothing

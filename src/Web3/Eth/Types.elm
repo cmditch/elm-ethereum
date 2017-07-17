@@ -3,16 +3,20 @@ module Web3.Eth.Types exposing (..)
 {-| Web3.Eth.Types
 -}
 
-import Web3 exposing (Address)
 import BigInt exposing (BigInt)
+import Json.Encode exposing (Value)
 
 
-type alias TxId =
-    String
+type TxId
+    = TxId String
 
 
-type alias TxData =
-    String
+type TxData
+    = TxData String
+
+
+type Address
+    = Address String
 
 
 type alias TxParams =
@@ -20,6 +24,22 @@ type alias TxParams =
     , value : Maybe BigInt
     , gas : Maybe BigInt
     , data : Maybe TxData
+    }
+
+
+type alias CallData =
+    { abi : Value
+    , address : Address
+    , args : Maybe Value
+    }
+
+
+type alias SendData =
+    { abi : Value
+    , address : Address
+    , params : TxParams
+    , args : Maybe (List Value)
+    , data : Maybe String
     }
 
 
