@@ -7,7 +7,7 @@ module Web3.Eth
 {-| Web3.Eth
 -}
 
-import Web3 exposing (Error, toTask)
+import Web3 exposing (Error)
 import Web3.Eth.Types exposing (Block)
 import Web3.Eth.Decoders exposing (blockDecoder)
 import Web3.Internal as Internal exposing (Expect, Request, expectInt, expectJson)
@@ -21,7 +21,7 @@ getBlockNumber =
     , args = Encode.list []
     , expect = expectInt
     }
-        |> toTask
+        |> Web3.toTask
 
 
 getBlock : Int -> Task Error Block
@@ -30,4 +30,4 @@ getBlock blockNum =
     , args = Encode.list [ Encode.int blockNum ]
     , expect = expectJson blockDecoder
     }
-        |> toTask
+        |> Web3.toTask
