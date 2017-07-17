@@ -17,17 +17,17 @@ import Task exposing (Task)
 
 getBlockNumber : Task Error Int
 getBlockNumber =
-    { func = "eth.getBlockNumber"
-    , args = Encode.list []
-    , expect = expectInt
-    }
-        |> Web3.toTask
+    Web3.toTask
+        { func = "eth.getBlockNumber"
+        , args = Encode.list []
+        , expect = expectInt
+        }
 
 
 getBlock : Int -> Task Error Block
 getBlock blockNum =
-    { func = "eth.getBlock"
-    , args = Encode.list [ Encode.int blockNum ]
-    , expect = expectJson blockDecoder
-    }
-        |> Web3.toTask
+    Web3.toTask
+        { func = "eth.getBlock"
+        , args = Encode.list [ Encode.int blockNum ]
+        , expect = expectJson blockDecoder
+        }

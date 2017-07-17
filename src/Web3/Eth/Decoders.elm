@@ -31,17 +31,3 @@ blockDecoder =
         |> required "transactions" (list string)
         |> required "transactionsRoot" string
         |> required "uncles" (list string)
-
-
-type Expect a
-    = Expect
-
-
-expectInt : Expect Int
-expectInt =
-    expectStringResponse (\r -> String.toInt r)
-
-
-expectJson : Decoder a -> Expect a
-expectJson decoder =
-    expectStringResponse (\r -> Decode.decodeString decoder r)
