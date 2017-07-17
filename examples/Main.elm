@@ -6,7 +6,6 @@ import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
 import Web3.Eth exposing (getBlockNumber, getBlock)
 import Web3.Eth.Types exposing (Block)
-import BigInt
 
 
 main : Program Never Model Msg
@@ -76,8 +75,7 @@ update msg model =
             model
                 ! [ Task.attempt LatestResponse
                         (getBlockNumber
-                            |> toTask
-                            |> Task.andThen (\latest -> getBlock latest |> toTask)
+                            |> Task.andThen (\latest -> getBlock latest)
                         )
                   ]
 
