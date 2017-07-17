@@ -3,7 +3,24 @@ module Web3.Eth.Types exposing (..)
 {-| Web3.Eth.Types
 -}
 
+import Web3 exposing (Address)
 import BigInt exposing (BigInt)
+
+
+type alias TxId =
+    String
+
+
+type alias TxData =
+    String
+
+
+type alias TxParams =
+    { from : Address
+    , value : Maybe BigInt
+    , gas : Maybe BigInt
+    , data : Maybe TxData
+    }
 
 
 type alias Block =

@@ -2,6 +2,7 @@ module Web3
     exposing
         ( Request
         , Error(..)
+        , Address
         , toTask
         , send
         )
@@ -25,6 +26,10 @@ type alias Request a =
 type Error
     = Error String
     | BadPayload String
+
+
+type alias Address =
+    String
 
 
 toTask : Request a -> Task Error a
