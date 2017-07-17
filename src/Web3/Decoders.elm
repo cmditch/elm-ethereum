@@ -1,4 +1,4 @@
-module Web3.Decoders exposing (bigIntDecoder)
+module Web3.Decoders exposing (bigIntDecoder, expectInt, expectJson)
 
 import Web3.Internal exposing (expectStringResponse)
 import Web3.Types exposing (Expect)

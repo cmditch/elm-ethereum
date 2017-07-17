@@ -46,16 +46,18 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         });
     };
 
-    function contractCall(test) {
+    function contractCall(data) {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-          console.log("ContractCall Works");
+          console.log(data);
+          var abi = JSON.parse(data.abi);
+          console.log(web3.eth.contract(abi));
           return callback(_elm_lang$core$Native_Scheduler.succeed());
         });
     };
 
-    function contractSend(test) {
+    function contractSend(data) {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-          console.log("ContractSend Works");
+          console.log(data);
           return callback(_elm_lang$core$Native_Scheduler.succeed());
         });
     };
