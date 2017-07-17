@@ -1,4 +1,4 @@
-# <img src="https://cdn.rawgit.com/cmditch/elm-web3/master/elm-web3-logo.svg" width="100"> elm-web3
+# <img src="https://cdn.rawgit.com/cmditch/elm-web3/master/elm-web3-logo.svg" width="75"> elm-web3
 ###### Feed the tree some ether.
 
 ```
