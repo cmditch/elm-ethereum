@@ -10,12 +10,14 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
     function toTask(request) {
+        console.log(request);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
                 var f = eval("web3." + request.func);
                 f.apply(null,
-                    request.args.concat( (e, r) => {
-
+                    // Args passed from elm are always appended with an Error-First style callback,
+                    // in order to satisfy web3's aysnchronus by design nature.
+                    request.args.concat( (e, r) =>  {
                         // Map response errors to error type
                         if (r === null) {
                             return callback(_elm_lang$core$Native_Scheduler.fail(
@@ -27,8 +29,9 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                             ));
                         }
 
-                        // Decode the payload
+                        // Decode the payload using Elm function passed to Expect
                         var result = request.expect.responseToResult(JSON.stringify(r));
+                        console.log(result);
                         if (result.ctor !== 'Ok') {
                             // resolve with decoding error
                             return callback(_elm_lang$core$Native_Scheduler.fail(
@@ -38,27 +41,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
                         // success
                         return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
-                    }
-                ));
+                    })
+                );
             } catch (e) {
                 return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));
             }
-        });
-    };
-
-    function contractCall(data) {
-        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-          console.log(data);
-          var abi = JSON.parse(data.abi);
-          console.log(web3.eth.contract(abi));
-          return callback(_elm_lang$core$Native_Scheduler.succeed());
-        });
-    };
-
-    function contractSend(data) {
-        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-          console.log(data);
-          return callback(_elm_lang$core$Native_Scheduler.succeed());
         });
     };
 
@@ -68,10 +55,9 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         };
     };
 
+
     return {
         toTask: toTask,
-        contractCall: contractCall,
-        contractSend: contractSend,
         expectStringResponse: expectStringResponse
     };
 

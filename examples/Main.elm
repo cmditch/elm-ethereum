@@ -5,9 +5,8 @@ import Html exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
 import Web3.Eth exposing (getBlockNumber, getBlock)
-import Web3.Eth.Types exposing (Address, Block)
-import HodlBox exposing (hodling)
-import BigInt exposing (BigInt)
+import Web3.Eth.Types exposing (Address(..), Block)
+import HodlBox
 
 
 main : Program Never Model Msg
@@ -22,6 +21,8 @@ main =
 
 type alias Model =
     { latestBlock : Maybe Block
+    , contractAddress : Address
+    , hodlerAddress : Maybe Address
     , error : Maybe String
     }
 
@@ -29,6 +30,8 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     { latestBlock = Nothing
+    , contractAddress = Address "0x10070265733b0f064ee81f698437cd07137bb0ec"
+    , hodlerAddress = Nothing
     , error = Nothing
     }
         ! []
@@ -37,11 +40,22 @@ init =
 view : Model -> Html Msg
 view model =
     div []
-        [ button [ onClick LatestBlock ] [ text "Get latest block info" ]
-        , br [] []
-        , br [] []
+        [ button [ onClick ButtonPress ] [ text "Touch web3 plz" ]
+        , bigBreak
         , viewBlock model.latestBlock
+        , bigBreak
+        , viewAddress model.hodlerAddress
+        , bigBreak
         , viewError model
+        ]
+
+
+bigBreak : Html Msg
+bigBreak =
+    div []
+        [ br [] []
+        , br [] []
+        , br [] []
         ]
 
 
@@ -49,10 +63,20 @@ viewBlock : Maybe Block -> Html Msg
 viewBlock block =
     case block of
         Nothing ->
-            div [] [ text "Hit that button, son" ]
+            div [] [ text "Awaiting Block info..." ]
 
-        Just b ->
-            div [] [ text <| toString b ]
+        Just block_ ->
+            div [] [ text <| toString block_ ]
+
+
+viewAddress : Maybe Address -> Html Msg
+viewAddress address =
+    case address of
+        Nothing ->
+            div [] [ text "Awaiting Address info..." ]
+
+        Just (Address addy) ->
+            div [] [ text addy ]
 
 
 viewError : Model -> Html Msg
@@ -66,27 +90,27 @@ viewError model =
 
 
 type Msg
-    = LatestBlock
+    = ButtonPress
     | LatestResponse (Result Web3.Error Block)
-    | HodlingResponse (Result Web3.Error BigInt)
+    | HodlBoxResponse (Result Web3.Error Address)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        LatestBlock ->
+        ButtonPress ->
             model
                 ! [ Task.attempt LatestResponse
                         (getBlockNumber
                             |> Task.andThen (\latest -> getBlock latest)
                         )
-                  , Task.attempt HodlingResponse (hodling <| Web3.Eth.Types.Address "Testing console output")
+                  , Task.attempt HodlBoxResponse (HodlBox.hodler model.contractAddress)
                   ]
 
         LatestResponse response ->
             case response of
                 Ok block ->
-                    { model | latestBlock = Just block, error = Nothing } ! []
+                    { model | latestBlock = Just block } ! []
 
                 Err error ->
                     case error of
@@ -96,7 +120,15 @@ update msg model =
                         Web3.BadPayload e ->
                             { model | latestBlock = Nothing, error = Just ("decoding error: " ++ e) } ! []
 
-        HodlingResponse response ->
+        HodlBoxResponse response ->
             case response of
-                _ ->
-                    model ! []
+                Ok hodler ->
+                    { model | hodlerAddress = Just hodler } ! []
+
+                Err error ->
+                    case error of
+                        Web3.Error e ->
+                            { model | hodlerAddress = Nothing, error = Just e } ! []
+
+                        Web3.BadPayload e ->
+                            { model | hodlerAddress = Nothing, error = Just ("decoding error: " ++ e) } ! []
