@@ -1,6 +1,6 @@
-module Web3.Eth.Decoders exposing (blockDecoder)
+module Web3.Eth.Decoders exposing (blockDecoder, addressDecoder)
 
-import Web3.Eth.Types exposing (Block)
+import Web3.Eth.Types exposing (Block, Address(..))
 import Web3.Decoders exposing (bigIntDecoder)
 import Json.Decode.Pipeline exposing (decode, required, optional)
 import Json.Decode as Decode exposing (int, string, list, Decoder)
@@ -31,3 +31,12 @@ blockDecoder =
         |> required "transactions" (list string)
         |> required "transactionsRoot" string
         |> required "uncles" (list string)
+
+
+addressDecoder : Decoder Address
+addressDecoder =
+    let
+        convert stringyAddress =
+            Decode.succeed (Address stringyAddress)
+    in
+        string |> Decode.andThen convert
