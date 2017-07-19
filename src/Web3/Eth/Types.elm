@@ -4,6 +4,43 @@ module Web3.Eth.Types exposing (..)
 -}
 
 import BigInt exposing (BigInt)
+import Json.Encode exposing (Value)
+
+
+type TxId
+    = TxId String
+
+
+type TxData
+    = TxData String
+
+
+type Address
+    = Address String
+
+
+type alias TxParams =
+    { from : Address
+    , value : Maybe BigInt
+    , gas : Maybe BigInt
+    , data : Maybe TxData
+    }
+
+
+type alias CallData =
+    { abi : Value
+    , address : Address
+    , args : Maybe Value
+    }
+
+
+type alias SendData =
+    { abi : Value
+    , address : Address
+    , params : TxParams
+    , args : Maybe (List Value)
+    , data : Maybe String
+    }
 
 
 type alias Block =
