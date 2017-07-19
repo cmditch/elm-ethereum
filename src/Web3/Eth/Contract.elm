@@ -12,7 +12,7 @@ import Task exposing (Task)
 call : String -> String -> Address -> String
 call abi func (Address address) =
     -- Possibly wrap things up to be type safe.
-    -- Abi, Funcs, etc?
+    -- type Abi, type Web3Func, etc?
     "eth.contract("
         ++ abi
         ++ ").at('"
