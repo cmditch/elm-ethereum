@@ -19,6 +19,10 @@ type Address
     = Address String
 
 
+type Abi
+    = Abi String
+
+
 type alias TxParams =
     { from : Address
     , value : Maybe BigInt
