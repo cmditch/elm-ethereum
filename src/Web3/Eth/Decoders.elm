@@ -1,4 +1,9 @@
-module Web3.Eth.Decoders exposing (blockDecoder, addressDecoder)
+module Web3.Eth.Decoders
+    exposing
+        ( blockDecoder
+        , addressDecoder
+        , addressToString
+        )
 
 import Web3.Eth.Types exposing (Block, Address(..))
 import Web3.Decoders exposing (bigIntDecoder)
@@ -40,3 +45,8 @@ addressDecoder =
             Decode.succeed (Address stringyAddress)
     in
         string |> Decode.andThen convert
+
+
+addressToString : Address -> String
+addressToString (Address address) =
+    address

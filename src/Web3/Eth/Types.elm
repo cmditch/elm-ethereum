@@ -25,9 +25,12 @@ type Abi
 
 type alias TxParams =
     { from : Address
+    , to : Maybe Address
     , value : Maybe BigInt
-    , gas : Maybe BigInt
+    , gas : Maybe Int
     , data : Maybe TxData
+    , gasPrice : Maybe Int
+    , nonce : Maybe Int
     }
 
 
