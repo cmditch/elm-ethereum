@@ -1,9 +1,9 @@
-pragma solidity ^0.4.13;
+pragma solidity ^0.4.11;
 
 contract TestBox {
   string public name = 'Santa';
   bytes public location = 'North Pole';
-  uint public age = 623;
+  uint public age;
   uint public flipCount = 0;
   bool public jolly = true;
   address public giftSack = 0x15ecFc141e68Ff6B3BacF0a1aC089329f9f90897;
@@ -16,8 +16,9 @@ contract TestBox {
   event JollyFlipped (bool jollyWasFlipped, bool jollyState, uint flipCount);
   event IHazNiceness (bool nice);
 
-  function TestBox () {
+  function TestBox (uint age_) {
     owner = msg.sender;
+    age = age_;
   }
 
   function add (int a, int b) constant returns (int) {

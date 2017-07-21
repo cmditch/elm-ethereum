@@ -6,7 +6,8 @@ import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
 import Web3.Eth exposing (getBlockNumber, getBlock)
 import Web3.Eth.Types exposing (Address, Block)
-import HodlBox
+import TestBox
+import BigInt
 
 
 main : Program Never Model Msg
@@ -21,8 +22,8 @@ main =
 
 type alias Model =
     { latestBlock : Maybe Block
-    , contractAddress : Address
-    , hodlerAddress : Maybe Address
+    , contractAddress : String
+    , coinbase : Address
     , error : Maybe String
     }
 
@@ -30,8 +31,8 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     { latestBlock = Nothing
-    , contractAddress = "0x10070265733b0f064ee81f698437cd07137bb0ec"
-    , hodlerAddress = Nothing
+    , contractAddress = "nada tostada"
+    , coinbase = "0xe87529a6123a74320e13a6dabf3606630683c029"
     , error = Nothing
     }
         ! []
@@ -44,7 +45,7 @@ view model =
         , bigBreak
         , viewBlock model.latestBlock
         , bigBreak
-        , viewAddress model.hodlerAddress
+        , text model.contractAddress
         , bigBreak
         , viewError model
         ]
@@ -92,7 +93,7 @@ viewError model =
 type Msg
     = ButtonPress
     | LatestResponse (Result Web3.Error Block)
-    | HodlBoxResponse (Result Web3.Error Address)
+    | TestBoxResponse (Result Web3.Error String)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -104,7 +105,7 @@ update msg model =
                         (getBlockNumber
                             |> Task.andThen (\latest -> getBlock latest)
                         )
-                  , Task.attempt HodlBoxResponse (HodlBox.hodler model.contractAddress)
+                  , Task.attempt TestBoxResponse (TestBox.new model.coinbase Nothing { age_ = BigInt.fromInt 1239 })
                   ]
 
         LatestResponse response ->
@@ -120,15 +121,15 @@ update msg model =
                         Web3.BadPayload e ->
                             { model | latestBlock = Nothing, error = Just ("decoding error: " ++ e) } ! []
 
-        HodlBoxResponse response ->
+        TestBoxResponse response ->
             case response of
-                Ok hodler ->
-                    { model | hodlerAddress = Just hodler } ! []
+                Ok contract ->
+                    { model | contractAddress = contract } ! []
 
                 Err error ->
                     case error of
                         Web3.Error e ->
-                            { model | hodlerAddress = Nothing, error = Just e } ! []
+                            { model | contractAddress = "error", error = Just e } ! []
 
                         Web3.BadPayload e ->
-                            { model | hodlerAddress = Nothing, error = Just ("decoding error: " ++ e) } ! []
+                            { model | contractAddress = "error", error = Just ("decoding error: " ++ e) } ! []

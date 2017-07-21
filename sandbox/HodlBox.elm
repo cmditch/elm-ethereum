@@ -14,7 +14,7 @@ import Web3 exposing (Error)
 import Web3.Eth.Types exposing (Address, Abi, TxParams, TxId)
 import Web3.Eth.Decoders exposing (addressDecoder)
 import Web3.Decoders exposing (expectJson)
-import Web3.Eth.Contract as Contract exposing (sendTransaction, call)
+import Web3.Eth.Contract as Contract
 import Task exposing (Task)
 import Json.Encode as Encode exposing (Value)
 

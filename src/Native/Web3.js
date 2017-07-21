@@ -9,6 +9,20 @@ var _cmditch$elm_web3$Native_Web3 = function() {
       undefinedResposnse: "Web3 responded with undefined."
     };
 
+
+    function handleNullorUndefinedResponse(callback, r) {
+        if (r === null) {
+            return callback(_elm_lang$core$Native_Scheduler.fail(
+                { ctor: 'Error', _0: web3Errors.nullResponse }
+            ));
+        } else if (r === undefined) {
+            return callback(_elm_lang$core$Native_Scheduler.fail(
+                { ctor: 'Error', _0: web3Errors.undefinedResposnse }
+            ));
+        }
+    };
+
+
     function toTask(request) {
         console.log(request);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
@@ -19,16 +33,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     // in order to satisfy web3's aysnchronus by design nature.
                     request.args.concat( (e, r) =>  {
                         // Map response errors to error type
-                        if (r === null) {
-                            return callback(_elm_lang$core$Native_Scheduler.fail(
-                                { ctor: 'Error', _0: web3Errors.nullResponse }
-                            ));
-                        } else if (r === undefined) {
-                            return callback(_elm_lang$core$Native_Scheduler.fail(
-                                { ctor: 'Error', _0: web3Errors.undefinedResposnse }
-                            ));
-                        }
-
+                        handleNullorUndefinedResponse(callback, r);
                         // Decode the payload using Elm function passed to Expect
                         var result = request.expect.responseToResult(JSON.stringify(r));
                         console.log(result);
@@ -38,16 +43,48 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                                 {ctor: 'BadPayload', _0: result._0}
                             ));
                         }
-
                         // success
                         return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
                     })
                 );
             } catch (e) {
+                console.log(e);
                 return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));
             }
         });
     };
+
+
+    function deployContract(request) {
+        console.log(request);
+        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
+            try {
+                var f = eval("web3." + request.func);
+                f.new()
+
+                    request.args.concat( (e, r) =>  {
+                        // Map response errors to error type
+                        handleNullorUndefinedResponse(callback, r);
+                        // Decode the payload using Elm function passed to Expect
+                        var result = request.expect.responseToResult(JSON.stringify(r));
+                        console.log(result);
+                        if (result.ctor !== 'Ok') {
+                            // resolve with decoding error
+                            return callback(_elm_lang$core$Native_Scheduler.fail(
+                                {ctor: 'BadPayload', _0: result._0}
+                            ));
+                        }
+                        // success
+                        return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
+                    })
+                );
+            } catch (e) {
+                console.log(e);
+                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));
+            }
+        });
+    };
+
 
     function expectStringResponse(responseToResult) {
         return {

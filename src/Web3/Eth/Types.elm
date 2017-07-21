@@ -23,6 +23,10 @@ type alias Abi =
     String
 
 
+type alias ConstructorParams =
+    Value
+
+
 type alias TxParams =
     { from : Address
     , to : Maybe Address
@@ -38,15 +42,6 @@ type alias CallData =
     { abi : Value
     , address : Address
     , args : Maybe Value
-    }
-
-
-type alias SendData =
-    { abi : Value
-    , address : Address
-    , params : TxParams
-    , args : Maybe (List Value)
-    , data : Maybe String
     }
 
 
