@@ -11,7 +11,7 @@
 module HodlBox exposing (..)
 
 import Web3 exposing (Error)
-import Web3.Eth.Types exposing (Address(..), TxParams, TxId)
+import Web3.Eth.Types exposing (Address, Abi, TxParams, TxId)
 import Web3.Eth.Decoders exposing (addressDecoder)
 import Web3.Decoders exposing (expectJson)
 import Web3.Eth.Contract as Contract exposing (sendTransaction, call)
@@ -22,7 +22,7 @@ import Json.Encode as Encode exposing (Value)
 -- import BigInt exposing (BigInt)
 
 
-abi : String
+abi : Abi
 abi =
     """ [{"constant":true,"inputs":[],"name":"hodlTillBlock","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":false,"inputs":[],"name":"releaseTheHodl","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"hodler","outputs":[{"name":"","type":"address"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"hodlCountdown","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"hodling","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"isDeholdable","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"withdrawn","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":false,"inputs":[],"name":"deposit","outputs":[],"payable":true,"type":"function"},{"inputs":[{"name":"_blocks","type":"uint256"}],"payable":true,"type":"constructor"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_isReleased","type":"bool"}],"name":"HodlReleased","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_isCreated","type":"bool"}],"name":"Hodling","type":"event"}]"""
 

@@ -2,10 +2,9 @@ module Web3.Eth.Decoders
     exposing
         ( blockDecoder
         , addressDecoder
-        , addressToString
         )
 
-import Web3.Eth.Types exposing (Block, Address(..))
+import Web3.Eth.Types exposing (Block, Address, TxData)
 import Web3.Decoders exposing (bigIntDecoder)
 import Json.Decode.Pipeline exposing (decode, required, optional)
 import Json.Decode as Decode exposing (int, string, list, Decoder)
@@ -14,7 +13,7 @@ import Json.Decode as Decode exposing (int, string, list, Decoder)
 blockDecoder : Decoder Block
 blockDecoder =
     decode Block
-        |> optional "author" string ""
+        |> optional "author" addressDecoder ""
         |> required "difficulty" bigIntDecoder
         |> required "extraData" string
         |> required "gasLimit" int
@@ -40,13 +39,4 @@ blockDecoder =
 
 addressDecoder : Decoder Address
 addressDecoder =
-    let
-        convert stringyAddress =
-            Decode.succeed (Address stringyAddress)
-    in
-        string |> Decode.andThen convert
-
-
-addressToString : Address -> String
-addressToString (Address address) =
-    address
+    string

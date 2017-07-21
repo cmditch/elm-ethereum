@@ -7,20 +7,20 @@ import BigInt exposing (BigInt)
 import Json.Encode exposing (Value)
 
 
-type TxId
-    = TxId String
+type alias TxId =
+    String
 
 
-type TxData
-    = TxData String
+type alias TxData =
+    String
 
 
-type Address
-    = Address String
+type alias Address =
+    String
 
 
-type Abi
-    = Abi String
+type alias Abi =
+    String
 
 
 type alias TxParams =
@@ -51,7 +51,7 @@ type alias SendData =
 
 
 type alias Block =
-    { author : String
+    { author : Address
     , difficulty : BigInt
     , extraData : String
     , gasLimit : Int

@@ -5,7 +5,7 @@ import Html exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
 import Web3.Eth exposing (getBlockNumber, getBlock)
-import Web3.Eth.Types exposing (Address(..), Block)
+import Web3.Eth.Types exposing (Address, Block)
 import HodlBox
 
 
@@ -30,7 +30,7 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     { latestBlock = Nothing
-    , contractAddress = Address "0x10070265733b0f064ee81f698437cd07137bb0ec"
+    , contractAddress = "0x10070265733b0f064ee81f698437cd07137bb0ec"
     , hodlerAddress = Nothing
     , error = Nothing
     }
@@ -75,8 +75,8 @@ viewAddress address =
         Nothing ->
             div [] [ text "Awaiting Address info..." ]
 
-        Just (Address addy) ->
-            div [] [ text addy ]
+        Just address_ ->
+            div [] [ text address_ ]
 
 
 viewError : Model -> Html Msg
