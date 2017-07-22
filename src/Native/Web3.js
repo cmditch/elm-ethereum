@@ -55,6 +55,21 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
+    function deployContract(deployFunc){
+        // console.log(deployFunc);
+        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
+            try {
+                var contract = eval("web3." + deployFunc);
+                return callback(_elm_lang$core$Native_Scheduler.succeed(contract.transactionHash));
+            }
+            catch (e) {
+                console.log(e);
+                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));
+            }
+        });
+    };
+
+
     //TODO Implement event watching and event stopping.
     function eventsHandler(){
 
@@ -70,6 +85,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     return {
         toTask: toTask,
+        deployContract: deployContract,
         expectStringResponse: expectStringResponse
     };
 

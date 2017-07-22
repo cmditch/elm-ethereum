@@ -40,3 +40,18 @@ blockDecoder =
 addressDecoder : Decoder Address
 addressDecoder =
     string
+
+
+
+-- newContractResultDecoder : Decoder ( TxId, Address )
+-- newContractResultDecoder =
+--     let
+--         convert txIdAddressTuple =
+--             case BigInt.fromString stringyBigInt of
+--                 Just bigint ->
+--                     Decode.succeed bigint
+--
+--                 Nothing ->
+--                     Decode.fail "Error decoding BigInt"
+--     in
+--         object |> Decode.andThen convert

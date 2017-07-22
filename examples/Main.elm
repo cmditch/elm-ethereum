@@ -5,7 +5,7 @@ import Html exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
 import Web3.Eth exposing (getBlockNumber, getBlock)
-import Web3.Eth.Types exposing (Address, Block)
+import Web3.Eth.Types exposing (Address, Block, TxId)
 import TestBox
 import BigInt
 
@@ -22,7 +22,7 @@ main =
 
 type alias Model =
     { latestBlock : Maybe Block
-    , contractAddress : String
+    , contractInfo : ( TxId, Address )
     , coinbase : Address
     , error : Maybe String
     }
@@ -31,7 +31,7 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     { latestBlock = Nothing
-    , contractAddress = "nada tostada"
+    , contractInfo = ( "asdas", "asda" )
     , coinbase = "0xe87529a6123a74320e13a6dabf3606630683c029"
     , error = Nothing
     }
@@ -45,7 +45,7 @@ view model =
         , bigBreak
         , viewBlock model.latestBlock
         , bigBreak
-        , text model.contractAddress
+        , text <| toString model.contractInfo
         , bigBreak
         , viewError model
         ]
@@ -93,7 +93,7 @@ viewError model =
 type Msg
     = ButtonPress
     | LatestResponse (Result Web3.Error Block)
-    | TestBoxResponse (Result Web3.Error String)
+    | TestBoxResponse (Result Web3.Error ( TxId, Address ))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -101,11 +101,7 @@ update msg model =
     case msg of
         ButtonPress ->
             model
-                ! [ Task.attempt LatestResponse
-                        (getBlockNumber
-                            |> Task.andThen (\latest -> getBlock latest)
-                        )
-                  , Task.attempt TestBoxResponse (TestBox.new model.coinbase Nothing { age_ = BigInt.fromInt 1239 })
+                ! [ Task.attempt TestBoxResponse (TestBox.new model.coinbase Nothing { age_ = BigInt.fromInt 424242 })
                   ]
 
         LatestResponse response ->
@@ -123,13 +119,13 @@ update msg model =
 
         TestBoxResponse response ->
             case response of
-                Ok contract ->
-                    { model | contractAddress = contract } ! []
+                Ok contractInfo ->
+                    { model | contractInfo = contractInfo } ! []
 
                 Err error ->
                     case error of
                         Web3.Error e ->
-                            { model | contractAddress = "error", error = Just e } ! []
+                            { model | contractInfo = ( "error", "derp" ), error = Just e } ! []
 
                         Web3.BadPayload e ->
-                            { model | contractAddress = "error", error = Just ("decoding error: " ++ e) } ! []
+                            { model | contractInfo = ( "error", "derp" ), error = Just ("decoding error: " ++ e) } ! []
