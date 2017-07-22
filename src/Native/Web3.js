@@ -9,7 +9,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
       undefinedResposnse: "Web3 responded with undefined."
     };
 
-
+    //TODO: Test to see if this even works -- set blocknumber super high on getBlock and try it on the mainnet
     function handleNullorUndefinedResponse(callback, r) {
         if (r === null) {
             return callback(_elm_lang$core$Native_Scheduler.fail(
@@ -55,34 +55,9 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-    function deployContract(request) {
-        console.log(request);
-        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-            try {
-                var f = eval("web3." + request.func);
-                f.new()
+    //TODO Implement event watching and event stopping.
+    function eventsHandler(){
 
-                    request.args.concat( (e, r) =>  {
-                        // Map response errors to error type
-                        handleNullorUndefinedResponse(callback, r);
-                        // Decode the payload using Elm function passed to Expect
-                        var result = request.expect.responseToResult(JSON.stringify(r));
-                        console.log(result);
-                        if (result.ctor !== 'Ok') {
-                            // resolve with decoding error
-                            return callback(_elm_lang$core$Native_Scheduler.fail(
-                                {ctor: 'BadPayload', _0: result._0}
-                            ));
-                        }
-                        // success
-                        return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
-                    })
-                );
-            } catch (e) {
-                console.log(e);
-                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));
-            }
-        });
     };
 
 
