@@ -1,18 +1,14 @@
 module Web3.Eth.Contract
     exposing
         ( call
-        , sendTransaction
+        , new
         )
 
-import Web3 exposing (Error)
-import Web3.Eth.Types exposing (Address(..), CallData, SendData)
-import Task exposing (Task)
+import Web3.Eth.Types exposing (Address, Abi, TxParams, ConstructorParams)
 
 
-call : String -> String -> Address -> String
-call abi func (Address address) =
-    -- Possibly wrap things up to be type safe.
-    -- type Abi, type Web3Func, etc?
+call : Abi -> String -> Address -> String
+call abi func address =
     "eth.contract("
         ++ abi
         ++ ").at('"
@@ -21,6 +17,8 @@ call abi func (Address address) =
         ++ func
 
 
-sendTransaction : SendData -> Task Error a
-sendTransaction data =
-    Native.Web3.contractSend data
+new : Abi -> String
+new abi =
+    "eth.contract("
+        ++ abi
+        ++ ").new"
