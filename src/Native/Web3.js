@@ -60,7 +60,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
                 var contract = eval("web3." + deployFunc);
-                return callback(_elm_lang$core$Native_Scheduler.succeed(contract.transactionHash));
+                console.log(contract);
+                var address = (contract.address == null || contract.address == undefined) ? "not mined" : contract.address
+                return callback(_elm_lang$core$Native_Scheduler.succeed(
+                    { ctor: "_Tuple2", _0: contract.transactionHash, _1: address }
+                ));
             }
             catch (e) {
                 console.log(e);

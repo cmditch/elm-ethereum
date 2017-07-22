@@ -8,7 +8,7 @@ module Web3.Eth
 -}
 
 import Web3 exposing (Error)
-import Web3.Eth.Types exposing (Block)
+import Web3.Eth.Types exposing (Block, TxReceipt, TxId)
 import Web3.Decoders exposing (expectInt, expectJson)
 import Web3.Eth.Decoders exposing (blockDecoder)
 import Json.Encode as Encode
@@ -30,4 +30,13 @@ getBlock blockNum =
         { func = "eth.getBlock"
         , args = Encode.list [ Encode.int blockNum ]
         , expect = expectJson blockDecoder
+        }
+
+
+getTransactionReceipt : TxId -> Task Error TxReceipt
+getTransactionReceipt txId =
+    Web3.toTask
+        { func = "eth.getBlockNumber"
+        , args = Encode.list []
+        , expect = expectInt
         }

@@ -4,7 +4,7 @@ module Web3.Eth.Decoders
         , addressDecoder
         )
 
-import Web3.Eth.Types exposing (Block, Address, TxData)
+import Web3.Eth.Types exposing (Block, Address, TxData, TxId)
 import Web3.Decoders exposing (bigIntDecoder)
 import Json.Decode.Pipeline exposing (decode, required, optional)
 import Json.Decode as Decode exposing (int, string, list, Decoder)
@@ -43,15 +43,10 @@ addressDecoder =
 
 
 
--- newContractResultDecoder : Decoder ( TxId, Address )
--- newContractResultDecoder =
+-- contractDeployDecoder : Decoder ( TxId, Address )
+-- contractDeployDecoder =
 --     let
---         convert txIdAddressTuple =
---             case BigInt.fromString stringyBigInt of
---                 Just bigint ->
---                     Decode.succeed bigint
---
---                 Nothing ->
---                     Decode.fail "Error decoding BigInt"
+--         convert { txId, address } =
+--             Decode.succeed ( txId, address )
 --     in
---         object |> Decode.andThen convert
+--         objectconvert

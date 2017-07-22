@@ -40,7 +40,7 @@ data =
 -- Mitigation needed during code generation. Last 6 chars of the abi's hash appended to constructor param names?
 
 
-new : Address -> Maybe BigInt -> Constructor -> Task Error ( TxId, Address )
+new : Address -> Maybe BigInt -> Constructor -> Task Error TxId
 new address value { age_ } =
     let
         value_ =
@@ -61,7 +61,7 @@ new address value { age_ } =
                 ++ "', value: '"
                 ++ value_
                 ++ "', gas: "
-                ++ "'900000'"
+                ++ "'90000'"
                 ++ ", data: '"
                 ++ data
                 ++ "'})"

@@ -21,6 +21,6 @@ call abi func address =
         ++ func
 
 
-deployContract : String -> Task Error ( TxId, Address )
+deployContract : String -> Task Error TxId
 deployContract evalFunc =
     Native.Web3.deployContract evalFunc

@@ -31,7 +31,7 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     { latestBlock = Nothing
-    , contractInfo = ( "asdas", "asda" )
+    , contractInfo = ( "TxId", "Contract Address" )
     , coinbase = "0xe87529a6123a74320e13a6dabf3606630683c029"
     , error = Nothing
     }
