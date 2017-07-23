@@ -1,8 +1,41 @@
 module BigIntTesting exposing (..)
 
 import Json.Decode as Decode exposing (Decoder, string)
-import BigInt exposing (BigInt(..))
-import String.Extra exposing (leftOf)
+import BigInt exposing (BigInt)
+
+
+runTest : Bool
+runTest =
+    posListTest && negListTest
+
+
+removeENotation : String -> String
+removeENotation string =
+    let
+        removeE orig char acc =
+            if char == "e" then
+                acc
+            else if char == "" then
+                orig
+            else
+                removeE orig (String.right 1 acc) (String.dropRight 1 acc)
+    in
+        removeE string (String.right 1 string) (String.dropRight 1 string)
+            |> String.filter (\c -> c /= '.')
+
+
+bigIntDecoder : Decoder BigInt
+bigIntDecoder =
+    let
+        convert stringyBigInt =
+            case stringyBigInt |> BigInt.fromString of
+                Just bigint ->
+                    Decode.succeed bigint
+
+                Nothing ->
+                    Decode.fail "Error decoding BigInt"
+    in
+        string |> Decode.andThen (removeENotation >> convert)
 
 
 withAll : String
@@ -45,35 +78,37 @@ negWithoutAll =
     "\"-100389287136786176327247604509743168900146139575972864366142685224231313322991\""
 
 
-testList : List String
-testList =
-    [ withAll, withoutE, withoutPeriod, withoutAll, negWithAll, negWithoutE, negWithoutPeriod, negWithoutAll ]
-
-
-decodedList : List (Result String BigInt.BigInt)
-decodedList =
-    testList
+posListTest : Bool
+posListTest =
+    [ negWithAll, negWithoutE, negWithoutPeriod, negWithoutAll ]
         |> List.map (Decode.decodeString bigIntDecoder)
+        |> List.map testPosMaybeBigInt
+        |> List.all (\a -> a == True)
 
 
+negListTest : Bool
+negListTest =
+    [ withAll, withoutE, withoutPeriod, withoutAll ]
+        |> List.map (Decode.decodeString bigIntDecoder)
+        |> List.map testNegMaybeBigInt
+        |> List.all (\a -> a == True)
 
--- isListOk : Bool
--- isListOk =
---     decodedList
+
+testPosMaybeBigInt : Result error BigInt -> Bool
+testPosMaybeBigInt mBigInt =
+    case mBigInt of
+        Ok bigInt ->
+            BigInt.gt (BigInt.fromInt 0) bigInt
+
+        Err _ ->
+            False
 
 
-bigIntDecoder : Decoder BigInt
-bigIntDecoder =
-    let
-        removeENotation =
-            leftOf "e" >> String.filter (\c -> c /= '.')
+testNegMaybeBigInt : Result error BigInt -> Bool
+testNegMaybeBigInt mBigInt =
+    case mBigInt of
+        Ok bigInt ->
+            BigInt.lt (BigInt.fromInt 0) bigInt
 
-        convert stringyBigInt =
-            case stringyBigInt |> BigInt.fromString of
-                Just bigint ->
-                    Decode.succeed bigint
-
-                Nothing ->
-                    Decode.fail "Error decoding BigInt"
-    in
-        string |> Decode.andThen (removeENotation >> convert)
+        Err _ ->
+            False
