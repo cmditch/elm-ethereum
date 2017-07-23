@@ -2,7 +2,9 @@ module LightBox exposing (..)
 
 import Web3 exposing (Error)
 import Web3.Eth.Types exposing (Address, Abi, TxParams, TxData, NewContract)
-import Web3.Eth.Contract
+import Web3.Decoders exposing (bigIntDecoder, expectJson)
+import Web3.Eth.Contract as Contract
+import Json.Encode as Encode exposing (int)
 import Task exposing (Task)
 import BigInt exposing (BigInt)
 
@@ -22,11 +24,25 @@ data =
 
 
 
--- metamask gas Price == 156950 ?
--- testrpc gas price == 156799 ?
+-- metamask Mainnet gas Price == 156950
+-- metamas Ropsten gas Price == 174290
+-- testrpc gas price == 156799
 --
 -- Collisions will be possible between constructor names in someones solidity contract and values used elm
 -- Mitigation needed during code generation. Last 6 chars of the abi's hash appended to constructor param names?
+
+
+add : Address -> Int -> Int -> Task Error BigInt
+add address a b =
+    Web3.toTask
+        { func = Contract.call abi "add" address
+        , args = Encode.list [ int a, int b ]
+        , expect = expectJson bigIntDecoder
+        }
+
+
+
+-- TODO Make defaultParams Object {gas, value, gasPrice, nonce}
 
 
 new : Maybe BigInt -> Constructor -> Task Error NewContract
@@ -50,9 +66,10 @@ new value { someNum_ } =
                 ++ ", value: '"
                 ++ value_
                 ++ "', gas: "
-                ++ "'2000000'"
+                ++ "'200000'"
+                ++ ", gasPrice: '5000000000'"
                 ++ ", data: '"
                 ++ data
                 ++ "'}, metaMaskCallBack )"
     in
-        Web3.Eth.Contract.deployContract deployFunc
+        Contract.deployContract deployFunc
