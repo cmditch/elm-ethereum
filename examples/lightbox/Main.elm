@@ -68,7 +68,12 @@ viewAddButton : Model -> Html Msg
 viewAddButton model =
     case model.contractInfo of
         Deployed { address } ->
-            button [ onClick (AddNumbers address 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ]
+            div []
+                [ div []
+                    [ text "You can call LightBox.add(11,12)"
+                    , div [] [ button [ onClick (AddNumbers address 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
+                    ]
+                ]
 
         _ ->
             div [] []
