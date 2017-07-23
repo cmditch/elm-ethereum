@@ -4,8 +4,7 @@ import Task
 import Html exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
-import Web3.Eth exposing (getBlockNumber, getBlock)
-import Web3.Eth.Types exposing (Address, Block, TxId)
+import Web3.Eth.Types exposing (Address, Block, TxId, NewContract)
 import TestBox
 import BigInt
 
@@ -22,7 +21,7 @@ main =
 
 type alias Model =
     { latestBlock : Maybe Block
-    , contractInfo : ( TxId, Address )
+    , contractInfo : NewContract
     , coinbase : Address
     , error : Maybe String
     }
@@ -31,7 +30,7 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     { latestBlock = Nothing
-    , contractInfo = ( "TxId", "Contract Address" )
+    , contractInfo = NewContract "TxId" "Contract Address"
     , coinbase = "0xe87529a6123a74320e13a6dabf3606630683c029"
     , error = Nothing
     }
@@ -93,7 +92,7 @@ viewError model =
 type Msg
     = ButtonPress
     | LatestResponse (Result Web3.Error Block)
-    | TestBoxResponse (Result Web3.Error ( TxId, Address ))
+    | TestBoxResponse (Result Web3.Error NewContract)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -117,6 +116,9 @@ update msg model =
                         Web3.BadPayload e ->
                             { model | latestBlock = Nothing, error = Just ("decoding error: " ++ e) } ! []
 
+                        Web3.NoWallet ->
+                            { model | latestBlock = Nothing, error = Just ("No Wallet Detected") } ! []
+
         TestBoxResponse response ->
             case response of
                 Ok contractInfo ->
@@ -125,7 +127,10 @@ update msg model =
                 Err error ->
                     case error of
                         Web3.Error e ->
-                            { model | contractInfo = ( "error", "derp" ), error = Just e } ! []
+                            { model | contractInfo = NewContract "error" "derp", error = Just e } ! []
 
                         Web3.BadPayload e ->
-                            { model | contractInfo = ( "error", "derp" ), error = Just ("decoding error: " ++ e) } ! []
+                            { model | contractInfo = NewContract "Bad" "Payload", error = Just ("decoding error: " ++ e) } ! []
+
+                        Web3.NoWallet ->
+                            { model | contractInfo = NewContract "No" "Walzor", error = Just (" No Wallet Detected") } ! []

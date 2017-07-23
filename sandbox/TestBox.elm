@@ -11,7 +11,7 @@
 module TestBox exposing (..)
 
 import Web3 exposing (Error)
-import Web3.Eth.Types exposing (Address, Abi, TxParams, TxId, TxData)
+import Web3.Eth.Types exposing (Address, Abi, TxParams, TxData, NewContract)
 import Web3.Eth.Contract
 import Task exposing (Task)
 import BigInt exposing (BigInt)
@@ -40,7 +40,7 @@ data =
 -- Mitigation needed during code generation. Last 6 chars of the abi's hash appended to constructor param names?
 
 
-new : Address -> Maybe BigInt -> Constructor -> Task Error TxId
+new : Address -> Maybe BigInt -> Constructor -> Task Error NewContract
 new address value { age_ } =
     let
         value_ =
@@ -56,14 +56,14 @@ new address value { age_ } =
                 ++ ").new"
                 ++ "("
                 ++ ctorArg1
-                ++ ", {from: '"
-                ++ address
-                ++ "', value: '"
+                ++ ", {from: "
+                ++ "web3.eth.accounts[0]"
+                ++ ", value: '"
                 ++ value_
                 ++ "', gas: "
-                ++ "'90000'"
+                ++ "'2000000'"
                 ++ ", data: '"
                 ++ data
-                ++ "'})"
+                ++ "'}, metaMaskCallBack )"
     in
         Web3.Eth.Contract.deployContract deployFunc

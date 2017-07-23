@@ -4,7 +4,6 @@ import Web3.Internal exposing (expectStringResponse)
 import Web3.Types exposing (Expect)
 import Json.Decode as Decode exposing (string, Decoder)
 import BigInt exposing (BigInt)
-import String.Extra exposing (leftOf)
 
 
 -- TODO We'll need to test the formatting of bigNumbers which removes e notation.
@@ -15,9 +14,6 @@ import String.Extra exposing (leftOf)
 bigIntDecoder : Decoder BigInt
 bigIntDecoder =
     let
-        removeENotation =
-            leftOf "e" >> String.filter (\c -> c /= '.')
-
         convert stringyBigInt =
             case stringyBigInt |> BigInt.fromString of
                 Just bigint ->
@@ -26,7 +22,7 @@ bigIntDecoder =
                 Nothing ->
                     Decode.fail "Error decoding BigInt"
     in
-        string |> Decode.andThen (removeENotation >> convert)
+        string |> Decode.andThen convert
 
 
 expectInt : Expect Int

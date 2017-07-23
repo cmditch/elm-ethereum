@@ -23,6 +23,12 @@ type alias Abi =
     String
 
 
+type alias NewContract =
+    { txId : TxId
+    , address : Address
+    }
+
+
 type alias ConstructorParams =
     Value
 

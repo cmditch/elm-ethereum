@@ -7,7 +7,7 @@ module Web3.Eth.Contract
 -- import Web3.Internal exposing (Request)
 
 import Web3 exposing (Error)
-import Web3.Eth.Types exposing (Address, Abi, TxId)
+import Web3.Eth.Types exposing (Address, Abi, NewContract)
 import Task exposing (Task)
 
 
@@ -21,6 +21,6 @@ call abi func address =
         ++ func
 
 
-deployContract : String -> Task Error TxId
+deployContract : String -> Task Error NewContract
 deployContract evalFunc =
     Native.Web3.deployContract evalFunc

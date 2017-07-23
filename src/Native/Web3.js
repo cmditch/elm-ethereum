@@ -5,8 +5,10 @@
 var _cmditch$elm_web3$Native_Web3 = function() {
 
     var web3Errors = {
-      nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
-      undefinedResposnse: "Web3 responded with undefined."
+        nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
+        undefinedResposnse: "Web3 responded with undefined.",
+        deniedTransaction: "MetaMask Tx Signature: User denied transaction signature.",
+        unknown: "Unknwown till further testing is performed."
     };
 
     //TODO: Test to see if this even works -- set blocknumber super high on getBlock and try it on the mainnet
@@ -55,24 +57,52 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
+
     function deployContract(deployFunc){
-        // console.log(deployFunc);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
+
+                if (web3.eth.accounts[0] == undefined) {
+                    console.log("This didn't work");
+                    return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'NoWallet' }));
+                };
+
+                function metaMaskCallBack(e,r) {
+                    try {
+                        // Ignore first callback of unmined contract
+                        if (e === null && r.address === undefined) {
+                            return console.log(r.transactionHash);
+                        // Succeed on mined contract
+                        } else if (e === null && r.address !== undefined) {
+                            return callback(_elm_lang$core$Native_Scheduler.succeed(
+                                { txId: r.transactionHash, address: r.address }
+                            ));
+                        // Fail on error
+                      } else {
+                            return callback(_elm_lang$core$Native_Scheduler.fail(
+                                // TODO Return a tuple of errors, where: (simpleDescription, fullConsoleOutput)
+                                { ctor: 'Error', _0: web3Errors.deniedTransaction }
+                            ));
+                        }
+                    } catch(e) {
+                        return callback(_elm_lang$core$Native_Scheduler.fail(
+                            { ctor: 'Error', _0: e.toString }
+                        ));
+                    }
+                };
+                // Eval contract data + metaMaskCallBack
                 var contract = eval("web3." + deployFunc);
-                console.log(contract);
-                var address = (contract.address == null || contract.address == undefined) ? "not mined" : contract.address
-                return callback(_elm_lang$core$Native_Scheduler.succeed(
-                    { ctor: "_Tuple2", _0: contract.transactionHash, _1: address }
-                ));
-            }
-            catch (e) {
+            } catch (e) {
                 console.log(e);
-                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));
+                // TODO Return a tuple of errors, where: (simpleDescription, fullConsoleOutput)
+                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: web3Errors.deniedTransaction }));
             }
         });
     };
 
+    function checkForWallet(callback) {
+
+    };
 
     //TODO Implement event watching and event stopping.
     function eventsHandler(){
