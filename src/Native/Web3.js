@@ -5,6 +5,8 @@
 var _cmditch$elm_web3$Native_Web3 = function() {
 
     var web3Errors = {
+        timeoutMs: 60000,
+        timeoutError: "Transaction timeout. Mining failed or network took to long. Check console for txId (Cmd + Option + i).",
         nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
         undefinedResposnse: "Web3 responded with undefined.",
         deniedTransaction: "MetaMask Tx Signature: User denied transaction signature.",
@@ -62,47 +64,62 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
 
+                // Throw error if wallet doesn't exist
                 if (web3.eth.accounts[0] == undefined) {
-                    console.log("This didn't work");
                     return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'NoWallet' }));
                 };
 
+                // Throw error if tx takes longer than timeout
+                function startTimeout() {
+                  setTimeout( () => { return callback(_elm_lang$core$Native_Scheduler.fail(
+                        { ctor: 'Error', _0: web3Errors.timeoutError }
+                    ))}
+                    , web3Errors.timeoutMs
+                )}
+
+                // This is called through the contract eval statement config'd in elm
                 function metaMaskCallBack(e,r) {
                     try {
                         // Ignore first callback of unmined contract
                         if (e === null && r.address === undefined) {
-                            return console.log(r.transactionHash);
+                            startTimeout();
+                            console.log("TxId: " + r.transactionHash);
+                            console.log("Time: " + new Date().getTime() );
+                            return
                         // Succeed on mined contract
                         } else if (e === null && r.address !== undefined) {
                             return callback(_elm_lang$core$Native_Scheduler.succeed(
                                 { txId: r.transactionHash, address: r.address }
                             ));
                         // Fail on error
-                      } else {
+                        } else {
+                            console.log("e !== null, inside the 'else' return in callBack conditional: ");
+                            console.log(e);
+                            var err = e.toString()
                             return callback(_elm_lang$core$Native_Scheduler.fail(
                                 // TODO Return a tuple of errors, where: (simpleDescription, fullConsoleOutput)
-                                { ctor: 'Error', _0: web3Errors.deniedTransaction }
+                                { ctor: 'Error', _0: err.split("\n")[0] }
                             ));
                         }
                     } catch(e) {
+                        console.log("Inside the catch during metaMaskCallBack:  ");
+                        console.log(e);
                         return callback(_elm_lang$core$Native_Scheduler.fail(
-                            { ctor: 'Error', _0: e.toString }
+                            { ctor: 'Error', _0: e.toString() }
                         ));
                     }
                 };
                 // Eval contract data + metaMaskCallBack
                 var contract = eval("web3." + deployFunc);
             } catch (e) {
-                console.log(e);
                 // TODO Return a tuple of errors, where: (simpleDescription, fullConsoleOutput)
-                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: web3Errors.deniedTransaction }));
+                console.log("Inside the catch during deployWallet:  ");
+                console.log(e);
+                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: "Denied Transaction?" }));
             }
         });
     };
 
-    function checkForWallet(callback) {
-
-    };
 
     //TODO Implement event watching and event stopping.
     function eventsHandler(){

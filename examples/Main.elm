@@ -23,7 +23,7 @@ type alias Model =
     { latestBlock : Maybe Block
     , contractInfo : NewContract
     , coinbase : Address
-    , error : Maybe String
+    , error : List String
     }
 
 
@@ -32,7 +32,7 @@ init =
     { latestBlock = Nothing
     , contractInfo = NewContract "TxId" "Contract Address"
     , coinbase = "0xe87529a6123a74320e13a6dabf3606630683c029"
-    , error = Nothing
+    , error = []
     }
         ! []
 
@@ -46,7 +46,7 @@ view model =
         , bigBreak
         , text <| toString model.contractInfo
         , bigBreak
-        , viewError model
+        , viewError model.error
         ]
 
 
@@ -79,14 +79,14 @@ viewAddress address =
             div [] [ text address_ ]
 
 
-viewError : Model -> Html Msg
-viewError model =
-    case model.error of
-        Nothing ->
+viewError : List String -> Html Msg
+viewError error =
+    case error of
+        [] ->
             span [] []
 
-        Just err ->
-            div [] [ text err ]
+        _ ->
+            div [] [ text <| toString error ]
 
 
 type Msg
@@ -111,13 +111,13 @@ update msg model =
                 Err error ->
                     case error of
                         Web3.Error e ->
-                            { model | latestBlock = Nothing, error = Just e } ! []
+                            { model | latestBlock = Nothing, error = e :: model.error } ! []
 
                         Web3.BadPayload e ->
-                            { model | latestBlock = Nothing, error = Just ("decoding error: " ++ e) } ! []
+                            { model | latestBlock = Nothing, error = ("decoding error: " ++ e) :: model.error } ! []
 
                         Web3.NoWallet ->
-                            { model | latestBlock = Nothing, error = Just ("No Wallet Detected") } ! []
+                            { model | latestBlock = Nothing, error = ("No Wallet Detected") :: model.error } ! []
 
         TestBoxResponse response ->
             case response of
@@ -127,10 +127,10 @@ update msg model =
                 Err error ->
                     case error of
                         Web3.Error e ->
-                            { model | contractInfo = NewContract "error" "derp", error = Just e } ! []
+                            { model | contractInfo = NewContract "error" "derp", error = e :: model.error } ! []
 
                         Web3.BadPayload e ->
-                            { model | contractInfo = NewContract "Bad" "Payload", error = Just ("decoding error: " ++ e) } ! []
+                            { model | contractInfo = NewContract "Bad" "Payload", error = ("decoding error: " ++ e) :: model.error } ! []
 
                         Web3.NoWallet ->
-                            { model | contractInfo = NewContract "No" "Walzor", error = Just (" No Wallet Detected") } ! []
+                            { model | contractInfo = NewContract "No" "Walzor", error = (" No Wallet Detected") :: model.error } ! []
