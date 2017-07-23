@@ -33,10 +33,11 @@ getBlock blockNum =
         }
 
 
-getTransactionReceipt : TxId -> Task Error TxReceipt
-getTransactionReceipt txId =
-    Web3.toTask
-        { func = "eth.getBlockNumber"
-        , args = Encode.list []
-        , expect = expectInt
-        }
+
+-- getTransactionReceipt : TxId -> Task Error TxReceipt
+-- getTransactionReceipt txId =
+--     Web3.toTask
+--         { func = "eth.getBlockNumber"
+--         , args = Encode.list []
+--         , expect = expectInt
+--         }

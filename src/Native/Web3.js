@@ -35,7 +35,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                         // Map response errors to error type
                         handleNullorUndefinedResponse(callback, r);
                         // Decode the payload using Elm function passed to Expect
-                        var result = request.expect.responseToResult(JSON.stringify(r));
+                        var result = request.expect.responseToResult( formatResponse(r) );
                         console.log(result);
                         if (result.ctor !== 'Ok') {
                             // resolve with decoding error
@@ -85,6 +85,24 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             responseToResult: responseToResult
         };
     };
+
+
+    function formatResponse(r) {
+      switch (true) {
+        case r.isBigNumber :
+          try { r = r.toFixed() } catch(e) {};
+        case r.totalDifficulty !== undefined :
+          try { r.totalDifficulty = r.totalDifficulty.toFixed() } catch(e) {};
+        case r.difficulty !== undefined :
+          try { r.difficulty = r.difficulty.toFixed() } catch(e) {};
+        case r.value !== undefined :
+          try { r.value = r.value.toFixed() } catch(e) {};
+        case r.gasPrice !== undefined :
+          try { r.gasPrice = r.gasPrice.toFixed() } catch(e) {};
+        default:
+          return JSON.stringify(r);
+      }
+    }
 
 
     return {
