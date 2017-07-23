@@ -5,7 +5,7 @@
 var _cmditch$elm_web3$Native_Web3 = function() {
 
     var web3Errors = {
-        timeoutMs: 60000,
+        timeoutInMs: 60000,
         timeoutError: "Transaction timeout. Mining failed or network took to long. Check console for txId (Cmd + Option + i).",
         nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
         undefinedResposnse: "Web3 responded with undefined.",
@@ -63,6 +63,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     function deployContract(deployFunc){
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
+                console.log("Request Object: ", deployFunc);
 
                 // Throw error if wallet doesn't exist
                 if (web3.eth.accounts[0] == undefined) {
@@ -74,7 +75,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                   setTimeout( () => { return callback(_elm_lang$core$Native_Scheduler.fail(
                         { ctor: 'Error', _0: web3Errors.timeoutError }
                     ))}
-                    , web3Errors.timeoutMs
+                    , web3Errors.timeoutInMs
                 )}
 
                 // This is called through the contract eval statement config'd in elm
@@ -111,6 +112,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 };
                 // Eval contract data + metaMaskCallBack
                 var contract = eval("web3." + deployFunc);
+                console.log("Eval'd Contract: ", contract);
             } catch (e) {
                 // TODO Return a tuple of errors, where: (simpleDescription, fullConsoleOutput)
                 console.log("Inside the catch during deployWallet:  ");

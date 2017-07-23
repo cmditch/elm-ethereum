@@ -5,7 +5,7 @@ import Html exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
 import Web3.Eth.Types exposing (Address, Block, TxId, NewContract)
-import TestBox
+import LightBox
 import BigInt
 
 
@@ -92,7 +92,7 @@ viewError error =
 type Msg
     = ButtonPress
     | LatestResponse (Result Web3.Error Block)
-    | TestBoxResponse (Result Web3.Error NewContract)
+    | LightBoxResponse (Result Web3.Error NewContract)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -100,7 +100,11 @@ update msg model =
     case msg of
         ButtonPress ->
             model
-                ! [ Task.attempt TestBoxResponse (TestBox.new model.coinbase Nothing { age_ = BigInt.fromInt 424242 })
+                ! [ Task.attempt LightBoxResponse
+                        (LightBox.new
+                            (BigInt.fromString "502030200")
+                            { someNum_ = BigInt.fromInt -321 }
+                        )
                   ]
 
         LatestResponse response ->
@@ -119,7 +123,7 @@ update msg model =
                         Web3.NoWallet ->
                             { model | latestBlock = Nothing, error = ("No Wallet Detected") :: model.error } ! []
 
-        TestBoxResponse response ->
+        LightBoxResponse response ->
             case response of
                 Ok contractInfo ->
                     { model | contractInfo = contractInfo } ! []

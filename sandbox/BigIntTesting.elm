@@ -11,6 +11,7 @@ runTest =
 
 removeENotation : String -> String
 removeENotation string =
+    -- TODO Will likely not need this nifty function anymore.
     let
         removeE orig char acc =
             if char == "e" then
