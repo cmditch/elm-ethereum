@@ -12,6 +12,7 @@ import Web3.Internal exposing (Request)
 type Error
     = Error String
     | BadPayload String
+    | NoWallet
 
 
 toTask : Request a -> Task Error a

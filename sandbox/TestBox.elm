@@ -1,22 +1,9 @@
--- d0e30db0 deposit()
--- 77a1ec4b hodlCountdown()
--- 0c8b29ae hodlTillBlock()
--- 3bc58532 hodler()
--- 7844ce81 hodling()
--- bc7e8d3c isDeholdable()
--- 2b1e5016 releaseTheHodl()
--- c80ec522 withdrawn()
-
-
 module TestBox exposing (..)
 
 import Web3 exposing (Error)
-import Web3.Eth.Types exposing (Address, Abi, TxParams, TxId, TxData)
-import Web3.Eth.Encoders exposing (txParamsEncoder)
-import Web3.Decoders exposing (expectJson)
+import Web3.Eth.Types exposing (Address, Abi, TxParams, TxData, NewContract)
+import Web3.Eth.Contract
 import Task exposing (Task)
-import Json.Encode as Encode exposing (Value, null)
-import Json.Decode as Decode
 import BigInt exposing (BigInt)
 
 
@@ -39,26 +26,34 @@ data =
 -- metamask gas Price = 862198
 -- testrpc gas price == 876408
 --
--- Collisions will be possible between constructor names in somones solidity contract and values used elm
+-- Collisions will be possible between constructor names in someones solidity contract and values used elm
 -- Mitigation needed during code generation. Last 6 chars of the abi's hash appended to constructor param names?
 
 
-new : Address -> Maybe BigInt -> Constructor -> Task Error String
+new : Address -> Maybe BigInt -> Constructor -> Task Error NewContract
 new address value { age_ } =
     let
-        txParams =
-            txParamsEncoder
-                { from = address
-                , to = Nothing
-                , value = value
-                , gas = Just 900000
-                , data = Just data
-                , gasPrice = Nothing
-                , nonce = Nothing
-                }
+        value_ =
+            Maybe.map BigInt.toString value
+                |> Maybe.withDefault "0"
+
+        ctorArg1 =
+            BigInt.toString age_
+
+        deployFunc =
+            "eth.contract("
+                ++ abi
+                ++ ").new"
+                ++ "("
+                ++ ctorArg1
+                ++ ", {from: "
+                ++ "web3.eth.accounts[0]"
+                ++ ", value: '"
+                ++ value_
+                ++ "', gas: "
+                ++ "'2000000'"
+                ++ ", data: '"
+                ++ data
+                ++ "'}, metaMaskCallBack )"
     in
-        Web3.toTask
-            { func = "eth.contract(" ++ abi ++ ").new"
-            , args = Encode.list [ BigInt.toString age_ |> Encode.string, txParams ]
-            , expect = expectJson Decode.string
-            }
+        Web3.Eth.Contract.deployContract deployFunc

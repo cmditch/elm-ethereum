@@ -23,6 +23,12 @@ type alias Abi =
     String
 
 
+type alias NewContract =
+    { txId : TxId
+    , address : Address
+    }
+
+
 type alias ConstructorParams =
     Value
 
@@ -68,4 +74,34 @@ type alias Block =
     , transactions : List String
     , transactionsRoot : String
     , uncles : List String
+    }
+
+
+type alias TxReceipt =
+    { transactionHash : String
+    , transactionIndex : Int
+    , blockHash : String
+    , blockNumber : Int
+    , gasUsed : Int
+    , cumulativeGasUsed : Int
+    , contractAddress : String
+    , logs : List Log
+    }
+
+
+
+-- TODO Log { type_ } field is an elm keyword... remedy?
+
+
+type alias Log =
+    { address : String
+    , blockHash : String
+    , blockNumber : Int
+    , data : String
+    , logIndex : Int
+    , topics : List String
+    , transactionHash : String
+    , transactionIndex : Int
+    , transactionLogIndex : String
+    , type_ : String
     }

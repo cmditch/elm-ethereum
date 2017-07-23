@@ -10,7 +10,7 @@ bigIntDecoder : Decoder BigInt
 bigIntDecoder =
     let
         convert stringyBigInt =
-            case BigInt.fromString stringyBigInt of
+            case stringyBigInt |> BigInt.fromString of
                 Just bigint ->
                     Decode.succeed bigint
 
