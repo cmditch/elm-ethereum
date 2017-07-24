@@ -5,27 +5,19 @@
 var _cmditch$elm_web3$Native_Web3 = function() {
 
     var web3Errors = {
-        timeoutInMs: 60000,
-        timeoutError: "Transaction timeout. Mining failed or network took to long. Check console for txId (Cmd + Option + i).",
+        timeoutInMs: 90000, // 1.5 Minutes
+        // TODO should timeout be it's own error type? Probably not, since only deployContract can timeout currently.
+        timeoutError: "Transaction timeout. Mining failed or network took to long. TxId: ",
         nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
         undefinedResposnse: "Web3 responded with undefined.",
         deniedTransaction: "MetaMask Tx Signature: User denied transaction signature.",
         unknown: "Unknwown till further testing is performed."
     };
 
-    //TODO: Test to see if this even works -- set blocknumber super high on getBlock and try it on the mainnet
-    function handleNullorUndefinedResponse(callback, r) {
-        if (r === null) {
-            return callback(_elm_lang$core$Native_Scheduler.fail(
-                { ctor: 'Error', _0: web3Errors.nullResponse }
-            ));
-        } else if (r === undefined) {
-            return callback(_elm_lang$core$Native_Scheduler.fail(
-                { ctor: 'Error', _0: web3Errors.undefinedResposnse }
-            ));
-        }
-    };
+// TODO   Deal with "Web3 responded with undefined." (Transaction cancelled usually),
+//        and"Error: invalid address" (MetaMask was not unlocked...)
 
+// TODO Return a tuple of errors, where: (simpleDescription, fullConsoleOutput)
 
     function toTask(request) {
         console.log(request);
@@ -37,7 +29,16 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     // in order to satisfy web3's aysnchronus by design nature.
                     request.args.concat( (e, r) =>  {
                         // Map response errors to error type
-                        handleNullorUndefinedResponse(callback, r);
+                        if (r === null) {
+                            return callback(_elm_lang$core$Native_Scheduler.fail(
+                                { ctor: 'Error', _0: web3Errors.nullResponse }
+                            ));
+                        } else if (r === undefined) {
+                        // This will execute when using metamask and 'rejecting' a tx.
+                            return callback(_elm_lang$core$Native_Scheduler.fail(
+                                { ctor: 'Error', _0: web3Errors.undefinedResposnse }
+                            ));
+                        }
                         // Decode the payload using Elm function passed to Expect
                         var result = request.expect.responseToResult( formatResponse(r) );
                         console.log(result);
@@ -59,7 +60,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-
+// Lots of temporary console.logs for debugging purposes.
     function deployContract(deployFunc){
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
@@ -71,26 +72,28 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 };
 
                 // Throw error if tx takes longer than timeout
-                function startTimeout() {
+                function startTimeout(contract) {
+                  var txId = "Error fetching txId.";
+                  if (contract !== undefined) { txId = contract.transactionHash };
                   setTimeout( () => { return callback(_elm_lang$core$Native_Scheduler.fail(
-                        { ctor: 'Error', _0: web3Errors.timeoutError }
+                        { ctor: 'Error', _0: web3Errors.timeoutError + txId }
                     ))}
                     , web3Errors.timeoutInMs
                 )}
 
                 // This is called through the contract eval statement config'd in elm
-                function metaMaskCallBack(e,r) {
+                function metaMaskCallBack(e, contract) {
                     try {
                         // Ignore first callback of unmined contract
-                        if (e === null && r.address === undefined) {
-                            startTimeout();
-                            console.log("TxId: " + r.transactionHash);
+                        if (e === null && contract.address === undefined) {
+                            startTimeout(contract);
+                            console.log("TxId: " + contract.transactionHash);
                             console.log("Time: " + new Date().getTime() );
                             return
                         // Succeed on mined contract
-                        } else if (e === null && r.address !== undefined) {
+                      } else if (e === null && contract.address !== undefined) {
                             return callback(_elm_lang$core$Native_Scheduler.succeed(
-                                { txId: r.transactionHash, address: r.address }
+                                { txId: contract.transactionHash, address: contract.address }
                             ));
                         // Fail on error
                         } else {
@@ -114,7 +117,6 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 var contract = eval("web3." + deployFunc);
                 console.log("Eval'd Contract: ", contract);
             } catch (e) {
-                // TODO Return a tuple of errors, where: (simpleDescription, fullConsoleOutput)
                 console.log("Inside the catch during deployWallet:  ");
                 console.log(e);
                 return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: "Denied Transaction?" }));

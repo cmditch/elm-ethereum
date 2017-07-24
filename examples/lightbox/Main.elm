@@ -33,13 +33,13 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     { latestBlock = Nothing
-    , contractInfo = UnDeployed
+    , contractInfo = Deployed <| NewContract "0x742f7f7e2f564159dece37e1fc0d6454bef638bdf57ecea576baf94718863de3" "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487"
     , coinbase = "0xe87529a6123a74320e13a6dabf3606630683c029"
     , additionAnswer = Nothing
     , txIds = []
     , error = []
     }
-        ! [{- TODO Web3.init command needed, for wallet check and web3 connection status -}]
+        ! [{- TODO Web3.init command needed. Program w/ flags  for wallet check and web3 connection status -}]
 
 
 view : Model -> Html Msg
@@ -48,8 +48,9 @@ view model =
         [ button [ onClick DeployContract ] [ text "Touch web3 plz" ]
         , bigBreak
         , viewAddButton model
-          -- , bigBreak
-          -- , viewBlock model.latestBlock
+
+        -- , bigBreak
+        -- , viewBlock model.latestBlock
         , bigBreak
         , viewContractInfo model.contractInfo
         , bigBreak
