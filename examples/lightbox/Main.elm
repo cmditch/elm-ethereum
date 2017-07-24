@@ -168,7 +168,7 @@ update msg model =
                 ! [ Task.attempt LightBoxResponse
                         (LightBox.new
                             (BigInt.fromString "502030200")
-                            { someNum_ = BigInt.fromInt -254 }
+                            { someNum_ = BigInt.fromInt 13 }
                         )
                   ]
 
@@ -208,7 +208,7 @@ update msg model =
                             { model | contractInfo = ErrorDeploying, error = ("decoding error: " ++ e) :: model.error } ! []
 
                         Web3.NoWallet ->
-                            { model | contractInfo = ErrorDeploying, error = ("No Wallet Detected") :: model.error } ! []
+                            { model | contractInfo = ErrorDeploying, error = ("No Wallet Detected. Make sure MetaMask is unlocked.") :: model.error } ! []
 
         LightBoxAddResponse response ->
             case response of

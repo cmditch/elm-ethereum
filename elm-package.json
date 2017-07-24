@@ -6,7 +6,9 @@
     "source-directories": [
         ".",
         "./src",
-        "./sandbox"
+        "./sandbox",
+        "./examples/lightbox",
+        "./examples/testbox"
     ],
     "exposed-modules": [],
     "native-modules": true,
