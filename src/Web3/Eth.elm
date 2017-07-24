@@ -2,13 +2,14 @@ module Web3.Eth
     exposing
         ( getBlockNumber
         , getBlock
+        , defaultTxParams
         )
 
 {-| Web3.Eth
 -}
 
 import Web3 exposing (Error)
-import Web3.Eth.Types exposing (Block, TxReceipt, TxId)
+import Web3.Eth.Types exposing (Block, TxReceipt, TxId, TxParams)
 import Web3.Decoders exposing (expectInt, expectJson)
 import Web3.Eth.Decoders exposing (blockDecoder)
 import Json.Encode as Encode
@@ -41,3 +42,15 @@ getBlock blockNum =
 --         , args = Encode.list []
 --         , expect = expectInt
 --         }
+
+
+defaultTxParams : TxParams
+defaultTxParams =
+    { from = Nothing
+    , to = Nothing
+    , value = Nothing
+    , data = Nothing
+    , gas = Nothing
+    , gasPrice = Just 1000000000
+    , nonce = Nothing
+    }

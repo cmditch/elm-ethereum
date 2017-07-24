@@ -1,10 +1,10 @@
 module LightBox exposing (..)
 
 import Web3 exposing (Error)
-import Web3.Eth.Types exposing (Address, Abi, TxParams, TxData, NewContract)
-import Web3.Decoders exposing (bigIntDecoder, expectJson)
+import Web3.Eth.Types exposing (Address, Abi, TxParams, TxData, NewContract, TxId)
+import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
 import Web3.Eth.Contract as Contract
-import Json.Encode as Encode exposing (int)
+import Json.Encode as Encode exposing (int, string)
 import Task exposing (Task)
 import BigInt exposing (BigInt)
 
@@ -41,20 +41,13 @@ add address a b =
         }
 
 
-
--- mutateAdd : Address -> Int -> Task Error BigInt
--- mutateAdd address n =
---   let
---     func =
---       "()"
---   in
---     Web3.toTask
---         { func = Contract.sendTransaction abi "add" address
---         , args = Encode.list [ int n ]
---         , expect = expectJson bigIntDecoder
---         }
---
--- TODO Make defaultParams Object {gas, value, gasPrice, nonce}
+mutateAdd : Address -> Int -> Task Error TxId
+mutateAdd address n =
+    Web3.toTask
+        { func = Contract.call abi "mutateAdd" address
+        , args = Encode.list [ int n ]
+        , expect = expectString
+        }
 
 
 new : Maybe BigInt -> Constructor -> Task Error NewContract
