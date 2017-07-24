@@ -1,8 +1,8 @@
-module Web3.Decoders exposing (bigIntDecoder, expectInt, expectJson)
+module Web3.Decoders exposing (expectInt, expectString, expectJson, bigIntDecoder)
 
 import Web3.Internal exposing (expectStringResponse)
 import Web3.Types exposing (Expect)
-import Json.Decode as Decode exposing (string, Decoder)
+import Json.Decode as Decode exposing (int, string, Decoder)
 import BigInt exposing (BigInt)
 
 
@@ -22,9 +22,14 @@ bigIntDecoder =
 
 expectInt : Expect Int
 expectInt =
-    expectStringResponse (\r -> String.toInt r)
+    expectStringResponse (\r -> Decode.decodeString int r)
 
 
 expectJson : Decoder a -> Expect a
 expectJson decoder =
     expectStringResponse (\r -> Decode.decodeString decoder r)
+
+
+expectString : Expect String
+expectString =
+    expectStringResponse (\r -> Decode.decodeString string r)

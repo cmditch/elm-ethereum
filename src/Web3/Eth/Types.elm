@@ -34,7 +34,7 @@ type alias ConstructorParams =
 
 
 type alias TxParams =
-    { from : Address
+    { from : Maybe Address
     , to : Maybe Address
     , value : Maybe BigInt
     , gas : Maybe Int

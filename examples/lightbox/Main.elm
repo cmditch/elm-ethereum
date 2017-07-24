@@ -25,6 +25,7 @@ type alias Model =
     , contractInfo : DeployableContract
     , coinbase : Address
     , additionAnswer : Maybe BigInt
+    , txIds : List TxId
     , error : List String
     }
 
@@ -35,6 +36,7 @@ init =
     , contractInfo = UnDeployed
     , coinbase = "0xe87529a6123a74320e13a6dabf3606630683c029"
     , additionAnswer = Nothing
+    , txIds = []
     , error = []
     }
         ! [{- TODO Web3.init command needed, for wallet check and web3 connection status -}]
@@ -69,10 +71,12 @@ viewAddButton model =
     case model.contractInfo of
         Deployed { address } ->
             div []
-                [ div []
-                    [ text "You can call LightBox.add(11,12)"
-                    , div [] [ button [ onClick (AddNumbers address 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
-                    ]
+                [ text "You can call LightBox.add(11,12)"
+                , div [] [ button [ onClick (AddNumbers address 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
+                , bigBreak
+                , div [] [ button [ onClick (MutateAdd address 23) ] [ text <| "Add 23 to someNum" ] ]
+                , bigBreak
+                , div [] [ text <| toString model.txIds ]
                 ]
 
         _ ->
@@ -155,73 +159,77 @@ viewError error =
 type Msg
     = DeployContract
     | AddNumbers Address Int Int
+    | MutateAdd Address Int
     | LatestResponse (Result Web3.Error Block)
     | LightBoxResponse (Result Web3.Error NewContract)
     | LightBoxAddResponse (Result Web3.Error BigInt)
+    | LightBoxMutateAddResponse (Result Web3.Error TxId)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        DeployContract ->
-            { model | contractInfo = Deploying }
-                ! [ Task.attempt LightBoxResponse
-                        (LightBox.new
-                            (BigInt.fromString "502030200")
-                            { someNum_ = BigInt.fromInt 13 }
-                        )
-                  ]
+    let
+        handleError model_ error =
+            case error of
+                Web3.Error e ->
+                    { model_ | error = e :: model_.error } ! []
 
-        AddNumbers address a b ->
-            model
-                ! [ Task.attempt LightBoxAddResponse
-                        (LightBox.add address a b)
-                  ]
+                Web3.BadPayload e ->
+                    { model_ | error = ("decoding error: " ++ e) :: model_.error } ! []
 
-        LatestResponse response ->
-            case response of
-                Ok block ->
-                    { model | latestBlock = Just block } ! []
+                Web3.NoWallet ->
+                    { model_ | error = ("No Wallet Detected") :: model_.error } ! []
+    in
+        case msg of
+            DeployContract ->
+                { model | contractInfo = Deploying }
+                    ! [ Task.attempt LightBoxResponse
+                            (LightBox.new
+                                (BigInt.fromString "502030200")
+                                { someNum_ = BigInt.fromInt 13 }
+                            )
+                      ]
 
-                Err error ->
-                    case error of
-                        Web3.Error e ->
-                            { model | latestBlock = Nothing, error = e :: model.error } ! []
+            AddNumbers address a b ->
+                model
+                    ! [ Task.attempt LightBoxAddResponse
+                            (LightBox.add address a b)
+                      ]
 
-                        Web3.BadPayload e ->
-                            { model | latestBlock = Nothing, error = ("decoding error: " ++ e) :: model.error } ! []
+            LatestResponse response ->
+                case response of
+                    Ok block ->
+                        { model | latestBlock = Just block } ! []
 
-                        Web3.NoWallet ->
-                            { model | latestBlock = Nothing, error = ("No Wallet Detected") :: model.error } ! []
+                    Err error ->
+                        handleError { model | latestBlock = Nothing } error
 
-        LightBoxResponse response ->
-            case response of
-                Ok contractInfo ->
-                    { model | contractInfo = Deployed contractInfo } ! []
+            LightBoxResponse response ->
+                case response of
+                    Ok contractInfo ->
+                        { model | contractInfo = Deployed contractInfo } ! []
 
-                Err error ->
-                    case error of
-                        Web3.Error e ->
-                            { model | contractInfo = ErrorDeploying, error = e :: model.error } ! []
+                    Err error ->
+                        handleError { model | contractInfo = ErrorDeploying } error
 
-                        Web3.BadPayload e ->
-                            { model | contractInfo = ErrorDeploying, error = ("decoding error: " ++ e) :: model.error } ! []
+            LightBoxAddResponse response ->
+                case response of
+                    Ok theSum ->
+                        { model | additionAnswer = Just theSum } ! []
 
-                        Web3.NoWallet ->
-                            { model | contractInfo = ErrorDeploying, error = ("No Wallet Detected. Make sure MetaMask is unlocked.") :: model.error } ! []
+                    Err error ->
+                        handleError model error
 
-        LightBoxAddResponse response ->
-            case response of
-                Ok theSum ->
-                    { model | additionAnswer = Just theSum } ! []
+            MutateAdd address a ->
+                model
+                    ! [ Task.attempt LightBoxMutateAddResponse
+                            (LightBox.mutateAdd address a)
+                      ]
 
-                Err error ->
-                    case error of
-                        Web3.Error e ->
-                            { model | additionAnswer = Nothing, error = e :: model.error } ! []
+            LightBoxMutateAddResponse response ->
+                case response of
+                    Ok txId ->
+                        { model | txIds = txId :: model.txIds } ! []
 
-                        Web3.BadPayload e ->
-                            { model | additionAnswer = Nothing, error = ("decoding error: " ++ e) :: model.error } ! []
-
-                        Web3.NoWallet ->
-                            { model | additionAnswer = Nothing, error = ("No Wallet Detected") :: model.error } ! []
+                    Err error ->
+                        handleError model error
