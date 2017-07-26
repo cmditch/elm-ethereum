@@ -21,6 +21,11 @@ call abi func address =
         ++ func
 
 
+getData : Abi -> String -> String
+getData abi func =
+    ""
+
+
 deployContract : String -> Task Error NewContract
 deployContract evalFunc =
     Native.Web3.deployContract evalFunc

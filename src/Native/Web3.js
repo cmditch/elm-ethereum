@@ -4,14 +4,17 @@
 
 var _cmditch$elm_web3$Native_Web3 = function() {
 
-    var web3Errors = {
-        timeoutInMs: 90000, // 1.5 Minutes
-        // TODO should timeout be it's own error type? Probably not, since only deployContract can timeout currently.
-        timeoutError: "Transaction timeout. Mining failed or network took to long. TxId: ",
-        nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
-        undefinedResposnse: "Web3 responded with undefined.",
-        deniedTransaction: "MetaMask Tx Signature: User denied transaction signature.",
-        unknown: "Unknwown till further testing is performed."
+    const config = {
+        web3BigNumberFields: ["totalDifficulty", "difficulty", "value", "gasPrice"],
+        timeoutInMs: 90000,
+        error: {
+            // TODO should timeout be it's own error type? Probably not, since only deployContract can timeout currently.
+            timeoutError: "Transaction timeout. Mining failed or network took to long. TxId: ",
+            nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
+            undefinedResposnse: "Web3 responded with undefined.",
+            deniedTransaction: "MetaMask Tx Signature: User denied transaction signature.",
+            unknown: "Unknwown till further testing is performed."
+        }
     };
 
 // TODO   Deal with "Web3 responded with undefined." (Transaction cancelled usually),
@@ -31,16 +34,16 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                         // Map response errors to error type
                         if (r === null) {
                             return callback(_elm_lang$core$Native_Scheduler.fail(
-                                { ctor: 'Error', _0: web3Errors.nullResponse }
+                                { ctor: 'Error', _0: config.error.nullResponse }
                             ));
                         } else if (r === undefined) {
                         // This will execute when using metamask and 'rejecting' a tx.
                             return callback(_elm_lang$core$Native_Scheduler.fail(
-                                { ctor: 'Error', _0: web3Errors.undefinedResposnse }
+                                { ctor: 'Error', _0: config.error.undefinedResposnse }
                             ));
                         }
                         // Decode the payload using Elm function passed to Expect
-                        var result = request.expect.responseToResult( formatResponse(r) );
+                        var result = request.expect.responseToResult( formatWeb3Response(r) );
                         console.log(result);
                         if (result.ctor !== 'Ok') {
                             // resolve with decoding error
@@ -60,7 +63,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-// Lots of temporary console.logs for debugging purposes.
+    /*
+    // This should be refactored and might be able to use the more general toTask above.
+    // If we implement the timeoutable Task.AndThen pattern within elm.
+    // MyContract.new.getData(ctor1, ctor2, {data: '0x12312'}) -> sendTransaction({data, gas, etc}) -> listenForMinedContract
+    */
     function deployContract(deployFunc){
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
@@ -76,9 +83,9 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                   var txId = "Error fetching txId.";
                   if (contract !== undefined) { txId = contract.transactionHash };
                   setTimeout( () => { return callback(_elm_lang$core$Native_Scheduler.fail(
-                        { ctor: 'Error', _0: web3Errors.timeoutError + txId }
+                        { ctor: 'Error', _0: config.error.timeoutError + txId }
                     ))}
-                    , web3Errors.timeoutInMs
+                    , config.timeoutInMs
                 )}
 
                 // This is called through the contract eval statement config'd in elm
@@ -125,12 +132,19 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
+    /*
     //TODO Implement event watching and event stopping.
+    */
     function eventsHandler(){
 
     };
 
 
+    /*
+    // All web3 requests from Elm have an 'Expect' function or decoder attached.
+    // The user should not have to worry about all the nuances of decoding web3 responses.
+    // The function below allows for this trickery to occur, in combination with Web3.Internal.elm
+    */
     function expectStringResponse(responseToResult) {
         return {
             responseToResult: responseToResult
@@ -138,22 +152,29 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-    function formatResponse(r) {
-      switch (true) {
-        case r.isBigNumber :
-          try { r = r.toFixed() } catch(e) {};
-        case r.totalDifficulty !== undefined :
-          try { r.totalDifficulty = r.totalDifficulty.toFixed() } catch(e) {};
-        case r.difficulty !== undefined :
-          try { r.difficulty = r.difficulty.toFixed() } catch(e) {};
-        case r.value !== undefined :
-          try { r.value = r.value.toFixed() } catch(e) {};
-        case r.gasPrice !== undefined :
-          try { r.gasPrice = r.gasPrice.toFixed() } catch(e) {};
-        default:
-          return JSON.stringify(r);
-      }
-    }
+    /*
+    // Check each response from web3 for BigNumber values and convert to fixed string.
+    // JSON.stringify all values from web3 before sending to Elm.
+    */
+    function formatWeb3Response(r) {
+        if (r.isBigNumber) { return r.toFixed() }
+        config.web3BigNumberFields.forEach( val => {
+            if (r[val] !== undefined && r[val].isBigNumber) {
+                r[val] = r[val].toFixed();
+            }
+        });
+        return JSON.stringify(r);
+    };
+
+
+    /*
+    // Convert known BigNumber fields in event.args to fixed string.
+    //
+    */
+    function formatEventResponse(r) {
+      bigIntKeys.forEach( key => eventObj.args[key] = eventObj.args[key].toFixed() );
+      return eventObj;
+    };
 
 
     return {

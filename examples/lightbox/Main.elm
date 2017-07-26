@@ -45,7 +45,7 @@ init =
 view : Model -> Html Msg
 view model =
     div []
-        [ button [ onClick DeployContract ] [ text "Touch web3 plz" ]
+        [ button [ onClick DeployContract ] [ text "Deploy new LightBox" ]
         , bigBreak
         , viewAddButton model
 
@@ -75,7 +75,7 @@ viewAddButton model =
                 [ text "You can call LightBox.add(11,12)"
                 , div [] [ button [ onClick (AddNumbers address 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
                 , bigBreak
-                , div [] [ button [ onClick (MutateAdd address 23) ] [ text <| "Add 23 to someNum" ] ]
+                , div [] [ button [ onClick (MutateAdd address 2) ] [ text <| "Add 42 to someNum" ] ]
                 , bigBreak
                 , div [] [ text <| toString model.txIds ]
                 ]
