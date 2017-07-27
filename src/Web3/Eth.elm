@@ -3,15 +3,18 @@ module Web3.Eth
         ( getBlockNumber
         , getBlock
         , defaultTxParams
+        , estimateGas
+        , sendTransaction
         )
 
 {-| Web3.Eth
 -}
 
 import Web3 exposing (Error)
-import Web3.Eth.Types exposing (Block, TxReceipt, TxId, TxParams)
-import Web3.Decoders exposing (expectInt, expectJson)
+import Web3.Eth.Types exposing (..)
+import Web3.Decoders exposing (expectInt, expectJson, expectString)
 import Web3.Eth.Decoders exposing (blockDecoder)
+import Web3.Eth.Encoders exposing (txParamsEncoder)
 import Json.Encode as Encode
 import Task exposing (Task)
 
@@ -34,6 +37,24 @@ getBlock blockNum =
         }
 
 
+estimateGas : TxParams -> Task Error Int
+estimateGas txParams =
+    Web3.toTask
+        { func = "eth.estimateGas"
+        , args = Encode.list [ txParamsEncoder txParams ]
+        , expect = expectInt
+        }
+
+
+sendTransaction : TxParams -> Task Error TxId
+sendTransaction txParams =
+    Web3.toTask
+        { func = "eth.sendTransaction"
+        , args = Encode.list [ txParamsEncoder txParams ]
+        , expect = expectString
+        }
+
+
 
 -- getTransactionReceipt : TxId -> Task Error TxReceipt
 -- getTransactionReceipt txId =
@@ -51,6 +72,6 @@ defaultTxParams =
     , value = Nothing
     , data = Nothing
     , gas = Nothing
-    , gasPrice = Just 1000000000
+    , gasPrice = Just 2000000000
     , nonce = Nothing
     }

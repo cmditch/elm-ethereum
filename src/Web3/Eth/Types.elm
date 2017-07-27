@@ -11,7 +11,7 @@ type alias TxId =
     String
 
 
-type alias TxData =
+type alias Bytes =
     String
 
 
@@ -38,7 +38,7 @@ type alias TxParams =
     , to : Maybe Address
     , value : Maybe BigInt
     , gas : Maybe Int
-    , data : Maybe TxData
+    , data : Maybe Bytes
     , gasPrice : Maybe Int
     , nonce : Maybe Int
     }

@@ -4,7 +4,7 @@ module Web3.Eth.Decoders
         , addressDecoder
         )
 
-import Web3.Eth.Types exposing (Block, Address, TxData, TxId)
+import Web3.Eth.Types exposing (Block, Address, Bytes, TxId)
 import Web3.Decoders exposing (bigIntDecoder)
 import Json.Decode.Pipeline exposing (decode, required, optional)
 import Json.Decode as Decode exposing (int, string, list, Decoder)
@@ -40,13 +40,3 @@ blockDecoder =
 addressDecoder : Decoder Address
 addressDecoder =
     string
-
-
-
--- contractDeployDecoder : Decoder ( TxId, Address )
--- contractDeployDecoder =
---     let
---         convert { txId, address } =
---             Decode.succeed ( txId, address )
---     in
---         objectconvert

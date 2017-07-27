@@ -6,10 +6,8 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     const config = {
         web3BigNumberFields: ["totalDifficulty", "difficulty", "value", "gasPrice"],
-        timeoutInMs: 90000,
         error: {
             // TODO should timeout be it's own error type? Probably not, since only deployContract can timeout currently.
-            timeoutError: "Transaction timeout. Mining failed or network took to long. TxId: ",
             nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
             undefinedResposnse: "Web3 responded with undefined.",
             deniedTransaction: "MetaMask Tx Signature: User denied transaction signature.",
@@ -58,75 +56,6 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             } catch (e) {
                 console.log(e);
                 return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));
-            }
-        });
-    };
-
-
-    /*
-    // This should be refactored and might be able to use the more general toTask above.
-    // If we implement the timeoutable Task.AndThen pattern within elm.
-    // MyContract.new.getData(ctor1, ctor2, {data: '0x12312'}) -> sendTransaction({data, gas, etc}) -> listenForMinedContract
-    */
-    function deployContract(deployFunc){
-        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-            try {
-                console.log("Request Object: ", deployFunc);
-
-                // Throw error if wallet doesn't exist
-                if (web3.eth.accounts[0] == undefined) {
-                    return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'NoWallet' }));
-                };
-
-                // Throw error if tx takes longer than timeout
-                function startTimeout(contract) {
-                  var txId = "Error fetching txId.";
-                  if (contract !== undefined) { txId = contract.transactionHash };
-                  setTimeout( () => { return callback(_elm_lang$core$Native_Scheduler.fail(
-                        { ctor: 'Error', _0: config.error.timeoutError + txId }
-                    ))}
-                    , config.timeoutInMs
-                )}
-
-                // This is called through the contract eval statement config'd in elm
-                function metaMaskCallBack(e, contract) {
-                    try {
-                        // Ignore first callback of unmined contract
-                        if (e === null && contract.address === undefined) {
-                            startTimeout(contract);
-                            console.log("TxId: " + contract.transactionHash);
-                            console.log("Time: " + new Date().getTime() );
-                            return
-                        // Succeed on mined contract
-                      } else if (e === null && contract.address !== undefined) {
-                            return callback(_elm_lang$core$Native_Scheduler.succeed(
-                                { txId: contract.transactionHash, address: contract.address }
-                            ));
-                        // Fail on error
-                        } else {
-                            console.log("e !== null, inside the 'else' return in callBack conditional: ");
-                            console.log(e);
-                            var err = e.toString()
-                            return callback(_elm_lang$core$Native_Scheduler.fail(
-                                // TODO Return a tuple of errors, where: (simpleDescription, fullConsoleOutput)
-                                { ctor: 'Error', _0: err.split("\n")[0] }
-                            ));
-                        }
-                    } catch(e) {
-                        console.log("Inside the catch during metaMaskCallBack:  ");
-                        console.log(e);
-                        return callback(_elm_lang$core$Native_Scheduler.fail(
-                            { ctor: 'Error', _0: e.toString() }
-                        ));
-                    }
-                };
-                // Eval contract data + metaMaskCallBack
-                var contract = eval("web3." + deployFunc);
-                console.log("Eval'd Contract: ", contract);
-            } catch (e) {
-                console.log("Inside the catch during deployWallet:  ");
-                console.log(e);
-                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: "Denied Transaction?" }));
             }
         });
     };
