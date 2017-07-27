@@ -40,7 +40,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                         ));
                     }
                     // Decode the payload using Elm function passed to Expect
-                    var result = request.expect.responseToResult( JSON.stringify(r) );
+                    var result = request.expect.responseToResult( formatWeb3Response(r) );
                     console.log(result);
                     if (result.ctor !== 'Ok') {
                         // resolve with decoding error
@@ -58,11 +58,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     f.apply(null, request.args.concat( web3Callback ));
                 } else if (request.callType.ctor === "Sync") {
                     var syncResult = f.apply(null, request.args);
-                    syncResult = request.expect.responseToResult( JSON.stringify(syncResult) );
+                    syncResult = request.expect.responseToResult( formatWeb3Response(syncResult) );
                     return callback(_elm_lang$core$Native_Scheduler.succeed(syncResult._0));
                 } else {
                     return callback(_elm_lang$core$Native_Scheduler.fail(
-                      { ctor: 'Error', _0: "Synchronus call failed." }
+                      { ctor: 'Error', _0: "Synchronous call failed." }
                     ));
                 };
             } catch (e) {

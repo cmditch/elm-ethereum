@@ -48,12 +48,14 @@ view : Model -> Html Msg
 view model =
     div []
         [ button [ onClick DeployContract ] [ text "Deploy new LightBox" ]
+        , viewContractInfo model.contractInfo
         , bigBreak
         , viewAddButton model
-          -- , bigBreak
-          -- , viewBlock model.latestBlock
+
+        -- , bigBreak
+        -- , viewBlock model.latestBlock
         , bigBreak
-        , viewContractInfo model.contractInfo
+        , div [] [ text <| "Tx History: " ++ toString model.txIds ]
         , bigBreak
         , viewError model.error
         , button [ onClick Test ] [ text "Try test function" ]
@@ -79,8 +81,6 @@ viewAddButton model =
                 , div [] [ button [ onClick (AddNumbers contractAddress 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
                 , bigBreak
                 , div [] [ button [ onClick (MutateAdd contractAddress 2) ] [ text <| "Add 42 to someNum" ] ]
-                , bigBreak
-                , div [] [ text <| toString model.txIds ]
                 ]
 
         _ ->
@@ -154,10 +154,10 @@ viewError : List String -> Html Msg
 viewError error =
     case error of
         [] ->
-            span [] []
+            div [] [ text "Errors: " ]
 
         _ ->
-            div [] [ text <| toString error ]
+            div [] [ text <| "Errors: " ++ toString error ]
 
 
 type Msg
@@ -188,12 +188,7 @@ update msg model =
     in
         case msg of
             Test ->
-                model
-                    ! [ Task.attempt TestResponse <|
-                            LightBox.test
-                                (BigInt.fromString "502030200")
-                                { someNum_ = BigInt.fromInt 13 }
-                      ]
+                model ! []
 
             TestResponse response ->
                 case response of

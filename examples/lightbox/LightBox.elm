@@ -55,28 +55,6 @@ mutateAdd address n =
         }
 
 
-test : Maybe BigInt -> Constructor -> Task Error Bytes
-test value { someNum_ } =
-    let
-        constructorParams =
-            [ Encode.string <| BigInt.toString someNum_ ]
-
-        getData : Task Error Bytes
-        getData =
-            Contract.getData abi data constructorParams
-
-        estimateGas : Task Error Int
-        estimateGas =
-            Task.map (\data -> { defaultTxParams | data = Just data }) getData
-                |> Task.andThen Web3.Eth.estimateGas
-
-        buildTransaction : Task Error Bytes -> Task Error Int -> Task Error TxParams
-        buildTransaction =
-            Task.map2 (\data gasCost -> { defaultTxParams | data = Just data, gas = Just gasCost, value = value })
-    in
-        getData
-
-
 new : Maybe BigInt -> Constructor -> Task Error ContractInfo
 new value { someNum_ } =
     let
