@@ -41,7 +41,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                             ));
                         }
                         // Decode the payload using Elm function passed to Expect
-                        var result = request.expect.responseToResult( formatWeb3Response(r) );
+                        var result = request.expect.responseToResult( JSON.stringify(r) );
                         console.log(result);
                         if (result.ctor !== 'Ok') {
                             // resolve with decoding error
@@ -108,7 +108,6 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     return {
         toTask: toTask,
-        deployContract: deployContract,
         expectStringResponse: expectStringResponse
     };
 

@@ -2,7 +2,7 @@ module LightBox exposing (..)
 
 import Web3 exposing (Error)
 import Web3.Eth exposing (defaultTxParams)
-import Web3.Eth.Types exposing (Address, Abi, TxParams, Bytes, NewContract, TxId)
+import Web3.Eth.Types exposing (Address, Abi, TxParams, Bytes, ContractInfo, TxId)
 import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
 import Web3.Eth.Encoders exposing (txParamsEncoder)
 import Web3.Eth.Contract as Contract
@@ -52,7 +52,7 @@ mutateAdd address n =
         }
 
 
-new : Maybe BigInt -> Constructor -> Task Error Address
+new : Maybe BigInt -> Constructor -> Task Error ContractInfo
 new value { someNum_ } =
     let
         constructorParams =
@@ -67,10 +67,10 @@ new value { someNum_ } =
             Task.map (\data -> { defaultTxParams | data = Just data }) getData
                 |> Task.andThen Web3.Eth.estimateGas
 
-        buildSendTxParams : Task Error Bytes -> Task Error Int -> Task Error TxParams
-        buildSendTxParams =
+        buildTransaction : Task Error Bytes -> Task Error Int -> Task Error TxParams
+        buildTransaction =
             Task.map2 (\data gasCost -> { defaultTxParams | data = Just data, gas = Just gasCost, value = value })
     in
-        buildSendTxParams getData estimateGas
+        buildTransaction getData estimateGas
             |> Task.andThen Web3.Eth.sendTransaction
-            |> Task.andThen (Contract.pollForAddress { attempts = 20, sleep = 2 })
+            |> Task.andThen (Contract.pollContract { attempts = 30, sleep = 3 })

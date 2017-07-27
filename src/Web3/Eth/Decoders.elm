@@ -5,7 +5,7 @@ module Web3.Eth.Decoders
         , contractAddressDecoder
         )
 
-import Web3.Eth.Types exposing (Block, Address, Bytes, TxId)
+import Web3.Eth.Types exposing (Block, Address, Bytes, TxId, ContractInfo)
 import Web3.Decoders exposing (bigIntDecoder)
 import Json.Decode.Pipeline exposing (decode, required, optional)
 import Json.Decode as Decode exposing (int, string, list, Decoder)
@@ -45,17 +45,13 @@ addressDecoder =
 
 
 {--
-  ContractAddress & contractAddressDecoder
-  Helpers needed for Web3.Eth.Contract.pollForAddress
+--   ContractAddress & contractAddressDecoder
+--   Helpers needed for Web3.Eth.Contract.pollForAddress
 --}
 
 
-type alias ContractAddress =
-    { contractAddress : Address }
-
-
-contractAddressDecoder : Decoder Address
+contractAddressDecoder : Decoder ContractInfo
 contractAddressDecoder =
-    decode ContractAddress
+    decode ContractInfo
         |> required "contractAddress" string
-        |> Decode.map (\r -> r.contractAddress)
+        |> required "transactionHash" string

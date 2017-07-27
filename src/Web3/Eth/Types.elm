@@ -23,9 +23,9 @@ type alias Abi =
     String
 
 
-type alias NewContract =
-    { txId : TxId
-    , address : Address
+type alias ContractInfo =
+    { contractAddress : Address
+    , transactionHash : TxId
     }
 
 
