@@ -1,6 +1,7 @@
 module LightBox exposing (..)
 
 import Web3 exposing (Error)
+import Web3.Types exposing (CallType(..))
 import Web3.Eth exposing (defaultTxParams)
 import Web3.Eth.Types exposing (Address, Abi, TxParams, Bytes, ContractInfo, TxId)
 import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
@@ -40,6 +41,7 @@ add address a b =
         { func = Contract.call abi "add" address
         , args = Encode.list [ int a, int b ]
         , expect = expectJson bigIntDecoder
+        , callType = Async
         }
 
 
@@ -49,7 +51,30 @@ mutateAdd address n =
         { func = Contract.call abi "mutateAdd" address
         , args = Encode.list [ int n, txParamsEncoder defaultTxParams ]
         , expect = expectString
+        , callType = Async
         }
+
+
+test : Maybe BigInt -> Constructor -> Task Error Bytes
+test value { someNum_ } =
+    let
+        constructorParams =
+            [ Encode.string <| BigInt.toString someNum_ ]
+
+        getData : Task Error Bytes
+        getData =
+            Contract.getData abi data constructorParams
+
+        estimateGas : Task Error Int
+        estimateGas =
+            Task.map (\data -> { defaultTxParams | data = Just data }) getData
+                |> Task.andThen Web3.Eth.estimateGas
+
+        buildTransaction : Task Error Bytes -> Task Error Int -> Task Error TxParams
+        buildTransaction =
+            Task.map2 (\data gasCost -> { defaultTxParams | data = Just data, gas = Just gasCost, value = value })
+    in
+        getData
 
 
 new : Maybe BigInt -> Constructor -> Task Error ContractInfo

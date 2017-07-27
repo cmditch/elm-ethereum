@@ -24,38 +24,47 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         console.log(request);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
-                console.log("before eval called")
-                var f = eval("web3." + request.func);
-                f.apply(null,
-                    console.log("after apply called")
+                var web3Callback = function(e,r) {
                     // Args passed from elm are always appended with an Error-First style callback,
                     // in order to satisfy web3's aysnchronus by design nature.
-                    request.args.concat( (e, r) =>  {
-                        console.log("callback called")
-                        // Map response errors to error type
-                        if (r === null) {
-                            return callback(_elm_lang$core$Native_Scheduler.fail(
-                                { ctor: 'Error', _0: config.error.nullResponse }
-                            ));
-                        } else if (r === undefined) {
-                        // This will execute when using metamask and 'rejecting' a tx.
-                            return callback(_elm_lang$core$Native_Scheduler.fail(
-                                { ctor: 'Error', _0: config.error.undefinedResposnse }
-                            ));
-                        }
-                        // Decode the payload using Elm function passed to Expect
-                        var result = request.expect.responseToResult( JSON.stringify(r) );
-                        console.log(result);
-                        if (result.ctor !== 'Ok') {
-                            // resolve with decoding error
-                            return callback(_elm_lang$core$Native_Scheduler.fail(
-                                {ctor: 'BadPayload', _0: result._0}
-                            ));
-                        }
-                        // success
-                        return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
-                    })
-                );
+
+                    // Map response errors to error type
+                    if (r === null) {
+                        return callback(_elm_lang$core$Native_Scheduler.fail(
+                            { ctor: 'Error', _0: config.error.nullResponse }
+                        ));
+                    } else if (r === undefined) {
+                    // This will execute when using metamask and 'rejecting' a tx.
+                        return callback(_elm_lang$core$Native_Scheduler.fail(
+                            { ctor: 'Error', _0: config.error.undefinedResposnse }
+                        ));
+                    }
+                    // Decode the payload using Elm function passed to Expect
+                    var result = request.expect.responseToResult( JSON.stringify(r) );
+                    console.log(result);
+                    if (result.ctor !== 'Ok') {
+                        // resolve with decoding error
+                        return callback(_elm_lang$core$Native_Scheduler.fail(
+                            {ctor: 'BadPayload', _0: result._0}
+                        ));
+                    }
+                    // success
+                    return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
+                }; // web3Callback
+
+                var f = eval("web3." + request.func);
+
+                if (request.callType.ctor === "Async") {
+                    f.apply(null, request.args.concat( web3Callback ));
+                } else if (request.callType.ctor === "Sync") {
+                    var syncResult = f.apply(null, request.args);
+                    syncResult = request.expect.responseToResult( JSON.stringify(syncResult) );
+                    return callback(_elm_lang$core$Native_Scheduler.succeed(syncResult._0));
+                } else {
+                    return callback(_elm_lang$core$Native_Scheduler.fail(
+                      { ctor: 'Error', _0: "Synchronus call failed." }
+                    ));
+                };
             } catch (e) {
                 console.log(e);
                 return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));

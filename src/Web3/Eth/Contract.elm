@@ -8,6 +8,7 @@ module Web3.Eth.Contract
 -- import Web3.Internal exposing (Request)
 
 import Web3 exposing (Error, Retry)
+import Web3.Types exposing (CallType(..))
 import Web3.Decoders exposing (expectString, expectJson)
 import Web3.Eth.Decoders exposing (contractAddressDecoder)
 import Web3.Eth.Types exposing (Address, Abi, ContractInfo, Bytes, TxId)
@@ -31,6 +32,7 @@ getData abi data constructorParams =
         { func = "eth.contract('" ++ abi ++ "').getData"
         , args = Encode.list <| constructorParams ++ [ Encode.object [ ( "data", Encode.string data ) ] ]
         , expect = expectString
+        , callType = Sync
         }
 
 
@@ -40,5 +42,6 @@ pollContract retryParams txId =
         { func = "eth.getTransactionReceipt"
         , args = Encode.list [ Encode.string txId ]
         , expect = expectJson contractAddressDecoder
+        , callType = Async
         }
         |> Web3.retry retryParams

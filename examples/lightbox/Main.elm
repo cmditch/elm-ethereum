@@ -5,7 +5,7 @@ import Html exposing (..)
 import Html.Attributes exposing (href, target)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
-import Web3.Eth.Types exposing (Address, Block, TxId, ContractInfo)
+import Web3.Eth.Types exposing (..)
 import LightBox
 import BigInt exposing (BigInt)
 
@@ -27,6 +27,7 @@ type alias Model =
     , additionAnswer : Maybe BigInt
     , txIds : List TxId
     , error : List String
+    , testData : Bytes
     }
 
 
@@ -38,6 +39,7 @@ init =
     , additionAnswer = Nothing
     , txIds = []
     , error = []
+    , testData = ""
     }
         ! [{- TODO Web3.init command needed. Program w/ flags  for wallet check and web3 connection status -}]
 
@@ -54,6 +56,8 @@ view model =
         , viewContractInfo model.contractInfo
         , bigBreak
         , viewError model.error
+        , button [ onClick Test ] [ text "Try test function" ]
+        , div [] [ text model.testData ]
         ]
 
 
@@ -157,7 +161,9 @@ viewError error =
 
 
 type Msg
-    = DeployContract
+    = Test
+    | TestResponse (Result Web3.Error Bytes)
+    | DeployContract
     | AddNumbers Address Int Int
     | MutateAdd Address Int
     | LatestResponse (Result Web3.Error Block)
@@ -181,6 +187,22 @@ update msg model =
                     { model_ | error = ("No Wallet Detected") :: model_.error } ! []
     in
         case msg of
+            Test ->
+                model
+                    ! [ Task.attempt TestResponse <|
+                            LightBox.test
+                                (BigInt.fromString "502030200")
+                                { someNum_ = BigInt.fromInt 13 }
+                      ]
+
+            TestResponse response ->
+                case response of
+                    Ok data ->
+                        { model | testData = data } ! []
+
+                    Err error ->
+                        handleError model error
+
             DeployContract ->
                 { model | contractInfo = Deploying }
                     ! [ Task.attempt LightBoxResponse

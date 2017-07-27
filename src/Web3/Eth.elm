@@ -11,6 +11,7 @@ module Web3.Eth
 -}
 
 import Web3 exposing (Error)
+import Web3.Types exposing (CallType(..))
 import Web3.Eth.Types exposing (..)
 import Web3.Decoders exposing (expectInt, expectJson, expectString)
 import Web3.Eth.Decoders exposing (blockDecoder)
@@ -25,6 +26,7 @@ getBlockNumber =
         { func = "eth.getBlockNumber"
         , args = Encode.list []
         , expect = expectInt
+        , callType = Async
         }
 
 
@@ -34,6 +36,7 @@ getBlock blockNum =
         { func = "eth.getBlock"
         , args = Encode.list [ Encode.int blockNum ]
         , expect = expectJson blockDecoder
+        , callType = Async
         }
 
 
@@ -43,6 +46,7 @@ estimateGas txParams =
         { func = "eth.estimateGas"
         , args = Encode.list [ txParamsEncoder txParams ]
         , expect = expectInt
+        , callType = Async
         }
 
 
@@ -52,6 +56,7 @@ sendTransaction txParams =
         { func = "eth.sendTransaction"
         , args = Encode.list [ txParamsEncoder txParams ]
         , expect = expectString
+        , callType = Async
         }
 
 
@@ -72,6 +77,6 @@ defaultTxParams =
     , value = Nothing
     , data = Nothing
     , gas = Nothing
-    , gasPrice = Just 2000000000
+    , gasPrice = Just 20000000000
     , nonce = Nothing
     }
