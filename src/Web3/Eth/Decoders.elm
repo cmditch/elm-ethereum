@@ -2,9 +2,10 @@ module Web3.Eth.Decoders
     exposing
         ( blockDecoder
         , addressDecoder
+        , contractAddressDecoder
         )
 
-import Web3.Eth.Types exposing (Block, Address, TxData, TxId)
+import Web3.Eth.Types exposing (Block, Address, Bytes, TxId, ContractInfo)
 import Web3.Decoders exposing (bigIntDecoder)
 import Json.Decode.Pipeline exposing (decode, required, optional)
 import Json.Decode as Decode exposing (int, string, list, Decoder)
@@ -43,10 +44,14 @@ addressDecoder =
 
 
 
--- contractDeployDecoder : Decoder ( TxId, Address )
--- contractDeployDecoder =
---     let
---         convert { txId, address } =
---             Decode.succeed ( txId, address )
---     in
---         objectconvert
+{--
+--   ContractAddress & contractAddressDecoder
+--   Helpers needed for Web3.Eth.Contract.pollForAddress
+--}
+
+
+contractAddressDecoder : Decoder ContractInfo
+contractAddressDecoder =
+    decode ContractInfo
+        |> required "contractAddress" string
+        |> required "transactionHash" string

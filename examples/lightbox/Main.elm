@@ -5,7 +5,7 @@ import Html exposing (..)
 import Html.Attributes exposing (href, target)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
-import Web3.Eth.Types exposing (Address, Block, TxId, NewContract)
+import Web3.Eth.Types exposing (..)
 import LightBox
 import BigInt exposing (BigInt)
 
@@ -27,25 +27,27 @@ type alias Model =
     , additionAnswer : Maybe BigInt
     , txIds : List TxId
     , error : List String
+    , testData : Bytes
     }
 
 
 init : ( Model, Cmd Msg )
 init =
     { latestBlock = Nothing
-    , contractInfo = UnDeployed
+    , contractInfo = Deployed <| ContractInfo "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487" "0x742f7f7e2f564159dece37e1fc0d6454bef638bdf57ecea576baf94718863de3"
     , coinbase = "0xe87529a6123a74320e13a6dabf3606630683c029"
     , additionAnswer = Nothing
     , txIds = []
     , error = []
+    , testData = ""
     }
-        ! [{- TODO Web3.init command needed, for wallet check and web3 connection status -}]
+        ! [{- TODO Web3.init command needed. Program w/ flags  for wallet check and web3 connection status -}]
 
 
 view : Model -> Html Msg
 view model =
     div []
-        [ button [ onClick DeployContract ] [ text "Touch web3 plz" ]
+        [ button [ onClick DeployContract ] [ text "Deploy new LightBox" ]
         , bigBreak
         , viewAddButton model
           -- , bigBreak
@@ -54,6 +56,8 @@ view model =
         , viewContractInfo model.contractInfo
         , bigBreak
         , viewError model.error
+        , button [ onClick Test ] [ text "Try test function" ]
+        , div [] [ text model.testData ]
         ]
 
 
@@ -69,12 +73,12 @@ bigBreak =
 viewAddButton : Model -> Html Msg
 viewAddButton model =
     case model.contractInfo of
-        Deployed { address } ->
+        Deployed { contractAddress } ->
             div []
                 [ text "You can call LightBox.add(11,12)"
-                , div [] [ button [ onClick (AddNumbers address 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
+                , div [] [ button [ onClick (AddNumbers contractAddress 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
                 , bigBreak
-                , div [] [ button [ onClick (MutateAdd address 23) ] [ text <| "Add 23 to someNum" ] ]
+                , div [] [ button [ onClick (MutateAdd contractAddress 2) ] [ text <| "Add 42 to someNum" ] ]
                 , bigBreak
                 , div [] [ text <| toString model.txIds ]
                 ]
@@ -92,16 +96,16 @@ viewContractInfo contract =
         Deploying ->
             div [] [ text "Deploying contract..." ]
 
-        Deployed { txId, address } ->
+        Deployed { contractAddress, transactionHash } ->
             div []
                 [ p []
                     [ text "Contract TxId: "
-                    , a [ target "_blank", href ("https://ropsten.etherscan.io/tx/" ++ txId) ] [ text txId ]
+                    , a [ target "_blank", href ("https://ropsten.etherscan.io/tx/" ++ transactionHash) ] [ text transactionHash ]
                     ]
                 , br [] []
                 , p []
                     [ text "Contract Address: "
-                    , a [ target "_blank", href ("https://ropsten.etherscan.io/address/" ++ address) ] [ text address ]
+                    , a [ target "_blank", href ("https://ropsten.etherscan.io/address/" ++ contractAddress) ] [ text contractAddress ]
                     ]
                 ]
 
@@ -112,7 +116,7 @@ viewContractInfo contract =
 type DeployableContract
     = UnDeployed
     | Deploying
-    | Deployed NewContract
+    | Deployed ContractInfo
     | ErrorDeploying
 
 
@@ -157,11 +161,13 @@ viewError error =
 
 
 type Msg
-    = DeployContract
+    = Test
+    | TestResponse (Result Web3.Error Bytes)
+    | DeployContract
     | AddNumbers Address Int Int
     | MutateAdd Address Int
     | LatestResponse (Result Web3.Error Block)
-    | LightBoxResponse (Result Web3.Error NewContract)
+    | LightBoxResponse (Result Web3.Error ContractInfo)
     | LightBoxAddResponse (Result Web3.Error BigInt)
     | LightBoxMutateAddResponse (Result Web3.Error TxId)
 
@@ -181,6 +187,22 @@ update msg model =
                     { model_ | error = ("No Wallet Detected") :: model_.error } ! []
     in
         case msg of
+            Test ->
+                model
+                    ! [ Task.attempt TestResponse <|
+                            LightBox.test
+                                (BigInt.fromString "502030200")
+                                { someNum_ = BigInt.fromInt 13 }
+                      ]
+
+            TestResponse response ->
+                case response of
+                    Ok data ->
+                        { model | testData = data } ! []
+
+                    Err error ->
+                        handleError model error
+
             DeployContract ->
                 { model | contractInfo = Deploying }
                     ! [ Task.attempt LightBoxResponse

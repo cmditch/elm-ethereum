@@ -11,7 +11,7 @@ type alias TxId =
     String
 
 
-type alias TxData =
+type alias Bytes =
     String
 
 
@@ -23,9 +23,9 @@ type alias Abi =
     String
 
 
-type alias NewContract =
-    { txId : TxId
-    , address : Address
+type alias ContractInfo =
+    { contractAddress : Address
+    , transactionHash : TxId
     }
 
 
@@ -38,7 +38,7 @@ type alias TxParams =
     , to : Maybe Address
     , value : Maybe BigInt
     , gas : Maybe Int
-    , data : Maybe TxData
+    , data : Maybe Bytes
     , gasPrice : Maybe Int
     , nonce : Maybe Int
     }
