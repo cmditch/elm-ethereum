@@ -24,11 +24,14 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         console.log(request);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
+                console.log("before eval called")
                 var f = eval("web3." + request.func);
                 f.apply(null,
+                    console.log("after apply called")
                     // Args passed from elm are always appended with an Error-First style callback,
                     // in order to satisfy web3's aysnchronus by design nature.
                     request.args.concat( (e, r) =>  {
+                        console.log("callback called")
                         // Map response errors to error type
                         if (r === null) {
                             return callback(_elm_lang$core$Native_Scheduler.fail(
