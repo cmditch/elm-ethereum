@@ -2,6 +2,7 @@ module Web3.Eth.Decoders
     exposing
         ( blockDecoder
         , addressDecoder
+        , contractAddressDecoder
         )
 
 import Web3.Eth.Types exposing (Block, Address, Bytes, TxId)
@@ -40,3 +41,21 @@ blockDecoder =
 addressDecoder : Decoder Address
 addressDecoder =
     string
+
+
+
+{--
+  ContractAddress & contractAddressDecoder
+  Helpers needed for Web3.Eth.Contract.pollForAddress
+--}
+
+
+type alias ContractAddress =
+    { contractAddress : Address }
+
+
+contractAddressDecoder : Decoder Address
+contractAddressDecoder =
+    decode ContractAddress
+        |> required "contractAddress" string
+        |> Decode.map (\r -> r.contractAddress)

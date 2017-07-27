@@ -1,7 +1,9 @@
 module Web3
     exposing
         ( Error(..)
+        , Retry
         , toTask
+        , retry
         )
 
 import Native.Web3
@@ -31,6 +33,8 @@ toTask request =
 
 {-
    Mad props to Nick Miller for this retry function
+              The MIRTCH Function
+   "Matrix Inception Recursive Task Chaining" Function
 -}
 
 
@@ -44,7 +48,7 @@ retry { attempts, sleep } web3Task =
             |> Task.onError
                 (\x ->
                     if remaining > 0 then
-                        Process.sleep (sleep * Time.millisecond)
+                        Process.sleep (sleep * Time.second)
                             |> Task.andThen (\_ -> retry (Retry remaining sleep) web3Task)
                     else
                         Task.fail x

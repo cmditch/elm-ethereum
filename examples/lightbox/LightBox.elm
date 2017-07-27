@@ -4,6 +4,7 @@ import Web3 exposing (Error)
 import Web3.Eth exposing (defaultTxParams)
 import Web3.Eth.Types exposing (Address, Abi, TxParams, Bytes, NewContract, TxId)
 import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
+import Web3.Eth.Encoders exposing (txParamsEncoder)
 import Web3.Eth.Contract as Contract
 import Json.Encode as Encode exposing (int, string, object)
 import Task exposing (Task)
@@ -46,9 +47,7 @@ mutateAdd : Address -> Int -> Task Error TxId
 mutateAdd address n =
     Web3.toTask
         { func = Contract.call abi "mutateAdd" address
-        , args =
-            Encode.list [ int n, object [ ( "gasPrice", string "5000000000" ) ] ]
-            -- TODO Should we be opinionated about default gas prices? Or do we add another config param?
+        , args = Encode.list [ int n, txParamsEncoder defaultTxParams ]
         , expect = expectString
         }
 
@@ -56,11 +55,6 @@ mutateAdd address n =
 new : Maybe BigInt -> Constructor -> Task Error Address
 new value { someNum_ } =
     let
-        -- (Task Error String) -> (Task Error Int) -> (String -> Int -> Task Error String) -> pollContractMined -> Address
-        value_ =
-            Maybe.map BigInt.toString value
-                |> Maybe.withDefault "0"
-
         constructorParams =
             [ Encode.string <| BigInt.toString someNum_ ]
 
@@ -75,7 +69,8 @@ new value { someNum_ } =
 
         buildSendTxParams : Task Error Bytes -> Task Error Int -> Task Error TxParams
         buildSendTxParams =
-            Task.map2 (\data gasCost -> { defaultTxParams | data = Just data, gas = Just gasCost })
+            Task.map2 (\data gasCost -> { defaultTxParams | data = Just data, gas = Just gasCost, value = value })
     in
         buildSendTxParams getData estimateGas
             |> Task.andThen Web3.Eth.sendTransaction
+            |> Task.andThen (Contract.pollForAddress { attempts = 20, sleep = 2 })

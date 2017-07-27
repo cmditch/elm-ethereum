@@ -3,13 +3,15 @@ module Web3.Eth.Contract
         ( call
         , deployContract
         , getData
+        , pollForAddress
         )
 
 -- import Web3.Internal exposing (Request)
 
-import Web3 exposing (Error)
-import Web3.Decoders exposing (expectString)
-import Web3.Eth.Types exposing (Address, Abi, NewContract, Bytes)
+import Web3 exposing (Error, Retry)
+import Web3.Decoders exposing (expectString, expectJson)
+import Web3.Eth.Decoders exposing (contractAddressDecoder)
+import Web3.Eth.Types exposing (Address, Abi, NewContract, Bytes, TxId)
 import Json.Encode as Encode exposing (Value)
 import Task exposing (Task)
 
@@ -30,6 +32,15 @@ getData abi data constructorParams =
         { func = "eth.contract('" ++ abi ++ "').getData"
         , args = Encode.list <| constructorParams ++ [ Encode.object [ ( "data", Encode.string data ) ] ]
         , expect = expectString
+        }
+
+
+pollForAddress : Retry -> TxId -> Task Error Address
+pollForAddress retry txId =
+    Web3.toTask
+        { func = "eth.getTransactionReceipt"
+        , args = Encode.list [ Encode.string txId ]
+        , expect = expectJson contractAddressDecoder
         }
 
 
