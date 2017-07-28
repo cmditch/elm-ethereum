@@ -24,11 +24,14 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         console.log(request);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
+
                 var web3Callback = function(e,r) {
                     // Args passed from elm are always appended with an Error-First style callback,
                     // in order to satisfy web3's aysnchronus by design nature.
 
                     // Map response errors to error type
+                    // TODO Does this even work as intended, within this web3Callback func?
+
                     if (r === null) {
                         return callback(_elm_lang$core$Native_Scheduler.fail(
                             { ctor: 'Error', _0: config.error.nullResponse }
@@ -39,15 +42,17 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                             { ctor: 'Error', _0: config.error.undefinedResposnse }
                         ));
                     }
+
                     // Decode the payload using Elm function passed to Expect
                     var result = request.expect.responseToResult( formatWeb3Response(r) );
-                    console.log(result);
+
                     if (result.ctor !== 'Ok') {
                         // resolve with decoding error
                         return callback(_elm_lang$core$Native_Scheduler.fail(
                             {ctor: 'BadPayload', _0: result._0}
                         ));
                     }
+
                     // success
                     return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
                 }; // web3Callback
@@ -58,11 +63,28 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     f.apply(null, request.args.concat( web3Callback ));
                 } else if (request.callType.ctor === "Sync") {
                     var syncResult = f.apply(null, request.args);
-                    syncResult = request.expect.responseToResult( formatWeb3Response(syncResult) );
-                    return callback(_elm_lang$core$Native_Scheduler.succeed(syncResult._0));
+                /* */
+                /* */
+                    // web3.reset() returns undefined and needs to be handled accordingly
+                    if (syncResult === undefined && request.func === "reset") {
+                        return callback(_elm_lang$core$Native_Scheduler.succeed(true));
+                    } else if (r === null) {
+                        return callback(_elm_lang$core$Native_Scheduler.fail(
+                            { ctor: 'Error', _0: config.error.nullResponse }
+                        ));
+                    } else if (r === undefined) {
+                        return callback(_elm_lang$core$Native_Scheduler.fail(
+                            { ctor: 'Error', _0: config.error.undefinedResposnse }
+                        ));
+                    } else {
+                        formattedSyncResult = request.expect.responseToResult(formatWeb3Response(syncResult));
+                        return callback(_elm_lang$core$Native_Scheduler.succeed(formattedSyncResult._0));
+                    }
+                /* */
+                /* */
                 } else {
                     return callback(_elm_lang$core$Native_Scheduler.fail(
-                      { ctor: 'Error', _0: "Synchronous call failed." }
+                        { ctor: 'Error', _0: "CallType was not defined. This should be impossible." }
                     ));
                 };
             } catch (e) {
@@ -98,7 +120,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     // JSON.stringify all values from web3 before sending to Elm.
     */
     function formatWeb3Response(r) {
-        if (r.isBigNumber) { return r.toFixed() }
+        if (r.isBigNumber) { return JSON.stringify(r.toFixed()) }
         config.web3BigNumberFields.forEach( val => {
             if (r[val] !== undefined && r[val].isBigNumber) {
                 r[val] = r[val].toFixed();
