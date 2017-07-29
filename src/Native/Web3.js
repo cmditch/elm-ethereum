@@ -4,7 +4,7 @@
 
 var _cmditch$elm_web3$Native_Web3 = function() {
 
-    const config = {
+    var config = {
         web3BigNumberFields: ["totalDifficulty", "difficulty", "value", "gasPrice"],
         error: {
             // TODO should timeout be it's own error type? Probably not, since only deployContract can timeout currently.
@@ -15,13 +15,15 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         }
     };
 
+    // var eventRegistry = {};
+
 // TODO   Deal with "Web3 responded with undefined." (Transaction cancelled usually),
 //        and"Error: invalid address" (MetaMask was not unlocked...)
 
 // TODO Return a tuple of errors, where: (simpleDescription, fullConsoleOutput)
 
     function toTask(request) {
-        console.log(request);
+        console.log("BEGINNING OF TO TASK: ", request);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
 
@@ -95,11 +97,40 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-    /*
-    //TODO Implement event watching and event stopping.
-    */
-    function eventsHandler(){
+    function watchEvent(e){
+        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
+            try {
+                var registry = window.eventRegistry;
+                registry[e.portName] =
+                    eval("web3.eth.contract("
+                          + e.abi + ").at('"
+                          + e.address
+                          + "')."
+                          + e.eventName
+                          + "("
+                          + JSON.stringify(e.eventParams)
+                          + ","
+                          + JSON.stringify(e.filterParams)
+                          + ")"
+                    ); // Or we could do .apply() after the eval to avoid stringify?
+                var port = eval("window.elmShim.ports." + e.portName);
+                registry[e.portName].watch(function(e,r) { console.log( formatLog(r) )});
+                registry[e.portName].watch(function(e,r) { port.send( formatLog(r) )});
+                return callback(_elm_lang$core$Native_Scheduler.succeed());
+            } catch (e) {
+                return callback(_elm_lang$core$Native_Scheduler.fail(
+                    {ctor: 'Error', _0: "Event sub failed: " + e.toString() }
+                ));
+            }
+        });
 
+        // {
+        //  abi:'[]' ,
+        //  address: "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487" ,
+        //  eventParams: {} ,
+        //  filterParams: {} ,
+        //  subName: "watchAdd"
+        // }
     };
 
 
@@ -130,6 +161,27 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
+    function formatIfBigNum(value) {
+        if (value.isBigNumber) {
+          return value.toFixed();
+        } else {
+          return value;
+        }
+    }
+
+
+    function formatLog(log) {
+        Object.keys(log.args).forEach(function(arg) {
+            log.args[arg] = formatIfBigNum(log.args[arg]);
+        });
+        return log;
+    }
+
+
+    function formatLogsArray(logsArray) {
+        logsArray.map(function(log) { formatLog(log) } );
+        return logsArray;
+    }
     /*
     // Convert known BigNumber fields in event.args to fixed string.
     //
@@ -142,6 +194,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     return {
         toTask: toTask,
+        watchEvent: watchEvent,
         expectStringResponse: expectStringResponse
     };
 

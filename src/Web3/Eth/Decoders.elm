@@ -115,10 +115,10 @@ logDecoder : Decoder Log
 logDecoder =
     decode Log
         |> required "address" string
-        |> required "blockHash" string
-        |> required "blockNumber" int
+        |> required "blockHash" (nullable string)
+        |> required "blockNumber" (nullable int)
         |> required "data" string
-        |> required "logIndex" int
+        |> required "logIndex" (nullable int)
         |> required "topics" (list string)
         |> required "transactionHash" string
         |> required "transactionIndex" int

@@ -5,9 +5,11 @@ import Html exposing (..)
 import Html.Attributes exposing (href, target)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
+import Web3.Eth exposing (defaultFilterParams)
 import Web3.Eth.Types exposing (..)
 import LightBox
 import BigInt exposing (BigInt)
+import Port
 
 
 main : Program Never Model Msg
@@ -16,7 +18,7 @@ main =
         { init = init
         , view = view
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }
 
 
@@ -28,6 +30,7 @@ type alias Model =
     , txIds : List TxId
     , error : List String
     , testData : Bytes
+    , eventData : List LightBox.AddEvent
     }
 
 
@@ -40,6 +43,7 @@ init =
     , txIds = []
     , error = []
     , testData = ""
+    , eventData = []
     }
         ! [{- TODO Web3.init command needed. Program w/ flags  for wallet check and web3 connection status -}]
 
@@ -56,6 +60,9 @@ view model =
         -- , viewBlock model.latestBlock
         , bigBreak
         , div [] [ text <| "Tx History: " ++ toString model.txIds ]
+        , bigBreak
+        , button [ onClick WatchAddEvents ] [ text " Watch Add Event" ]
+        , div [] [ text <| toString model.eventData ]
         , bigBreak
         , viewError model.error
         , button [ onClick Test ] [ text "Try test function" ]
@@ -80,7 +87,7 @@ viewAddButton model =
                 [ text "You can call LightBox.add(11,12)"
                 , div [] [ button [ onClick (AddNumbers contractAddress 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
                 , bigBreak
-                , div [] [ button [ onClick (MutateAdd contractAddress 2) ] [ text <| "Add 42 to someNum" ] ]
+                , div [] [ button [ onClick (MutateAdd contractAddress 42) ] [ text <| "Add 42 to someNum" ] ]
                 ]
 
         _ ->
@@ -163,6 +170,9 @@ viewError error =
 type Msg
     = Test
     | TestResponse (Result Web3.Error Bytes)
+    | WatchAddEvents
+    | StopAddEvents
+    | AddEvents LightBox.AddEvent
     | DeployContract
     | AddNumbers Address Int Int
     | MutateAdd Address Int
@@ -170,6 +180,7 @@ type Msg
     | LightBoxResponse (Result Web3.Error ContractInfo)
     | LightBoxAddResponse (Result Web3.Error BigInt)
     | LightBoxMutateAddResponse (Result Web3.Error TxId)
+    | EventHandler (Result Web3.Error ())
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -198,13 +209,28 @@ update msg model =
                     Err error ->
                         handleError model error
 
+            WatchAddEvents ->
+                model
+                    ! [ Task.attempt EventHandler <|
+                            LightBox.watchAdd
+                                defaultFilterParams
+                                LightBox.defaultAddFilter
+                                "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487"
+                                LightBox.WatchAdd
+                      ]
+
+            AddEvents events ->
+                { model | eventData = events :: model.eventData } ! []
+
+            StopAddEvents ->
+                model ! []
+
             DeployContract ->
                 { model | contractInfo = Deploying }
-                    ! [ Task.attempt LightBoxResponse
-                            (LightBox.new
+                    ! [ Task.attempt LightBoxResponse <|
+                            LightBox.new
                                 (BigInt.fromString "502030200")
                                 { someNum_ = BigInt.fromInt 13 }
-                            )
                       ]
 
             AddNumbers address a b ->
@@ -250,3 +276,16 @@ update msg model =
 
                     Err error ->
                         handleError model error
+
+            EventHandler response ->
+                case response of
+                    Ok _ ->
+                        model ! []
+
+                    Err error ->
+                        handleError model error
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.batch [ Port.watchAdd AddEvents ]

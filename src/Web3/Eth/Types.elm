@@ -148,12 +148,20 @@ type alias TxReceipt =
 -- TODO Log { type_ } field is an elm keyword... remedy?
 
 
+type alias FilterParams =
+    { fromBlock : Maybe BlockId
+    , toBlock : Maybe BlockId
+    , address : Maybe Address
+    , topics : Maybe (List (Maybe String))
+    }
+
+
 type alias Log =
     { address : String
-    , blockHash : String
-    , blockNumber : Int
+    , blockHash : Maybe String
+    , blockNumber : Maybe Int
     , data : String
-    , logIndex : Int
+    , logIndex : Maybe Int
     , topics : List String
     , transactionHash : String
     , transactionIndex : Int

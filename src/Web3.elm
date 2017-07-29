@@ -3,6 +3,7 @@ module Web3
         ( Error(..)
         , Retry
         , toTask
+        , watchEvent
         , retry
         )
 
@@ -22,7 +23,7 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 -}
 
 import Native.Web3
-import Web3.Internal exposing (Request)
+import Web3.Internal exposing (Request, EventRequest)
 import Web3.Decoders exposing (expectString, expectInt, expectBool)
 import Web3.Types exposing (CallType(..), Keccak256, Hex)
 import Web3.Eth.Types exposing (..)
@@ -30,7 +31,6 @@ import Json.Encode as Encode
 import Task exposing (Task)
 import Process
 import Time
-import BigInt
 
 
 -- WEB3
@@ -53,12 +53,7 @@ isConnected =
 
 reset : Bool -> Task Error Bool
 reset keepIsSyncing =
-    toTask
-        { func = "reset"
-        , args = Encode.list [ Encode.bool keepIsSyncing ]
-        , expect = expectBool
-        , callType = Sync
-        }
+    Native.Web3.reset keepIsSyncing
 
 
 sha3 : String -> Task Error Keccak256
@@ -191,6 +186,16 @@ type Error
 toTask : Request a -> Task Error a
 toTask request =
     Native.Web3.toTask request
+
+
+watchEvent : EventRequest -> Task Error ()
+watchEvent eventRequest =
+    Native.Web3.watchEvent eventRequest
+
+
+stopEvent : Task Error a
+stopEvent =
+    Native.Web3.stopEvent
 
 
 

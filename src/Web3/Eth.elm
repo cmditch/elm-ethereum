@@ -2,9 +2,10 @@ module Web3.Eth
     exposing
         ( getBlockNumber
         , getBlock
-        , defaultTxParams
         , estimateGas
         , sendTransaction
+        , defaultTxParams
+        , defaultFilterParams
         )
 
 {-| Web3.Eth
@@ -15,7 +16,7 @@ import Web3.Types exposing (CallType(..), Hex)
 import Web3.Eth.Types exposing (..)
 import Web3.Decoders exposing (expectInt, expectBool, expectJson, expectString, expectBigInt)
 import Web3.Eth.Decoders exposing (blockDecoder, syncStatusDecoder, txObjDecoder, blockTxObjDecoder, txReceiptDecoder)
-import Web3.Eth.Encoders exposing (txParamsEncoder)
+import Web3.Eth.Encoders exposing (txParamsEncoder, getBlockIdValue)
 import Json.Encode as Encode
 import Json.Decode as Decode
 import Task exposing (Task)
@@ -315,20 +316,10 @@ defaultTxParams =
     }
 
 
-getBlockIdValue : BlockId -> Encode.Value
-getBlockIdValue blockId =
-    case blockId of
-        BlockNum number ->
-            Encode.int number
-
-        BlockHash hash ->
-            Encode.string hash
-
-        Earliest ->
-            Encode.string "earliest"
-
-        Latest ->
-            Encode.string "latest"
-
-        Pending ->
-            Encode.string "pending"
+defaultFilterParams : FilterParams
+defaultFilterParams =
+    { fromBlock = Nothing
+    , toBlock = Nothing
+    , address = Nothing
+    , topics = Nothing
+    }
