@@ -1,15 +1,28 @@
 module LightBox exposing (..)
 
 import Web3 exposing (Error)
-import Web3.Types exposing (CallType(..))
+import Web3.Types exposing (..)
 import Web3.Eth exposing (defaultTxParams)
-import Web3.Eth.Types exposing (Address, Abi, TxParams, Bytes, ContractInfo, TxId)
+import Web3.Eth.Types exposing (..)
 import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
-import Web3.Eth.Encoders exposing (txParamsEncoder)
+import Web3.Eth.Encoders exposing (txParamsEncoder, filterParamsEncoder)
 import Web3.Eth.Contract as Contract
-import Json.Encode as Encode exposing (int, string, object)
-import Task exposing (Task)
+import Json.Encode as Encode exposing (Value)
+import Json.Decode as Decode exposing (Decoder)
+import Json.Decode.Pipeline exposing (decode, required, optional)
+import String.Extra exposing (decapitalize)
 import BigInt exposing (BigInt)
+import Task exposing (Task)
+
+
+{-
+   Core Contract info
+      metamask Mainnet gas Price == 156950
+      metamas Ropsten gas Price == 174290
+      testrpc gas price == 156799
+      Collisions will be possible between constructor names in someones solidity contract and values used elm
+      Mitigation needed during code generation. Last 6 chars of the abi's hash appended to constructor param names?
+-}
 
 
 type alias Constructor =
@@ -27,19 +40,16 @@ data =
 
 
 
--- metamask Mainnet gas Price == 156950
--- metamas Ropsten gas Price == 174290
--- testrpc gas price == 156799
---
--- Collisions will be possible between constructor names in someones solidity contract and values used elm
--- Mitigation needed during code generation. Last 6 chars of the abi's hash appended to constructor param names?
+{-
+   Functions
+-}
 
 
 add : Address -> Int -> Int -> Task Error BigInt
 add address a b =
     Web3.toTask
         { func = Contract.call abi "add" address
-        , args = Encode.list [ int a, int b ]
+        , args = Encode.list [ Encode.int a, Encode.int b ]
         , expect = expectJson bigIntDecoder
         , callType = Async
         }
@@ -49,32 +59,16 @@ mutateAdd : Address -> Int -> Task Error TxId
 mutateAdd address n =
     Web3.toTask
         { func = Contract.call abi "mutateAdd" address
-        , args = Encode.list [ int n, txParamsEncoder defaultTxParams ]
+        , args = Encode.list [ Encode.int n, txParamsEncoder defaultTxParams ]
         , expect = expectString
         , callType = Async
         }
 
 
-test : Maybe BigInt -> Constructor -> Task Error Bytes
-test value { someNum_ } =
-    let
-        constructorParams =
-            [ Encode.string <| BigInt.toString someNum_ ]
 
-        getData : Task Error Bytes
-        getData =
-            Contract.getData abi data constructorParams
-
-        estimateGas : Task Error Int
-        estimateGas =
-            Task.map (\data -> { defaultTxParams | data = Just data }) getData
-                |> Task.andThen Web3.Eth.estimateGas
-
-        buildTransaction : Task Error Bytes -> Task Error Int -> Task Error TxParams
-        buildTransaction =
-            Task.map2 (\data gasCost -> { defaultTxParams | data = Just data, gas = Just gasCost, value = value })
-    in
-        getData
+{-
+   Deploy
+-}
 
 
 new : Maybe BigInt -> Constructor -> Task Error ContractInfo
@@ -99,3 +93,162 @@ new value { someNum_ } =
         buildTransaction getData estimateGas
             |> Task.andThen Web3.Eth.sendTransaction
             |> Task.andThen (Contract.pollContract { attempts = 30, sleep = 3 })
+
+
+
+{-
+   Events
+-}
+
+
+type PortName
+    = WatchAdd
+
+
+type alias AddArgs =
+    { mathematician : Address, sum : BigInt }
+
+
+type alias AddEventParams =
+    { mathematician : Maybe Address, sum : Maybe Int }
+
+
+defaultAddFilter : AddEventParams
+defaultAddFilter =
+    { mathematician = Nothing, sum = Nothing }
+
+
+
+-- TODO I'm thinking we have a watch for each event,
+--      Otherwise the wrong Event type could be passed in during Task.attempt
+
+
+watchAdd : FilterParams -> AddEventParams -> Address -> PortName -> Task Error ()
+watchAdd filterParams eventParams address portName =
+    let
+        filterParams_ =
+            filterParamsEncoder filterParams
+
+        eventParams_ =
+            addFilterEncoder eventParams
+
+        portName_ =
+            toString portName
+                |> decapitalize
+                |> Encode.string
+    in
+        Web3.watchEvent
+            { abi = abi
+            , address = address
+            , filterParams = filterParams_
+            , eventParams = eventParams_
+            , portName = portName_
+            , eventName = "Add"
+            }
+
+
+
+{-
+
+   Event Encoders/Decoders
+   Super verbose right now... :|
+
+-}
+
+
+type alias AddEvent =
+    { address : String
+    , args : AddArgs
+    , blockHash : Maybe String
+    , blockNumber : Maybe Int
+    , event : String
+    , logIndex : Maybe Int
+    , transactionHash : String
+    , transactionIndex : Int
+    }
+
+
+addFilterEncoder : AddEventParams -> Value
+addFilterEncoder { mathematician, sum } =
+    [ ( "mathematician", Maybe.map Encode.string mathematician )
+    , ( "sum", Maybe.map Encode.int sum )
+    ]
+        |> List.filter (\( k, v ) -> v /= Nothing)
+        |> List.map (\( k, v ) -> ( k, Maybe.withDefault Encode.null v ))
+        |> Encode.object
+
+
+addArgsDecoder : Decoder AddArgs
+addArgsDecoder =
+    decode AddArgs
+        |> required "mathematician" Decode.string
+        |> required "sum" bigIntDecoder
+
+
+addEventDecoder : Decoder AddEvent
+addEventDecoder =
+    decode AddEvent
+        |> required "address" Decode.string
+        |> required "args" addArgsDecoder
+        |> required "blockHash" (Decode.nullable Decode.string)
+        |> required "blockNumber" (Decode.nullable Decode.int)
+        |> optional "event" Decode.string "Error"
+        |> required "logIndex" (Decode.nullable Decode.int)
+        |> required "transactionHash" Decode.string
+        |> required "transactionIndex" Decode.int
+
+
+
+-- decode event before hitting the model
+
+
+formatAddEvent : RawAddEvent -> AddEvent
+formatAddEvent event =
+    let
+        { args } =
+            event
+
+        formatedArgs =
+            { args
+                | sum =
+                    BigInt.fromString args.sum
+                        |> Maybe.withDefault (BigInt.fromInt -42)
+            }
+    in
+        { event | args = formatedArgs }
+
+
+type alias RawAddEvent =
+    { address : String
+    , args : RawAddArgs
+    , blockHash : Maybe String
+    , blockNumber : Maybe Int
+    , event : String
+    , logIndex : Maybe Int
+    , transactionHash : String
+    , transactionIndex : Int
+    }
+
+
+type alias RawAddArgs =
+    { mathematician : Address, sum : String }
+
+
+
+-- addEventToString : AddEvent -> String
+-- addEventToString { mathematician, sum } =
+--     let
+--         strMap =
+--             Maybe.map toString
+--
+--         wDef =
+--             Maybe.withDefault ""
+--     in
+--         [ ( "{ ", Just "", "" )
+--         , ( "mathematician: '", mathematician, "', " )
+--         , ( "sum: '", strMap sum, "', " )
+--         , ( "}", Just "", "" )
+--         ]
+--             |> List.filter (\( k, v, d ) -> v /= Nothing)
+--             |> List.map (\( k, v, d ) -> k ++ (wDef v) ++ d)
+--             |> String.join ""

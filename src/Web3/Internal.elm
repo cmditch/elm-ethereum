@@ -2,11 +2,13 @@ module Web3.Internal
     exposing
         ( Request
         , Response
+        , EventRequest
         , expectStringResponse
         )
 
-import Json.Encode as Encode
+import Json.Encode as Encode exposing (Value)
 import Web3.Types exposing (Expect(..), CallType(..))
+import Web3.Eth.Types exposing (Abi, Address)
 
 
 type alias Request a =
@@ -14,6 +16,16 @@ type alias Request a =
     , args : Encode.Value
     , expect : Expect a
     , callType : CallType
+    }
+
+
+type alias EventRequest =
+    { abi : Abi
+    , address : Address
+    , filterParams : Value
+    , eventParams : Value
+    , portName : Value
+    , eventName : String
     }
 
 
