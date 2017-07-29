@@ -8,3 +8,11 @@ type Expect a
 type CallType
     = Sync
     | Async
+
+
+type alias Hex =
+    String
+
+
+type alias Keccak256 =
+    String

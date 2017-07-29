@@ -5,9 +5,11 @@ import Html exposing (..)
 import Html.Attributes exposing (href, target)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
+import Web3.Eth exposing (defaultFilterParams)
 import Web3.Eth.Types exposing (..)
 import LightBox
 import BigInt exposing (BigInt)
+import Port
 
 
 main : Program Never Model Msg
@@ -16,7 +18,7 @@ main =
         { init = init
         , view = view
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }
 
 
@@ -28,6 +30,7 @@ type alias Model =
     , txIds : List TxId
     , error : List String
     , testData : Bytes
+    , eventData : List LightBox.AddEvent
     }
 
 
@@ -36,10 +39,15 @@ init =
     { latestBlock = Nothing
     , contractInfo = Deployed <| ContractInfo "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487" "0x742f7f7e2f564159dece37e1fc0d6454bef638bdf57ecea576baf94718863de3"
     , coinbase = "0xe87529a6123a74320e13a6dabf3606630683c029"
-    , additionAnswer = Nothing
+    , additionAnswer =
+        "123412341234123412342143125312351235123512"
+            |> BigInt.fromString
+            >> Maybe.withDefault (BigInt.fromInt -1)
+            |> Just
     , txIds = []
     , error = []
     , testData = ""
+    , eventData = []
     }
         ! [{- TODO Web3.init command needed. Program w/ flags  for wallet check and web3 connection status -}]
 
@@ -48,12 +56,16 @@ view : Model -> Html Msg
 view model =
     div []
         [ button [ onClick DeployContract ] [ text "Deploy new LightBox" ]
+        , viewContractInfo model.contractInfo
         , bigBreak
         , viewAddButton model
           -- , bigBreak
           -- , viewBlock model.latestBlock
         , bigBreak
-        , viewContractInfo model.contractInfo
+        , div [] [ text <| "Tx History: " ++ toString model.txIds ]
+        , bigBreak
+        , button [ onClick WatchAddEvents ] [ text " Watch Add Event" ]
+        , div [] [ text <| toString model.eventData ]
         , bigBreak
         , viewError model.error
         , button [ onClick Test ] [ text "Try test function" ]
@@ -78,9 +90,7 @@ viewAddButton model =
                 [ text "You can call LightBox.add(11,12)"
                 , div [] [ button [ onClick (AddNumbers contractAddress 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
                 , bigBreak
-                , div [] [ button [ onClick (MutateAdd contractAddress 2) ] [ text <| "Add 42 to someNum" ] ]
-                , bigBreak
-                , div [] [ text <| toString model.txIds ]
+                , div [] [ button [ onClick (MutateAdd contractAddress 42) ] [ text <| "Add 42 to someNum" ] ]
                 ]
 
         _ ->
@@ -154,15 +164,18 @@ viewError : List String -> Html Msg
 viewError error =
     case error of
         [] ->
-            span [] []
+            div [] [ text "Errors: " ]
 
         _ ->
-            div [] [ text <| toString error ]
+            div [] [ text <| "Errors: " ++ toString error ]
 
 
 type Msg
     = Test
     | TestResponse (Result Web3.Error Bytes)
+    | WatchAddEvents
+    | StopAddEvents
+    | AddEvents LightBox.AddEvent
     | DeployContract
     | AddNumbers Address Int Int
     | MutateAdd Address Int
@@ -170,6 +183,7 @@ type Msg
     | LightBoxResponse (Result Web3.Error ContractInfo)
     | LightBoxAddResponse (Result Web3.Error BigInt)
     | LightBoxMutateAddResponse (Result Web3.Error TxId)
+    | EventHandler (Result Web3.Error ())
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -188,12 +202,7 @@ update msg model =
     in
         case msg of
             Test ->
-                model
-                    ! [ Task.attempt TestResponse <|
-                            LightBox.test
-                                (BigInt.fromString "502030200")
-                                { someNum_ = BigInt.fromInt 13 }
-                      ]
+                model ! []
 
             TestResponse response ->
                 case response of
@@ -203,13 +212,28 @@ update msg model =
                     Err error ->
                         handleError model error
 
+            WatchAddEvents ->
+                model
+                    ! [ Task.attempt EventHandler <|
+                            LightBox.watchAdd
+                                defaultFilterParams
+                                LightBox.defaultAddFilter
+                                "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487"
+                                LightBox.WatchAdd
+                      ]
+
+            AddEvents events ->
+                { model | eventData = events :: model.eventData } ! []
+
+            StopAddEvents ->
+                model ! []
+
             DeployContract ->
                 { model | contractInfo = Deploying }
-                    ! [ Task.attempt LightBoxResponse
-                            (LightBox.new
+                    ! [ Task.attempt LightBoxResponse <|
+                            LightBox.new
                                 (BigInt.fromString "502030200")
                                 { someNum_ = BigInt.fromInt 13 }
-                            )
                       ]
 
             AddNumbers address a b ->
@@ -255,3 +279,16 @@ update msg model =
 
                     Err error ->
                         handleError model error
+
+            EventHandler response ->
+                case response of
+                    Ok _ ->
+                        model ! []
+
+                    Err error ->
+                        handleError model error
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.batch [ Port.watchAdd (LightBox.formatAddEvent >> AddEvents) ]

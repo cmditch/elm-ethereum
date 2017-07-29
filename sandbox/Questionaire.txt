@@ -1,0 +1,26 @@
+
+
+web3.eth.filter and web3.eth.contract(abi).at(address).MyEvent() are both ways to work with logs/events,
+Which one is more common to use? Can you give an example use case for each?
+
+    -- web3.eth.filter streams all blockHashes of new mined blocks; also streams txObjects for 'pending' block.
+    -- Can also filter for specific topics (Event Hash, or other event args) in specific blocks/ranges, for a particular address.
+
+    -- web3.eth.contract....MyEvent is a helper function on top of filter,
+    -- for a specific event associated with a particular contract address.
+
+How often does one filter.stopWatching after the first received event?   Percentage wise?
+
+What scenarios might one let events stream for a while before stopping them?
+
+Is web3.reset() employed often for clearing all active event callbacks?  I imagine it's more typical to assign an event and stop it directly?
+
+How often do you employ filter.get()?  Do you have an example of how you've used this in real life?
+
+
+
+
+
+
+
+Follow up questions over phone?\
