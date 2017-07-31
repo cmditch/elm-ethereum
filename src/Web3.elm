@@ -2,6 +2,7 @@ module Web3
     exposing
         ( Error(..)
         , Retry
+        , reset
         , toTask
         , getContractData
         , watchEvent
@@ -24,7 +25,7 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 -}
 
 import Native.Web3
-import Web3.Internal exposing (Request, EventRequest, DataRequest)
+import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
 import Web3.Decoders exposing (expectString, expectInt, expectBool)
 import Web3.Types exposing (CallType(..), Keccak256, Hex)
 import Web3.Eth.Types exposing (..)
@@ -59,7 +60,7 @@ isConnected =
 
 reset : Bool -> Task Error Bool
 reset keepIsSyncing =
-    Native.Web3.reset keepIsSyncing
+    Native.Web3.reset (Encode.bool keepIsSyncing)
 
 
 sha3 : String -> Task Error Keccak256

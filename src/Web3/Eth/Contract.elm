@@ -16,6 +16,9 @@ import Json.Encode as Encode exposing (Value)
 import Task exposing (Task)
 
 
+-- TODO Refactor 'call' to look like others, not just a string?
+
+
 call : Abi -> String -> Address -> String
 call abi func address =
     "eth.contract("

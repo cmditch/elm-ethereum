@@ -107,17 +107,19 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     function getContractData(r) {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
-                response =
+                var response =
                     eval("web3.eth.contract("
                           + r.abi
                           + ").getData("
                           + r.constructorParams.join()
-                          + ", {data: "
+                          + ", {data: '"
                           + r.data
-                          + "})"
+                          + "'})"
                     )
+                console.log(response)
                 return callback(_elm_lang$core$Native_Scheduler.succeed(response));
             } catch(e) {
+                console.log(e)
                 return callback(_elm_lang$core$Native_Scheduler.fail(
                     {ctor: 'Error', _0: "Contract.getData failed - " + e.toString() }
                 ));
@@ -151,19 +153,24 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 ));
             }
         });
-
-        // {
-        //  abi:'[]' ,
-        //  address: "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487" ,
-        //  eventParams: {} ,
-        //  filterParams: {} ,
-        //  subName: "watchAdd"
-        // }
     };
 
 
+    function reset(keepIsSyncing){
+        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
+            try {
+                eval("web3.reset(" + keepIsSyncing.toString() + ")")
+                return callback(_elm_lang$core$Native_Scheduler.succeed(true));
+            } catch (e) {
+                return callback(_elm_lang$core$Native_Scheduler.fail(
+                    {ctor: 'Error', _0: "Event reset failed - " + e.toString() }
+                ));
+            }
+        });
+    };
+
     /*
-    // All web3 requests from Elm have an 'Expect' function or decoder attached.
+    // Most web3 requests from Elm have an 'Expect' function or decoder attached.
     // The user should not have to worry about all the nuances of decoding web3 responses.
     // The function below allows for this trickery to occur, in combination with Web3.Internal.elm
     */
@@ -222,7 +229,9 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     return {
         toTask: toTask,
+        getContractData: getContractData,
         watchEvent: watchEvent,
+        reset: reset,
         expectStringResponse: expectStringResponse
     };
 
