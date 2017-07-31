@@ -173,7 +173,7 @@ viewError error =
 
 type Msg
     = Test
-    | TestResponse (Result Web3.Error Bool)
+    | TestResponse (Result Web3.Error ())
     | WatchAddEvents
     | StopAddEvents
     | AddEvents LightBox.AddEvent
@@ -208,7 +208,7 @@ update msg model =
             TestResponse response ->
                 case response of
                     Ok data ->
-                        { model | testData = toString data } ! []
+                        { model | testData = "Twerked" } ! []
 
                     Err error ->
                         handleError model error

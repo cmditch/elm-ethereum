@@ -31,7 +31,7 @@ call abi func address =
 
 getData : Abi -> Bytes -> List Value -> Task Error Bytes
 getData abi data constructorParams =
-    Web3.getContractData
+    Web3.contractGetData
         { abi = abi
         , data = data
         , constructorParams = Encode.list constructorParams

@@ -4,7 +4,7 @@ module Web3
         , Retry
         , reset
         , toTask
-        , getContractData
+        , contractGetData
         , watchEvent
         , retry
         )
@@ -58,7 +58,7 @@ isConnected =
 --      unless that will conflict with Contract.stopWatching task.
 
 
-reset : Bool -> Task Error Bool
+reset : Bool -> Task Error ()
 reset keepIsSyncing =
     Native.Web3.reset (Encode.bool keepIsSyncing)
 
@@ -195,9 +195,9 @@ toTask request =
     Native.Web3.toTask request
 
 
-getContractData : GetDataRequest -> Task Error Bytes
-getContractData getDataRequest =
-    Native.Web3.getContractData getDataRequest
+contractGetData : GetDataRequest -> Task Error Bytes
+contractGetData getDataRequest =
+    Native.Web3.contractGetData getDataRequest
 
 
 watchEvent : EventRequest -> Task Error ()

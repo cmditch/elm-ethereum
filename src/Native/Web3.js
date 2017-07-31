@@ -4,12 +4,11 @@
 
 var _cmditch$elm_web3$Native_Web3 = function() {
 
-// TODO Move eventRegistry in here when you're done using it globally.
+    window.eventRegistry = {};
 
     var config = {
         web3BigNumberFields: ["totalDifficulty", "difficulty", "value", "gasPrice"],
         error: {
-            // TODO should timeout be it's own error type? Probably not, since only deployContract can timeout currently.
             nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
             undefinedResposnse: "Web3 responded with undefined.",
             deniedTransaction: "MetaMask Tx Signature: User denied transaction signature.",
@@ -17,12 +16,6 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         }
     };
 
-    // var eventRegistry = {};
-// TODO   Clean up the core logic in each event by returning Error{ctor, 0_} objects in pure functions.
-
-// TODO   Make some functions synchronus and return Results or Maybes - sha3, toWei, fromWei
-
-// TODO   Make a native BigNumber -> BigInt function
 
 // TODO   Deal with "Web3 responded with undefined." (Transaction cancelled usually),
 //        and"Error: invalid address" (MetaMask was not unlocked...)
@@ -30,81 +23,54 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 // TODO Return a tuple of errors, where: (simpleDescription, fullConsoleOutput)
 
     function toTask(request) {
-        console.log("BEGINNING OF TO TASK: ", request);
+        console.log("To task: ", request);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
-
                 var web3Callback = function(e,r) {
-                    // Args passed from elm are always appended with an Error-First style callback,
-                    // in order to satisfy web3's aysnchronus by design nature.
-
-                    // Map response errors to error type
-                    // TODO Does this even work as intended, within this web3Callback func?
-
-                    if (r === null) {
+                    var result = handleWeb3Response({
+                        response: r,
+                        error: e,
+                        decoder: request.expect.responseToResult
+                    });
+                    console.log("Async result: ", result)
+                    if (result.ctor === "Ok") {
+                        return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
+                    } else if (result.ctor === "Err") {
                         return callback(_elm_lang$core$Native_Scheduler.fail(
-                            { ctor: 'Error', _0: config.error.nullResponse }
-                        ));
-                    } else if (r === undefined) {
-                    // This will execute when using metamask and 'rejecting' a tx.
-                        return callback(_elm_lang$core$Native_Scheduler.fail(
-                            { ctor: 'Error', _0: config.error.undefinedResposnse }
+                            { ctor: 'Error', _0: result._0 }
                         ));
                     }
-
-                    // Decode the payload using Elm function passed to Expect
-                    var result = request.expect.responseToResult( formatWeb3Response(r) );
-
-                    if (result.ctor !== 'Ok') {
-                        // resolve with decoding error
-                        return callback(_elm_lang$core$Native_Scheduler.fail(
-                            {ctor: 'BadPayload', _0: result._0}
-                        ));
-                    }
-
-                    // success
-                    return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
                 }; // web3Callback
 
-                var f = eval("web3." + request.func);
+                var func = eval("web3." + request.func);
 
                 if (request.callType.ctor === "Async") {
-                    f.apply(null, request.args.concat( web3Callback ));
+                    func.apply(null, request.args.concat( web3Callback ));
                 } else if (request.callType.ctor === "Sync") {
-                    var syncResult = f.apply(null, request.args);
-                /* */
-                /* */
-                    // web3.reset() returns undefined and needs to be handled accordingly
-                    if (syncResult === undefined && request.func === "reset") {
-                        return callback(_elm_lang$core$Native_Scheduler.succeed(true));
-                    } else if (r === null) {
+                    var web3Response = func.apply(null, request.args);
+                    var result = handleWeb3Response({
+                        response: r,
+                        error: null,
+                        decoder: undefined
+                    });
+                    console.log("Sync result: ", result)
+                    if (result.ctor === "Ok") {
+                        return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
+                    } else if (result.ctor === "Err") {
                         return callback(_elm_lang$core$Native_Scheduler.fail(
-                            { ctor: 'Error', _0: config.error.nullResponse }
+                            { ctor: 'Error', _0: result._0 }
                         ));
-                    } else if (r === undefined) {
-                        return callback(_elm_lang$core$Native_Scheduler.fail(
-                            { ctor: 'Error', _0: config.error.undefinedResposnse }
-                        ));
-                    } else {
-                        formattedSyncResult = request.expect.responseToResult(formatWeb3Response(syncResult));
-                        return callback(_elm_lang$core$Native_Scheduler.succeed(formattedSyncResult._0));
                     }
-                /* */
-                /* */
-                } else {
-                    return callback(_elm_lang$core$Native_Scheduler.fail(
-                        { ctor: 'Error', _0: "CallType was not defined. This should be impossible." }
-                    ));
                 };
             } catch (e) {
                 console.log(e);
-                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));
+                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: "Tried and caught: " + e.toString() }));
             }
         });
     };
 
 
-    function getContractData(r) {
+    function contractGetData(r) {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
                 var response =
@@ -126,6 +92,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             }
         });
     };
+
 
     function watchEvent(e){
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
@@ -160,7 +127,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
                 eval("web3.reset(" + keepIsSyncing.toString() + ")")
-                return callback(_elm_lang$core$Native_Scheduler.succeed(true));
+                return callback(_elm_lang$core$Native_Scheduler.succeed());
             } catch (e) {
                 return callback(_elm_lang$core$Native_Scheduler.fail(
                     {ctor: 'Error', _0: "Event reset failed - " + e.toString() }
@@ -180,6 +147,21 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         };
     };
 
+    // (Error, Response, Expect/Decoder) -> Result Err Ok
+    function handleWeb3Response(r) {
+        if (r.error !== null) {
+            return {ctor: "Err", _0: r.error }
+        } else if (r.response === null) {
+            return {ctor: "Err", _0: config.error.nullResponse }
+        } else if (r.response === undefined) {
+            return { ctor: "Err", _0: config.error.undefinedResposnse }
+        } else if (r.decoder !== undefined){
+            // decoder returns a Result
+            return r.decoder( formatWeb3Response(r.response) )
+        } else {
+            return { ctor: 'Ok', _0: r.response }
+        }
+    };
 
     /*
     // Check each response from web3 for BigNumber values and convert to fixed string.
@@ -196,6 +178,14 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
+    function formatLog(log) {
+        Object.keys(log.args).forEach(function(arg) {
+            log.args[arg] = formatIfBigNum(log.args[arg]);
+        });
+        return log;
+    }
+
+
     function formatIfBigNum(value) {
         if (value.isBigNumber) {
           return value.toFixed();
@@ -205,31 +195,16 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     }
 
 
-    function formatLog(log) {
-        Object.keys(log.args).forEach(function(arg) {
-            log.args[arg] = formatIfBigNum(log.args[arg]);
-        });
-        return log;
-    }
-
-
     function formatLogsArray(logsArray) {
         logsArray.map(function(log) { formatLog(log) } );
         return logsArray;
     }
-    /*
-    // Convert known BigNumber fields in event.args to fixed string.
-    //
-    */
-    function formatEventResponse(r) {
-      bigIntKeys.forEach( key => eventObj.args[key] = eventObj.args[key].toFixed() );
-      return eventObj;
-    };
+
 
 
     return {
         toTask: toTask,
-        getContractData: getContractData,
+        contractGetData: contractGetData,
         watchEvent: watchEvent,
         reset: reset,
         expectStringResponse: expectStringResponse
