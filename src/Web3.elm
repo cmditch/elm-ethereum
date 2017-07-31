@@ -3,6 +3,7 @@ module Web3
         ( Error(..)
         , Retry
         , toTask
+        , getContractData
         , watchEvent
         , retry
         )
@@ -23,7 +24,7 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 -}
 
 import Native.Web3
-import Web3.Internal exposing (Request, EventRequest)
+import Web3.Internal exposing (Request, EventRequest, DataRequest)
 import Web3.Decoders exposing (expectString, expectInt, expectBool)
 import Web3.Types exposing (CallType(..), Keccak256, Hex)
 import Web3.Eth.Types exposing (..)
@@ -191,6 +192,11 @@ type Error
 toTask : Request a -> Task Error a
 toTask request =
     Native.Web3.toTask request
+
+
+getContractData : GetDataRequest -> Task Error Bytes
+getContractData getDataRequest =
+    Native.Web3.getContractData getDataRequest
 
 
 watchEvent : EventRequest -> Task Error ()

@@ -28,11 +28,10 @@ call abi func address =
 
 getData : Abi -> Bytes -> List Value -> Task Error Bytes
 getData abi data constructorParams =
-    Web3.toTask
-        { func = "eth.contract('" ++ abi ++ "').getData"
-        , args = Encode.list <| constructorParams ++ [ Encode.object [ ( "data", Encode.string data ) ] ]
-        , expect = expectString
-        , callType = Sync
+    Web3.getContractData
+        { abi = abi
+        , data = data
+        , constructorParams = Encode.list constructorParams
         }
 
 

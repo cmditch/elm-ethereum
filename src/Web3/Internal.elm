@@ -2,13 +2,14 @@ module Web3.Internal
     exposing
         ( Request
         , Response
+        , GetDataRequest
         , EventRequest
         , expectStringResponse
         )
 
 import Json.Encode as Encode exposing (Value)
 import Web3.Types exposing (Expect(..), CallType(..))
-import Web3.Eth.Types exposing (Abi, Address)
+import Web3.Eth.Types exposing (Abi, Address, Bytes)
 
 
 type alias Request a =
@@ -16,6 +17,13 @@ type alias Request a =
     , args : Encode.Value
     , expect : Expect a
     , callType : CallType
+    }
+
+
+type alias GetDataRequest =
+    { abi : Abi
+    , data : Bytes
+    , constructorParams : Value
     }
 
 

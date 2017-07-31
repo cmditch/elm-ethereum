@@ -104,6 +104,27 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
+    function getContractData(r) {
+        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
+            try {
+                response =
+                    eval("web3.eth.contract("
+                          + r.abi
+                          + ").getData("
+                          + r.constructorParams.join()
+                          + ", {data: "
+                          + r.data
+                          + "})"
+                    )
+                return callback(_elm_lang$core$Native_Scheduler.succeed(response));
+            } catch(e) {
+                return callback(_elm_lang$core$Native_Scheduler.fail(
+                    {ctor: 'Error', _0: "Contract.getData failed - " + e.toString() }
+                ));
+            }
+        });
+    };
+
     function watchEvent(e){
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
@@ -126,7 +147,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 return callback(_elm_lang$core$Native_Scheduler.succeed());
             } catch (e) {
                 return callback(_elm_lang$core$Native_Scheduler.fail(
-                    {ctor: 'Error', _0: "Event sub failed: " + e.toString() }
+                    {ctor: 'Error', _0: "Event sub failed - " + e.toString() }
                 ));
             }
         });
