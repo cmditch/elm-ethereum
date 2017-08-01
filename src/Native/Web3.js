@@ -36,6 +36,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     if (result.ctor === "Ok") {
                         return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
                     } else if (result.ctor === "Err") {
+                        console.log("Err found!", result)
                         return callback(_elm_lang$core$Native_Scheduler.fail(
                             { ctor: 'Error', _0: result._0 }
                         ));
@@ -71,6 +72,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function contractGetData(r) {
+        console.log("contractGetData: ", r);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
                 var response =
@@ -95,6 +97,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function watchEvent(e){
+        console.log("watchEvent: ", r);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
                 var registry = window.eventRegistry;
@@ -124,6 +127,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function reset(keepIsSyncing){
+        console.log("reset: ", r);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
                 eval("web3.reset(" + keepIsSyncing.toString() + ")")
@@ -149,25 +153,33 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     // (Error, Response, Expect/Decoder) -> Result Err Ok
     function handleWeb3Response(r) {
+        console.log("handleWeb3Response: ")
         if (r.error !== null) {
-            return {ctor: "Err", _0: r.error }
+            console.log("Web3 response error: ",r);
+            return {ctor: "Err", _0: r.error.message.split("\n")[0] }
         } else if (r.response === null) {
+            console.log("Web3 response was null: ", r);
             return {ctor: "Err", _0: config.error.nullResponse }
         } else if (r.response === undefined) {
+            console.log("Web3 response was undefined: ", r);
             return { ctor: "Err", _0: config.error.undefinedResposnse }
         } else if (r.decoder !== undefined){
+            console.log("Web3 was async w/ decoder: ", r);
             // decoder returns a Result
             return r.decoder( formatWeb3Response(r.response) )
         } else {
+            console.log("Web3 was sync: ", r);
             return { ctor: 'Ok', _0: r.response }
         }
     };
 
-    /*
-    // Check each response from web3 for BigNumber values and convert to fixed string.
-    // JSON.stringify all values from web3 before sending to Elm.
-    */
+
+/*
+//  Run on all async web3 repsonses.
+//  Turns BigNumber into full strings.
+*/
     function formatWeb3Response(r) {
+        console.log("formatWeb3Response executed (remove bigNums for async ) ")
         if (r.isBigNumber) { return JSON.stringify(r.toFixed()) }
         config.web3BigNumberFields.forEach( val => {
             if (r[val] !== undefined && r[val].isBigNumber) {
@@ -178,6 +190,10 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
+/*
+//  Run on all web3 event repsonses (logs).
+//  Turns BigNumber into full strings.
+*/
     function formatLog(log) {
         Object.keys(log.args).forEach(function(arg) {
             log.args[arg] = formatIfBigNum(log.args[arg]);
