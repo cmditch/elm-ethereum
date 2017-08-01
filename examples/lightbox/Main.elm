@@ -30,7 +30,7 @@ type alias Model =
     , txIds : List TxId
     , error : List String
     , testData : String
-    , eventData : List LightBox.AddEvent
+    , eventData : List (EventLog LightBox.AddArgs)
     }
 
 
@@ -176,7 +176,7 @@ type Msg
     | TestResponse (Result Web3.Error ())
     | WatchAddEvents
     | StopAddEvents
-    | AddEvents LightBox.AddEvent
+    | AddEvents (EventLog LightBox.AddArgs)
     | DeployContract
     | AddNumbers Address Int Int
     | MutateAdd Address Int
@@ -292,4 +292,4 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.batch [ Port.watchAdd (LightBox.formatAddEvent >> AddEvents) ]
+    Sub.batch [ Port.watchAdd (LightBox.formatAddEventLog >> AddEvents) ]

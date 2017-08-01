@@ -170,6 +170,18 @@ type alias Log =
     }
 
 
+type alias EventLog a =
+    { address : String
+    , args : a
+    , blockHash : Maybe String
+    , blockNumber : Maybe Int
+    , event : String
+    , logIndex : Maybe Int
+    , transactionHash : String
+    , transactionIndex : Int
+    }
+
+
 type alias SyncStatus =
     { startingBlock : Int
     , currentBlock : Int

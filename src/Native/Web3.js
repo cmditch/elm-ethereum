@@ -4,7 +4,7 @@
 
 var _cmditch$elm_web3$Native_Web3 = function() {
 
-    window.eventRegistry = {};
+    eventRegistry = {};
 
     var config = {
         web3BigNumberFields: ["totalDifficulty", "difficulty", "value", "gasPrice"],
@@ -16,16 +16,20 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         }
     };
 
+/*
+  TODO  Remove the bulk of the console.log's once we go Beta -> 1.0
+        We'll have to decide which ones to leave in for 1.0, if any at all.
 
-// TODO   Deal with "Web3 responded with undefined." (Transaction cancelled usually),
-//        and"Error: invalid address" (MetaMask was not unlocked...)
-
-// TODO Return a tuple of errors, where: (simpleDescription, fullConsoleOutput)
+  TODO  Perhaps return a tuple of errors, where: (simpleDescription, fullConsoleOutput)?
+        Probably not, let's just work on hammering out all error cases
+        and replying with meaningful messages in a elm-ish fashion.
+*/
 
     function toTask(request) {
         console.log("To task: ", request);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
+
                 var web3Callback = function(e,r) {
                     var result = handleWeb3Response({
                         response: r,
@@ -41,7 +45,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                             { ctor: 'Error', _0: result._0 }
                         ));
                     }
-                }; // web3Callback
+                };
 
                 var func = eval("web3." + request.func);
 
@@ -100,9 +104,10 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         console.log("watchEvent: ", e);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
-                var registry = window.eventRegistry;
-                if (registry[e.portName]) { registry[e.portName].stopWatching() }; // Clear duplicate 'watchings' instantiation.
-                registry[e.portName] =
+                // Clear out duplicate 'watchings', otherwise they hang around in the background.
+                if (eventRegistry[e.portName]) { eventRegistry[e.portName].stopWatching() };
+
+                eventRegistry[e.portName] =
                     eval("web3.eth.contract("
                           + e.abi + ").at('"
                           + e.address
@@ -113,11 +118,12 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                           + ","
                           + JSON.stringify(e.filterParams)
                           + ")"
-                    ); // Or we could do .apply() after the eval to avoid stringify?
+                    );
+
                 var port = eval("window.elmShim.ports." + e.portName);
-                registry[e.portName].watch(function(e,r) { console.log( formatLog(r) )});
-                registry[e.portName].watch(function(e,r) { port.send( formatLog(r) )});
-                console.log(window.eventRegistry);
+                eventRegistry[e.portName].watch(function(e,r) { console.log( formatLog(r) )}); // Temporary
+                eventRegistry[e.portName].watch(function(e,r) { port.send( formatLog(r) )});
+                console.log(eventRegistry);
                 return callback(_elm_lang$core$Native_Scheduler.succeed());
             } catch (e) {
                 console.log("Try/Catch error on watchEvent", e);
@@ -134,7 +140,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
                 eval("web3.reset(" + keepIsSyncing.toString() + ")")
-                console.log(window.eventRegistry);
+                console.log(eventRegistry);
                 return callback(_elm_lang$core$Native_Scheduler.succeed());
             } catch (e) {
                 console.log("Try/Catch error on web3.reset", e);
@@ -145,11 +151,12 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         });
     };
 
-    /*
-    // Most web3 requests from Elm have an 'Expect' function or decoder attached.
-    // The user should not have to worry about all the nuances of decoding web3 responses.
-    // The function below allows for this trickery to occur, in combination with Web3.Internal.elm
-    */
+
+/*
+// Most web3 requests from Elm have an 'Expect' function or decoder attached.
+// The user should not have to worry about all the nuances of decoding web3 responses.
+// The function below allows for this trickery to occur, in combination with Web3.Internal.elm
+*/
     function expectStringResponse(responseToResult) {
         return {
             responseToResult: responseToResult
@@ -186,7 +193,6 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 /*
 //  Run on all async web3 repsonses.
 //  Turns BigNumber into full strings.
-//
 */
     function formatWeb3Response(r) {
         console.log("formatWeb3Response executed (remove bigNums for async ) ");

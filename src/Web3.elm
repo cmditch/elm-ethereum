@@ -4,8 +4,6 @@ module Web3
         , Retry
         , reset
         , toTask
-        , contractGetData
-        , watchEvent
         , retry
         )
 
@@ -195,37 +193,19 @@ toTask request =
     Native.Web3.toTask request
 
 
-contractGetData : GetDataRequest -> Task Error Bytes
-contractGetData getDataRequest =
-    Native.Web3.contractGetData getDataRequest
-
-
-watchEvent : EventRequest -> Task Error ()
-watchEvent eventRequest =
-    Native.Web3.watchEvent eventRequest
-
-
-stopEvent : Task Error a
-stopEvent =
-    Native.Web3.stopEvent
-
-
 
 -- POLLING
+{-
+   Mad props to Nick Miller for this retry function
+              The MIRTCH Function
+   "Matrix Inception Recursive Task Chaining" Function
+-}
 
 
 type alias Retry =
     { attempts : Int
     , sleep : Float
     }
-
-
-
-{-
-   Mad props to Nick Miller for this retry function
-              The MIRTCH Function
-   "Matrix Inception Recursive Task Chaining" Function
--}
 
 
 retry : Retry -> Task Error a -> Task Error a

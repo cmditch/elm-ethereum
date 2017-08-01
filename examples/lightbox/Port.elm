@@ -1,6 +1,7 @@
 port module Port exposing (..)
 
-import LightBox
+import Web3.Eth.Types exposing (EventLog)
+import LightBox exposing (RawAddArgs)
 
 
-port watchAdd : (LightBox.RawAddEvent -> msg) -> Sub msg
+port watchAdd : (EventLog RawAddArgs -> msg) -> Sub msg
