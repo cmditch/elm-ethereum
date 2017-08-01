@@ -29,8 +29,8 @@ type alias Model =
     , additionAnswer : Maybe BigInt
     , txIds : List TxId
     , error : List String
-    , testData : Bytes
-    , eventData : List LightBox.AddEvent
+    , testData : String
+    , eventData : List (EventLog LightBox.AddArgs)
     }
 
 
@@ -59,8 +59,9 @@ view model =
         , viewContractInfo model.contractInfo
         , bigBreak
         , viewAddButton model
-          -- , bigBreak
-          -- , viewBlock model.latestBlock
+
+        -- , bigBreak
+        -- , viewBlock model.latestBlock
         , bigBreak
         , div [] [ text <| "Tx History: " ++ toString model.txIds ]
         , bigBreak
@@ -68,7 +69,7 @@ view model =
         , div [] [ text <| toString model.eventData ]
         , bigBreak
         , viewError model.error
-        , button [ onClick Test ] [ text "Try test function" ]
+        , button [ onClick Test ] [ text "Try web3.reset()" ]
         , div [] [ text model.testData ]
         ]
 
@@ -172,10 +173,10 @@ viewError error =
 
 type Msg
     = Test
-    | TestResponse (Result Web3.Error Bytes)
+    | TestResponse (Result Web3.Error ())
     | WatchAddEvents
     | StopAddEvents
-    | AddEvents LightBox.AddEvent
+    | AddEvents (EventLog LightBox.AddArgs)
     | DeployContract
     | AddNumbers Address Int Int
     | MutateAdd Address Int
@@ -202,12 +203,12 @@ update msg model =
     in
         case msg of
             Test ->
-                model ! []
+                model ! [ Task.attempt TestResponse (Web3.reset False) ]
 
             TestResponse response ->
                 case response of
                     Ok data ->
-                        { model | testData = data } ! []
+                        { model | testData = "Twerked" } ! []
 
                     Err error ->
                         handleError model error
@@ -291,4 +292,4 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.batch [ Port.watchAdd (LightBox.formatAddEvent >> AddEvents) ]
+    Sub.batch [ Port.watchAdd (LightBox.formatAddEventLog >> AddEvents) ]

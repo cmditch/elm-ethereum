@@ -10,6 +10,7 @@ module Web3.Eth.Decoders
         , hexDecoder
         , syncStatusDecoder
         , contractAddressDecoder
+        , eventLogDecoder
         )
 
 import Web3.Types exposing (..)
@@ -124,6 +125,19 @@ logDecoder =
         |> required "transactionIndex" int
         |> required "transactionLogIndex" string
         |> required "type_" string
+
+
+eventLogDecoder : Decoder a -> Decoder (EventLog a)
+eventLogDecoder argsDecoder =
+    decode EventLog
+        |> required "address" Decode.string
+        |> required "args" argsDecoder
+        |> required "blockHash" (Decode.nullable Decode.string)
+        |> required "blockNumber" (Decode.nullable Decode.int)
+        |> optional "event" Decode.string "Error"
+        |> required "logIndex" (Decode.nullable Decode.int)
+        |> required "transactionHash" Decode.string
+        |> required "transactionIndex" Decode.int
 
 
 addressDecoder : Decoder Address

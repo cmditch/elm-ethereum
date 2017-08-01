@@ -2,8 +2,8 @@ module Web3
     exposing
         ( Error(..)
         , Retry
+        , reset
         , toTask
-        , watchEvent
         , retry
         )
 
@@ -23,7 +23,7 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 -}
 
 import Native.Web3
-import Web3.Internal exposing (Request, EventRequest)
+import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
 import Web3.Decoders exposing (expectString, expectInt, expectBool)
 import Web3.Types exposing (CallType(..), Keccak256, Hex)
 import Web3.Eth.Types exposing (..)
@@ -56,9 +56,9 @@ isConnected =
 --      unless that will conflict with Contract.stopWatching task.
 
 
-reset : Bool -> Task Error Bool
+reset : Bool -> Task Error ()
 reset keepIsSyncing =
-    Native.Web3.reset keepIsSyncing
+    Native.Web3.reset (Encode.bool keepIsSyncing)
 
 
 sha3 : String -> Task Error Keccak256
@@ -193,32 +193,19 @@ toTask request =
     Native.Web3.toTask request
 
 
-watchEvent : EventRequest -> Task Error ()
-watchEvent eventRequest =
-    Native.Web3.watchEvent eventRequest
-
-
-stopEvent : Task Error a
-stopEvent =
-    Native.Web3.stopEvent
-
-
 
 -- POLLING
+{-
+   Mad props to Nick Miller for this retry function
+              The MIRTCH Function
+   "Matrix Inception Recursive Task Chaining" Function
+-}
 
 
 type alias Retry =
     { attempts : Int
     , sleep : Float
     }
-
-
-
-{-
-   Mad props to Nick Miller for this retry function
-              The MIRTCH Function
-   "Matrix Inception Recursive Task Chaining" Function
--}
 
 
 retry : Retry -> Task Error a -> Task Error a

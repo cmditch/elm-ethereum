@@ -4,12 +4,11 @@
 
 var _cmditch$elm_web3$Native_Web3 = function() {
 
-// TODO Move eventRegistry in here when you're done using it globally.
+    var eventRegistry = {};
 
     var config = {
         web3BigNumberFields: ["totalDifficulty", "difficulty", "value", "gasPrice"],
         error: {
-            // TODO should timeout be it's own error type? Probably not, since only deployContract can timeout currently.
             nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
             undefinedResposnse: "Web3 responded with undefined.",
             deniedTransaction: "MetaMask Tx Signature: User denied transaction signature.",
@@ -17,98 +16,98 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         }
     };
 
-    // var eventRegistry = {};
-// TODO   Clean up the core logic in each event by returning Error{ctor, 0_} objects in pure functions.
+/*
+  TODO  Remove the bulk of the console.log's once we go Beta -> 1.0
+        We'll have to decide which ones to leave in for 1.0, if any at all.
 
-// TODO   Make some functions synchronus and return Results or Maybes - sha3, toWei, fromWei
-
-// TODO   Make a native BigNumber -> BigInt function
-
-// TODO   Deal with "Web3 responded with undefined." (Transaction cancelled usually),
-//        and"Error: invalid address" (MetaMask was not unlocked...)
-
-// TODO Return a tuple of errors, where: (simpleDescription, fullConsoleOutput)
+  TODO  Perhaps return a tuple of errors, where: (simpleDescription, fullConsoleOutput)?
+        Probably not, let's just work on hammering out all error cases
+        and replying with meaningful messages in a elm-ish fashion.
+*/
 
     function toTask(request) {
-        console.log("BEGINNING OF TO TASK: ", request);
+        console.log("To task: ", request);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
 
                 var web3Callback = function(e,r) {
-                    // Args passed from elm are always appended with an Error-First style callback,
-                    // in order to satisfy web3's aysnchronus by design nature.
-
-                    // Map response errors to error type
-                    // TODO Does this even work as intended, within this web3Callback func?
-
-                    if (r === null) {
+                    var result = handleWeb3Response({
+                        response: r,
+                        error: e,
+                        decoder: request.expect.responseToResult
+                    });
+                    console.log("Async result: ", result)
+                    if (result.ctor === "Ok") {
+                        return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
+                    } else if (result.ctor === "Err") {
+                        console.log("Err within Async found!", result)
                         return callback(_elm_lang$core$Native_Scheduler.fail(
-                            { ctor: 'Error', _0: config.error.nullResponse }
-                        ));
-                    } else if (r === undefined) {
-                    // This will execute when using metamask and 'rejecting' a tx.
-                        return callback(_elm_lang$core$Native_Scheduler.fail(
-                            { ctor: 'Error', _0: config.error.undefinedResposnse }
+                            { ctor: 'Error', _0: result._0 }
                         ));
                     }
+                };
 
-                    // Decode the payload using Elm function passed to Expect
-                    var result = request.expect.responseToResult( formatWeb3Response(r) );
-
-                    if (result.ctor !== 'Ok') {
-                        // resolve with decoding error
-                        return callback(_elm_lang$core$Native_Scheduler.fail(
-                            {ctor: 'BadPayload', _0: result._0}
-                        ));
-                    }
-
-                    // success
-                    return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
-                }; // web3Callback
-
-                var f = eval("web3." + request.func);
+                var func = eval("web3." + request.func);
 
                 if (request.callType.ctor === "Async") {
-                    f.apply(null, request.args.concat( web3Callback ));
+                    func.apply(null, request.args.concat( web3Callback ));
                 } else if (request.callType.ctor === "Sync") {
-                    var syncResult = f.apply(null, request.args);
-                /* */
-                /* */
-                    // web3.reset() returns undefined and needs to be handled accordingly
-                    if (syncResult === undefined && request.func === "reset") {
-                        return callback(_elm_lang$core$Native_Scheduler.succeed(true));
-                    } else if (r === null) {
+                    var web3Response = func.apply(null, request.args);
+                    var result = handleWeb3Response({
+                        response: r,
+                        error: null,
+                        decoder: undefined
+                    });
+                    console.log("Sync result: ", result);
+                    if (result.ctor === "Ok") {
+                        return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
+                    } else if (result.ctor === "Err") {
                         return callback(_elm_lang$core$Native_Scheduler.fail(
-                            { ctor: 'Error', _0: config.error.nullResponse }
+                            { ctor: 'Error', _0: result._0 }
                         ));
-                    } else if (r === undefined) {
-                        return callback(_elm_lang$core$Native_Scheduler.fail(
-                            { ctor: 'Error', _0: config.error.undefinedResposnse }
-                        ));
-                    } else {
-                        formattedSyncResult = request.expect.responseToResult(formatWeb3Response(syncResult));
-                        return callback(_elm_lang$core$Native_Scheduler.succeed(formattedSyncResult._0));
                     }
-                /* */
-                /* */
-                } else {
-                    return callback(_elm_lang$core$Native_Scheduler.fail(
-                        { ctor: 'Error', _0: "CallType was not defined. This should be impossible." }
-                    ));
                 };
             } catch (e) {
-                console.log(e);
-                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: e.toString() }));
+                console.log("Try/Catch error on toTask", e);
+                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: "Tried and caught: " + e.toString() }));
+            }
+        });
+    };
+
+
+    function contractGetData(r) {
+        console.log("contractGetData: ", r);
+        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
+            try {
+                var response =
+                    eval("web3.eth.contract("
+                          + r.abi
+                          + ").getData("
+                          + r.constructorParams.join()
+                          + ", {data: '"
+                          + r.data
+                          + "'})"
+                    )
+                console.log(response)
+                return callback(_elm_lang$core$Native_Scheduler.succeed(response));
+            } catch(e) {
+                console.log("Try/Catch error on contractGetData", e);
+                return callback(_elm_lang$core$Native_Scheduler.fail(
+                    {ctor: 'Error', _0: "Contract.getData failed - " + e.toString() }
+                ));
             }
         });
     };
 
 
     function watchEvent(e){
+        console.log("watchEvent: ", e);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
-                var registry = window.eventRegistry;
-                registry[e.portName] =
+                // Clear out duplicate 'watchings', otherwise they hang around in the background.
+                if (eventRegistry[e.portName]) { eventRegistry[e.portName].stopWatching() };
+
+                eventRegistry[e.portName] =
                     eval("web3.eth.contract("
                           + e.abi + ").at('"
                           + e.address
@@ -119,33 +118,45 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                           + ","
                           + JSON.stringify(e.filterParams)
                           + ")"
-                    ); // Or we could do .apply() after the eval to avoid stringify?
+                    );
+
                 var port = eval("window.elmShim.ports." + e.portName);
-                registry[e.portName].watch(function(e,r) { console.log( formatLog(r) )});
-                registry[e.portName].watch(function(e,r) { port.send( formatLog(r) )});
+                eventRegistry[e.portName].watch(function(e,r) { console.log( formatLog(r) )}); // Temporary
+                eventRegistry[e.portName].watch(function(e,r) { port.send( formatLog(r) )});
+                console.log(eventRegistry);
                 return callback(_elm_lang$core$Native_Scheduler.succeed());
             } catch (e) {
+                console.log("Try/Catch error on watchEvent", e);
                 return callback(_elm_lang$core$Native_Scheduler.fail(
-                    {ctor: 'Error', _0: "Event sub failed: " + e.toString() }
+                    {ctor: 'Error', _0: "Event sub failed - " + e.toString() }
                 ));
             }
         });
-
-        // {
-        //  abi:'[]' ,
-        //  address: "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487" ,
-        //  eventParams: {} ,
-        //  filterParams: {} ,
-        //  subName: "watchAdd"
-        // }
     };
 
 
-    /*
-    // All web3 requests from Elm have an 'Expect' function or decoder attached.
-    // The user should not have to worry about all the nuances of decoding web3 responses.
-    // The function below allows for this trickery to occur, in combination with Web3.Internal.elm
-    */
+    function reset(keepIsSyncing){
+        console.log("web3.reset called");
+        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
+            try {
+                eval("web3.reset(" + keepIsSyncing.toString() + ")")
+                console.log(eventRegistry);
+                return callback(_elm_lang$core$Native_Scheduler.succeed());
+            } catch (e) {
+                console.log("Try/Catch error on web3.reset", e);
+                return callback(_elm_lang$core$Native_Scheduler.fail(
+                    {ctor: 'Error', _0: "Event reset failed - " + e.toString() }
+                ));
+            }
+        });
+    };
+
+
+/*
+// Most web3 requests from Elm have an 'Expect' function or decoder attached.
+// The user should not have to worry about all the nuances of decoding web3 responses.
+// The function below allows for this trickery to occur, in combination with Web3.Internal.elm
+*/
     function expectStringResponse(responseToResult) {
         return {
             responseToResult: responseToResult
@@ -153,11 +164,38 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-    /*
-    // Check each response from web3 for BigNumber values and convert to fixed string.
-    // JSON.stringify all values from web3 before sending to Elm.
-    */
+/*
+//  Run on all web3 repsonses.
+//  (error, response, Expect/Decoder function) -> Result Err Ok
+*/
+    function handleWeb3Response(r) {
+        console.log("handleWeb3Response: ")
+        if (r.error !== null) {
+            console.log("Web3 response error: ",r);
+            return {ctor: "Err", _0: r.error.message.split("\n")[0] }
+        } else if (r.response === null) {
+            console.log("Web3 response was null: ", r);
+            return {ctor: "Err", _0: config.error.nullResponse }
+        } else if (r.response === undefined) {
+            console.log("Web3 response was undefined: ", r);
+            return { ctor: "Err", _0: config.error.undefinedResposnse }
+        } else if (r.decoder !== undefined){
+            console.log("Web3 was async w/ decoder: ", r);
+            // decoder returns a Result
+            return r.decoder( formatWeb3Response(r.response) )
+        } else {
+            console.log("Web3 was sync: ", r);
+            return { ctor: 'Ok', _0: r.response }
+        }
+    };
+
+
+/*
+//  Run on all async web3 repsonses.
+//  Turns BigNumber into full strings.
+*/
     function formatWeb3Response(r) {
+        console.log("formatWeb3Response executed (remove bigNums for async ) ");
         if (r.isBigNumber) { return JSON.stringify(r.toFixed()) }
         config.web3BigNumberFields.forEach( val => {
             if (r[val] !== undefined && r[val].isBigNumber) {
@@ -166,6 +204,18 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         });
         return JSON.stringify(r);
     };
+
+
+/*
+//  Run on all web3 event repsonses (logs).
+//  Turns BigNumber into full strings.
+*/
+    function formatLog(log) {
+        Object.keys(log.args).forEach(function(arg) {
+            log.args[arg] = formatIfBigNum(log.args[arg]);
+        });
+        return log;
+    }
 
 
     function formatIfBigNum(value) {
@@ -177,31 +227,18 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     }
 
 
-    function formatLog(log) {
-        Object.keys(log.args).forEach(function(arg) {
-            log.args[arg] = formatIfBigNum(log.args[arg]);
-        });
-        return log;
-    }
-
-
     function formatLogsArray(logsArray) {
         logsArray.map(function(log) { formatLog(log) } );
         return logsArray;
     }
-    /*
-    // Convert known BigNumber fields in event.args to fixed string.
-    //
-    */
-    function formatEventResponse(r) {
-      bigIntKeys.forEach( key => eventObj.args[key] = eventObj.args[key].toFixed() );
-      return eventObj;
-    };
+
 
 
     return {
         toTask: toTask,
+        contractGetData: contractGetData,
         watchEvent: watchEvent,
+        reset: reset,
         expectStringResponse: expectStringResponse
     };
 
