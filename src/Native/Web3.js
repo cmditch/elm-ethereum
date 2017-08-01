@@ -36,7 +36,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     if (result.ctor === "Ok") {
                         return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
                     } else if (result.ctor === "Err") {
-                        console.log("Err found!", result)
+                        console.log("Err within Async found!", result)
                         return callback(_elm_lang$core$Native_Scheduler.fail(
                             { ctor: 'Error', _0: result._0 }
                         ));
@@ -54,7 +54,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                         error: null,
                         decoder: undefined
                     });
-                    console.log("Sync result: ", result)
+                    console.log("Sync result: ", result);
                     if (result.ctor === "Ok") {
                         return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
                     } else if (result.ctor === "Err") {
@@ -64,7 +64,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     }
                 };
             } catch (e) {
-                console.log(e);
+                console.log("Try/Catch error on toTask", e);
                 return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: "Tried and caught: " + e.toString() }));
             }
         });
@@ -87,7 +87,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 console.log(response)
                 return callback(_elm_lang$core$Native_Scheduler.succeed(response));
             } catch(e) {
-                console.log(e)
+                console.log("Try/Catch error on contractGetData", e);
                 return callback(_elm_lang$core$Native_Scheduler.fail(
                     {ctor: 'Error', _0: "Contract.getData failed - " + e.toString() }
                 ));
@@ -97,10 +97,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function watchEvent(e){
-        console.log("watchEvent: ", r);
+        console.log("watchEvent: ", e);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
                 var registry = window.eventRegistry;
+                if (registry[e.portName]) { registry[e.portName].stopWatching() }; // Clear duplicate 'watchings' instantiation.
                 registry[e.portName] =
                     eval("web3.eth.contract("
                           + e.abi + ").at('"
@@ -116,8 +117,10 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 var port = eval("window.elmShim.ports." + e.portName);
                 registry[e.portName].watch(function(e,r) { console.log( formatLog(r) )});
                 registry[e.portName].watch(function(e,r) { port.send( formatLog(r) )});
+                console.log(window.eventRegistry);
                 return callback(_elm_lang$core$Native_Scheduler.succeed());
             } catch (e) {
+                console.log("Try/Catch error on watchEvent", e);
                 return callback(_elm_lang$core$Native_Scheduler.fail(
                     {ctor: 'Error', _0: "Event sub failed - " + e.toString() }
                 ));
@@ -127,12 +130,14 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function reset(keepIsSyncing){
-        console.log("reset: ", r);
+        console.log("web3.reset called");
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
                 eval("web3.reset(" + keepIsSyncing.toString() + ")")
+                console.log(window.eventRegistry);
                 return callback(_elm_lang$core$Native_Scheduler.succeed());
             } catch (e) {
+                console.log("Try/Catch error on web3.reset", e);
                 return callback(_elm_lang$core$Native_Scheduler.fail(
                     {ctor: 'Error', _0: "Event reset failed - " + e.toString() }
                 ));
@@ -151,7 +156,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         };
     };
 
-    // (Error, Response, Expect/Decoder) -> Result Err Ok
+
+/*
+//  Run on all web3 repsonses.
+//  (error, response, Expect/Decoder function) -> Result Err Ok
+*/
     function handleWeb3Response(r) {
         console.log("handleWeb3Response: ")
         if (r.error !== null) {
@@ -177,9 +186,10 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 /*
 //  Run on all async web3 repsonses.
 //  Turns BigNumber into full strings.
+//
 */
     function formatWeb3Response(r) {
-        console.log("formatWeb3Response executed (remove bigNums for async ) ")
+        console.log("formatWeb3Response executed (remove bigNums for async ) ");
         if (r.isBigNumber) { return JSON.stringify(r.toFixed()) }
         config.web3BigNumberFields.forEach( val => {
             if (r[val] !== undefined && r[val].isBigNumber) {
