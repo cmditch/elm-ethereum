@@ -6,6 +6,7 @@ import Html.Attributes exposing (href, target)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
 import Web3.Eth exposing (defaultFilterParams)
+import Web3.Eth.Decoders exposing (txIdToString, addressToString)
 import Web3.Eth.Types exposing (..)
 import LightBox
 import BigInt exposing (BigInt)
@@ -37,8 +38,11 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     { latestBlock = Nothing
-    , contractInfo = Deployed <| ContractInfo "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487" "0x742f7f7e2f564159dece37e1fc0d6454bef638bdf57ecea576baf94718863de3"
-    , coinbase = "0xe87529a6123a74320e13a6dabf3606630683c029"
+    , contractInfo =
+        Deployed <|
+            ContractInfo (Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487")
+                (TxId "0x742f7f7e2f564159dece37e1fc0d6454bef638bdf57ecea576baf94718863de3")
+    , coinbase = Address "0xe87529a6123a74320e13a6dabf3606630683c029"
     , additionAnswer =
         "123412341234123412342143125312351235123512"
             |> BigInt.fromString
@@ -59,9 +63,8 @@ view model =
         , viewContractInfo model.contractInfo
         , bigBreak
         , viewAddButton model
-
-        -- , bigBreak
-        -- , viewBlock model.latestBlock
+          -- , bigBreak
+          -- , viewBlock model.latestBlock
         , bigBreak
         , div [] [ text <| "Tx History: " ++ toString model.txIds ]
         , bigBreak
@@ -111,12 +114,14 @@ viewContractInfo contract =
             div []
                 [ p []
                     [ text "Contract TxId: "
-                    , a [ target "_blank", href ("https://ropsten.etherscan.io/tx/" ++ transactionHash) ] [ text transactionHash ]
+                    , a [ target "_blank", href ("https://ropsten.etherscan.io/tx/" ++ txIdToString transactionHash) ]
+                        [ text <| txIdToString transactionHash ]
                     ]
                 , br [] []
                 , p []
                     [ text "Contract Address: "
-                    , a [ target "_blank", href ("https://ropsten.etherscan.io/address/" ++ contractAddress) ] [ text contractAddress ]
+                    , a [ target "_blank", href ("https://ropsten.etherscan.io/address/" ++ addressToString contractAddress) ]
+                        [ text <| addressToString contractAddress ]
                     ]
                 ]
 
@@ -158,7 +163,7 @@ viewAddress address =
             div [] [ text "Awaiting Address info..." ]
 
         Just address_ ->
-            div [] [ text address_ ]
+            div [] [ text <| addressToString address_ ]
 
 
 viewError : List String -> Html Msg
@@ -214,14 +219,23 @@ update msg model =
                         handleError model error
 
             WatchAddEvents ->
-                model
-                    ! [ Task.attempt EventHandler <|
-                            LightBox.watchAdd
-                                defaultFilterParams
-                                LightBox.defaultAddFilter
-                                "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487"
-                                (LightBox.WatchAdd LightBox.Add)
-                      ]
+                let
+                    addFilter =
+                        LightBox.AddFilter
+                            { mathematician = Just <| Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487"
+                            , sum = Nothing
+                            }
+
+                    -- TODO Notice the UX for more union-typed primitives + reuseable watch/stop/get events
+                in
+                    model
+                        ! [ Task.attempt EventHandler <|
+                                LightBox.watch
+                                    defaultFilterParams
+                                    addFilter
+                                    (Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487")
+                                    (LightBox.WatchAdd LightBox.Add)
+                          ]
 
             AddEvents events ->
                 { model | eventData = events :: model.eventData } ! []

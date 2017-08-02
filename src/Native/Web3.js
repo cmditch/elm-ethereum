@@ -104,30 +104,28 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         console.log("watchEvent: ", e);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
-                // Separate portname and eventname with something like this and a Array.split
-                //String.prototype.capitalize = function() {
-                //return this.charAt(0).toUpperCase() + this.slice(1);
-                //}
-
+                var portAndEvent = e.portAndEventName.split(" ");
+                var portName = decapitalize( portAndEvent[0] );
+                var eventName = portAndEvent[1];
                 // Clear out duplicate 'watchings', otherwise they hang around in the background.
-                if (eventRegistry[e.portName]) { eventRegistry[e.portName].stopWatching() };
+                if (eventRegistry[portName]) { eventRegistry[portName].stopWatching() };
 
-                eventRegistry[e.portName] =
+                eventRegistry[portName] =
                     eval("web3.eth.contract("
-                          + e.abi + ").at('"
-                          + e.address
-                          + "')."
-                          + e.eventName
-                          + "("
-                          + JSON.stringify(e.eventParams)
-                          + ","
-                          + JSON.stringify(e.filterParams)
-                          + ")"
+                        + e.abi + ").at('"
+                        + e.address
+                        + "')."
+                        + eventName
+                        + "("
+                        + JSON.stringify(e.eventParams)
+                        + ","
+                        + JSON.stringify(e.filterParams)
+                        + ")"
                     );
 
-                var port = eval("window.elmShim.ports." + e.portName);
-                eventRegistry[e.portName].watch(function(e,r) { console.log( formatLog(r) )}); // Temporary
-                eventRegistry[e.portName].watch(function(e,r) { port.send( formatLog(r) )});
+                var port = eval("window.elmShim.ports." + portName);
+                eventRegistry[portName].watch(function(e,r) { console.log( formatLog(r) )}); // Temporary
+                eventRegistry[portName].watch(function(e,r) { port.send( formatLog(r) )});
                 console.log(eventRegistry);
                 return callback(_elm_lang$core$Native_Scheduler.succeed());
             } catch (e) {
@@ -237,6 +235,10 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         return logsArray;
     }
 
+
+    function decapitalize(str) {
+        return str.charAt(0).toLowerCase() + str.slice(1);
+    }
 
 
     return {

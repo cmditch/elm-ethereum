@@ -8,24 +8,24 @@ import Web3.Types exposing (Hex)
 import Json.Encode exposing (Value)
 
 
-type alias TxId =
-    String
+type TxId
+    = TxId String
 
 
-type alias Bytes =
-    String
+type Bytes
+    = Bytes String
 
 
-type alias Address =
-    String
+type Address
+    = Address String
 
 
-type alias ChecksumAddress =
-    String
+type ChecksumAddress
+    = ChecksumAddress String
 
 
-type alias Abi =
-    String
+type Abi
+    = Abi String
 
 
 type alias ContractInfo =

@@ -15,7 +15,7 @@ import Web3 exposing (Error)
 import Web3.Types exposing (CallType(..), Hex)
 import Web3.Eth.Types exposing (..)
 import Web3.Decoders exposing (expectInt, expectBool, expectJson, expectString, expectBigInt)
-import Web3.Eth.Decoders exposing (blockDecoder, syncStatusDecoder, txObjDecoder, blockTxObjDecoder, txReceiptDecoder)
+import Web3.Eth.Decoders exposing (..)
 import Web3.Eth.Encoders exposing (txParamsEncoder, getBlockIdValue)
 import Json.Encode as Encode
 import Json.Decode as Decode
@@ -45,7 +45,7 @@ getCoinbase =
     Web3.toTask
         { func = "eth.getCoinbase"
         , args = Encode.list []
-        , expect = expectString
+        , expect = expectJson addressDecoder
         , callType = Async
         }
 
@@ -90,7 +90,7 @@ getAccounts =
     Web3.toTask
         { func = "eth.getAccounts"
         , args = Encode.list []
-        , expect = expectJson (Decode.list Decode.string)
+        , expect = expectJson (Decode.list addressDecoder)
         , callType = Async
         }
 
@@ -111,7 +111,7 @@ getBlockNumber =
 
 
 getBalance : Address -> Task Error BigInt
-getBalance address =
+getBalance (Address address) =
     Web3.toTask
         { func = "eth.getBalance"
         , args = Encode.list [ Encode.string address ]
@@ -126,11 +126,11 @@ getStorageAt =
 
 
 getStorageAtBlock : BlockId -> Address -> Int -> Task Error Hex
-getStorageAtBlock blockId address position =
+getStorageAtBlock blockId (Address address) position =
     Web3.toTask
         { func = "eth.getStorageAt"
         , args = Encode.list [ Encode.string address, Encode.int position, getBlockIdValue blockId ]
-        , expect = expectString
+        , expect = expectJson hexDecoder
         , callType = Async
         }
 
@@ -141,11 +141,11 @@ getCode =
 
 
 getCodeAtBlock : BlockId -> Address -> Task Error Bytes
-getCodeAtBlock blockId address =
+getCodeAtBlock blockId (Address address) =
     Web3.toTask
         { func = "eth.getStorageAt"
         , args = Encode.list [ Encode.string address, getBlockIdValue blockId ]
-        , expect = expectString
+        , expect = expectJson bytesDecoder
         , callType = Async
         }
 
@@ -205,7 +205,7 @@ getUncleTxObjs blockId index =
 
 
 getTransaction : TxId -> Task Error TxObj
-getTransaction txId =
+getTransaction (TxId txId) =
     Web3.toTask
         { func = "eth.getTransaction"
         , args = Encode.list [ Encode.string txId ]
@@ -225,7 +225,7 @@ getTransactionFromBlock blockId index =
 
 
 getTransactionReceipt : TxId -> Task Error TxReceipt
-getTransactionReceipt txId =
+getTransactionReceipt (TxId txId) =
     Web3.toTask
         { func = "eth.getTransactionReceipt"
         , args = Encode.list [ Encode.string txId ]
@@ -240,7 +240,7 @@ getTransactionCount =
 
 
 getTransactionCountAtBlock : BlockId -> Address -> Task Error Int
-getTransactionCountAtBlock blockId address =
+getTransactionCountAtBlock blockId (Address address) =
     Web3.toTask
         { func = "eth.getTransactionCount"
         , args = Encode.list [ Encode.string address, getBlockIdValue blockId ]
@@ -254,27 +254,27 @@ sendTransaction txParams =
     Web3.toTask
         { func = "eth.sendTransaction"
         , args = Encode.list [ txParamsEncoder txParams ]
-        , expect = expectString
+        , expect = expectJson txIdDecoder
         , callType = Async
         }
 
 
 sendRawTransaction : Bytes -> Task Error TxId
-sendRawTransaction signedData =
+sendRawTransaction (Bytes signedData) =
     Web3.toTask
         { func = "eth.sendRawTransaction"
         , args = Encode.list [ Encode.string signedData ]
-        , expect = expectString
+        , expect = expectJson txIdDecoder
         , callType = Async
         }
 
 
 sign : Address -> Bytes -> Task Error Bytes
-sign address bytes =
+sign (Address address) (Bytes bytes) =
     Web3.toTask
         { func = "eth.sign"
         , args = Encode.list [ Encode.string address, Encode.string bytes ]
-        , expect = expectString
+        , expect = expectJson bytesDecoder
         , callType = Async
         }
 
@@ -289,7 +289,7 @@ callAtBlock blockId txParams =
     Web3.toTask
         { func = "eth.call"
         , args = Encode.list [ txParamsEncoder txParams, getBlockIdValue blockId ]
-        , expect = expectString
+        , expect = expectJson txIdDecoder
         , callType = Async
         }
 

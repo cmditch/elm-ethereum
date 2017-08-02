@@ -5,8 +5,8 @@ import Web3.Types exposing (..)
 import Web3.Eth exposing (defaultTxParams)
 import Web3.Eth.Types exposing (..)
 import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
-import Web3.Eth.Encoders exposing (txParamsEncoder, filterParamsEncoder)
-import Web3.Eth.Decoders exposing (eventLogDecoder)
+import Web3.Eth.Encoders exposing (txParamsEncoder, filterParamsEncoder, addressMaybeMap)
+import Web3.Eth.Decoders exposing (eventLogDecoder, txIdDecoder, addressDecoder)
 import Web3.Eth.Contract as Contract
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
@@ -29,12 +29,12 @@ type alias Constructor =
 
 lightBoxAbi_ : Abi
 lightBoxAbi_ =
-    """[{"constant":false,"inputs":[],"name":"kill","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"someNum","outputs":[{"name":"","type":"int8"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"n","type":"int8"}],"name":"mutateAdd","outputs":[{"name":"","type":"int8"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"a","type":"uint8"},{"name":"b","type":"uint8"}],"name":"add","outputs":[{"name":"","type":"uint8"}],"payable":false,"type":"function"},{"inputs":[{"name":"someNum_","type":"int8"}],"payable":true,"type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"mathematician","type":"address"},{"indexed":false,"name":"sum","type":"int8"}],"name":"Add","type":"event"}]"""
+    Abi """[{"constant":false,"inputs":[],"name":"kill","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"someNum","outputs":[{"name":"","type":"int8"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"n","type":"int8"}],"name":"mutateAdd","outputs":[{"name":"","type":"int8"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"a","type":"uint8"},{"name":"b","type":"uint8"}],"name":"add","outputs":[{"name":"","type":"uint8"}],"payable":false,"type":"function"},{"inputs":[{"name":"someNum_","type":"int8"}],"payable":true,"type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"mathematician","type":"address"},{"indexed":false,"name":"sum","type":"int8"}],"name":"Add","type":"event"}]"""
 
 
 lightBoxBytecode_ : Bytes
 lightBoxBytecode_ =
-    """0x606060405260405160208061037e833981016040528080519060200190919050505b806000806101000a81548160ff021916908360000b60ff16021790555033600060016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505b505b6102ed806100916000396000f30060606040526000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806341c0e1b51461006a5780634b76b19d1461007f5780635ca34539146100ae5780638da5cb5b146100ee578063bb4e3f4d14610143575b600080fd5b341561007557600080fd5b61007d61018f565b005b341561008a57600080fd5b6100926101cc565b604051808260000b60000b815260200191505060405180910390f35b34156100b957600080fd5b6100d2600480803560000b9060200190919050506101de565b604051808260000b60000b815260200191505060405180910390f35b34156100f957600080fd5b610101610288565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b341561014e57600080fd5b610173600480803560ff1690602001909190803560ff169060200190919050506102ae565b604051808260ff1660ff16815260200191505060405180910390f35b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16ff5b565b6000809054906101000a900460000b81565b6000816000808282829054906101000a900460000b0192506101000a81548160ff021916908360000b60ff1602179055503373ffffffffffffffffffffffffffffffffffffffff167fd0f15e1998f12f2dafbfd7cae1ba5399daa3a0da937ece55399590a101dcf5cb6000809054906101000a900460000b604051808260000b60000b815260200191505060405180910390a26000809054906101000a900460000b90505b919050565b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60008082840190508091505b50929150505600a165627a7a7230582063716296d7dd5d8d4eb1cde391a74b52e86cbaef310d67e79994b3eeef4178830029"""
+    Bytes """0x606060405260405160208061037e833981016040528080519060200190919050505b806000806101000a81548160ff021916908360000b60ff16021790555033600060016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505b505b6102ed806100916000396000f30060606040526000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806341c0e1b51461006a5780634b76b19d1461007f5780635ca34539146100ae5780638da5cb5b146100ee578063bb4e3f4d14610143575b600080fd5b341561007557600080fd5b61007d61018f565b005b341561008a57600080fd5b6100926101cc565b604051808260000b60000b815260200191505060405180910390f35b34156100b957600080fd5b6100d2600480803560000b9060200190919050506101de565b604051808260000b60000b815260200191505060405180910390f35b34156100f957600080fd5b610101610288565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b341561014e57600080fd5b610173600480803560ff1690602001909190803560ff169060200190919050506102ae565b604051808260ff1660ff16815260200191505060405180910390f35b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16ff5b565b6000809054906101000a900460000b81565b6000816000808282829054906101000a900460000b0192506101000a81548160ff021916908360000b60ff1602179055503373ffffffffffffffffffffffffffffffffffffffff167fd0f15e1998f12f2dafbfd7cae1ba5399daa3a0da937ece55399590a101dcf5cb6000809054906101000a900460000b604051808260000b60000b815260200191505060405180910390a26000809054906101000a900460000b90505b919050565b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60008082840190508091505b50929150505600a165627a7a7230582063716296d7dd5d8d4eb1cde391a74b52e86cbaef310d67e79994b3eeef4178830029"""
 
 
 
@@ -58,7 +58,7 @@ mutateAdd address n =
     Web3.toTask
         { func = Contract.call lightBoxAbi_ "mutateAdd" address
         , args = Encode.list [ Encode.int n, txParamsEncoder defaultTxParams ]
-        , expect = expectString
+        , expect = expectJson txIdDecoder
         , callType = Async
         }
 
@@ -110,7 +110,11 @@ type Event
     = Add
 
 
-type PortNameAndEvent
+type EventFilter
+    = AddFilter { mathematician : Maybe Address, sum : Maybe Int }
+
+
+type PortAndEventName
     = WatchAdd Event
 
 
@@ -130,30 +134,42 @@ type alias AddArgs =
 
 
 type alias RawAddArgs =
-    { mathematician : Address, sum : String }
+    { mathematician : String, sum : String }
 
 
-type alias AddFilters =
-    { mathematician : Maybe Address, sum : Maybe Int }
-
-
-defaultAddFilter : AddFilters
+defaultAddFilter : EventFilter
 defaultAddFilter =
-    { mathematician = Nothing, sum = Nothing }
+    AddFilter { mathematician = Nothing, sum = Nothing }
 
 
 
--- TODO I'm thinking we have a watch/get/stop function for each event,
---      Otherwise the wrong stringy eventName could be passed by the user in their update/Task.attempt
---      Having a more general watch function would be much less code,
---        but might dangerously subvert the compiler guarantees.
---      Unless... each PortName came parameterized with an Event,
---        with Event being a union-type of event names... hrmm. Up for review.
---
+{-
+   TODO 'Events' API Design
+
+   I'm thinking we have a watch/get/stop function for each event,
+     Otherwise the wrong stringy eventName could be passed by the user in their update/Task.attempt.
+     Also the event filters vary per function.
+
+   Having a more general watch function would be much less code,
+     but might dangerously subvert the compiler guarantees.
+
+   Unless... each PortName came parameterized with an Event,
+     with Event being a union-type of event names, similarly with EventFilters, hrmmm.
+     Let's put this up for review. (see current branch)
+
+   The question becomes, What is the better developer experience?
+    De/constructing types, or working with a bigger bucket of functions.
+
+    Is the increase in code sizable?
+    n being the number of events in the contract
+    With a watch/get/stop function per event we're at  (n * 9)  functions
+    With a general watch/get/stop we're at  (n * 6) + 3  functions
+
+-}
 
 
-watchAdd : FilterParams -> AddFilters -> Address -> PortNameAndEvent -> Task Error ()
-watchAdd filterParams eventParams address portNameAndEvent =
+watch : FilterParams -> EventFilter -> Address -> PortAndEventName -> Task Error ()
+watch filterParams eventParams address portAndEventName =
     let
         filterParams_ =
             filterParamsEncoder filterParams
@@ -161,8 +177,8 @@ watchAdd filterParams eventParams address portNameAndEvent =
         eventParams_ =
             encodeAddFilter eventParams
 
-        portNameAndEvent_ =
-            toString portNameAndEvent
+        portAndEventName_ =
+            toString portAndEventName
                 |> Encode.string
     in
         Contract.watch
@@ -170,13 +186,13 @@ watchAdd filterParams eventParams address portNameAndEvent =
             , address = address
             , filterParams = filterParams_
             , eventParams = eventParams_
-            , portNameAndEvent = portNameAndEvent_
+            , portAndEventName = portAndEventName_
             }
 
 
-encodeAddFilter : AddFilters -> Value
-encodeAddFilter { mathematician, sum } =
-    [ ( "mathematician", Maybe.map Encode.string mathematician )
+encodeAddFilter : EventFilter -> Value
+encodeAddFilter (AddFilter { mathematician, sum }) =
+    [ ( "mathematician", Maybe.map Encode.string (addressMaybeMap mathematician) )
     , ( "sum", Maybe.map Encode.int sum )
     ]
         |> List.filter (\( k, v ) -> v /= Nothing)
@@ -187,7 +203,7 @@ encodeAddFilter { mathematician, sum } =
 decodeAddArgs : Decoder AddArgs
 decodeAddArgs =
     decode AddArgs
-        |> required "mathematician" Decode.string
+        |> required "mathematician" addressDecoder
         |> required "sum" bigIntDecoder
 
 
@@ -198,15 +214,19 @@ decodeAddEventLog =
 
 
 -- formatRawEvent : Incoming port value -> Model value
-{- TODO
-   Question is:
-      Do we use Maybe.withDefault, or make the user deal with a Maybe BigInt
-      for all EventLog's with BigNumber.js types.
-      I think withDefault is fairly safe here. We're parsing their ABI,
-      so we know anything returning an int or uint will be turned into BigNumbers.
-      The withDefault failure should never occur.
-      I think we need to choose a number, like -1 or -42, and make it explicit in the docs,
-      that if you see this number during tests, something errory has occured.
+{-
+   TODO
+    Question is:
+       Do we use Maybe.withDefault, or make the user deal with a Maybe BigInt
+        for all EventLog's with BigNumber.js types.
+
+       I think withDefault is fairly safe here. We're parsing their ABI,
+        so we know anything returning an int or uint will be turned into BigNumbers.
+
+       The withDefault failure should never occur.
+
+       I think we need to choose a number, like -1 or -42, and make it explicit in the docs,
+        that if you see this number during tests, something errory has occured.
 -}
 
 
@@ -218,7 +238,8 @@ formatAddEventLog event =
 
         formatedArgs =
             { args
-                | sum =
+                | mathematician = (Address args.mathematician)
+                , sum =
                     BigInt.fromString args.sum
                         |> Maybe.withDefault (BigInt.fromInt -42)
             }

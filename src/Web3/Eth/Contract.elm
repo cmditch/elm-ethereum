@@ -10,9 +10,10 @@ module Web3.Eth.Contract
 
 import Web3 exposing (Error, Retry)
 import Web3.Internal exposing (EventRequest, GetDataRequest)
-import Web3.Types exposing (CallType(..))
+import Web3.Types exposing (..)
+import Web3.Eth.Types exposing (..)
 import Web3.Decoders exposing (expectString, expectJson)
-import Web3.Eth.Decoders exposing (contractAddressDecoder)
+import Web3.Eth.Decoders exposing (contractInfoDecoder)
 import Web3.Eth.Types exposing (Address, Abi, ContractInfo, Bytes, TxId)
 import Json.Encode as Encode exposing (Value)
 import Task exposing (Task)
@@ -22,7 +23,7 @@ import Task exposing (Task)
 
 
 call : Abi -> String -> Address -> String
-call abi func address =
+call (Abi abi) func (Address address) =
     "eth.contract("
         ++ abi
         ++ ").at('"
@@ -33,7 +34,14 @@ call abi func address =
 
 watch : EventRequest -> Task Error ()
 watch eventRequest =
-    Native.Web3.watchEvent eventRequest
+    let
+        (Abi abi) =
+            eventRequest.abi
+
+        (Address address) =
+            eventRequest.address
+    in
+        Native.Web3.watchEvent { eventRequest | abi = abi, address = address }
 
 
 stopWatching : Task Error a
@@ -51,11 +59,11 @@ getData abi data constructorParams =
 
 
 pollContract : Retry -> TxId -> Task Error ContractInfo
-pollContract retryParams txId =
+pollContract retryParams (TxId txId) =
     Web3.toTask
         { func = "eth.getTransactionReceipt"
         , args = Encode.list [ Encode.string txId ]
-        , expect = expectJson contractAddressDecoder
+        , expect = expectJson contractInfoDecoder
         , callType = Async
         }
         |> Web3.retry retryParams

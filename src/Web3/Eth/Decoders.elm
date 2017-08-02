@@ -6,11 +6,18 @@ module Web3.Eth.Decoders
         , txReceiptDecoder
         , logDecoder
         , addressDecoder
+        , keccakDecoder
+        , txIdDecoder
+        , checksumAddressDecoder
         , bytesDecoder
         , hexDecoder
         , syncStatusDecoder
-        , contractAddressDecoder
+        , contractInfoDecoder
         , eventLogDecoder
+        , bytesToString
+        , hexToString
+        , addressToString
+        , txIdToString
         )
 
 import Web3.Types exposing (..)
@@ -23,7 +30,7 @@ import Json.Decode as Decode exposing (int, string, list, nullable, Decoder)
 blockDecoder : Decoder Block
 blockDecoder =
     decode Block
-        |> optional "author" addressDecoder ""
+        |> optional "author" addressDecoder (Address "addressError")
         |> required "difficulty" bigIntDecoder
         |> required "extraData" string
         |> required "gasLimit" int
@@ -50,7 +57,7 @@ blockDecoder =
 blockTxObjDecoder : Decoder BlockTxObjs
 blockTxObjDecoder =
     decode BlockTxObjs
-        |> optional "author" addressDecoder ""
+        |> optional "author" addressDecoder (Address "addressError")
         |> required "difficulty" bigIntDecoder
         |> required "extraData" string
         |> required "gasLimit" int
@@ -142,32 +149,39 @@ eventLogDecoder argsDecoder =
 
 addressDecoder : Decoder Address
 addressDecoder =
-    string
+    string |> Decode.andThen (Address >> Decode.succeed)
+
+
+checksumAddressDecoder : Decoder ChecksumAddress
+checksumAddressDecoder =
+    string |> Decode.andThen (ChecksumAddress >> Decode.succeed)
+
+
+keccakDecoder : Decoder Keccak256
+keccakDecoder =
+    string |> Decode.andThen (Keccak256 >> Decode.succeed)
+
+
+txIdDecoder : Decoder TxId
+txIdDecoder =
+    string |> Decode.andThen (TxId >> Decode.succeed)
 
 
 bytesDecoder : Decoder Bytes
 bytesDecoder =
-    string
+    string |> Decode.andThen (Bytes >> Decode.succeed)
 
 
 hexDecoder : Decoder Hex
 hexDecoder =
-    string
+    string |> Decode.andThen (Hex >> Decode.succeed)
 
 
-
-{--
---   ContractAddress & contractAddressDecoder
---   Helpers needed for Web3.Eth.Contract.pollForAddress
---   TODO Might not need these. Might be able to use Task.map
---}
-
-
-contractAddressDecoder : Decoder ContractInfo
-contractAddressDecoder =
+contractInfoDecoder : Decoder ContractInfo
+contractInfoDecoder =
     decode ContractInfo
-        |> required "contractAddress" string
-        |> required "transactionHash" string
+        |> required "contractAddress" addressDecoder
+        |> required "transactionHash" txIdDecoder
 
 
 syncStatusDecoder : Decoder SyncStatus
@@ -176,3 +190,23 @@ syncStatusDecoder =
         |> required "startingBlock" int
         |> required "currentBlock" int
         |> required "highestBlock" int
+
+
+addressToString : Address -> String
+addressToString (Address address) =
+    address
+
+
+txIdToString : TxId -> String
+txIdToString (TxId txId) =
+    txId
+
+
+bytesToString : Bytes -> String
+bytesToString (Bytes bytes) =
+    bytes
+
+
+hexToString : Hex -> String
+hexToString (Hex hex) =
+    hex
