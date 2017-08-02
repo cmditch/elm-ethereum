@@ -90,8 +90,8 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                           + r.data
                           + "'})"
                     )
-                console.log(response)
-                return callback( succeed(response) );
+                console.log(response);
+                return callback( succeed({ ctor: "Bytes", _0: response }) );
             } catch(e) {
                 console.log("Try/Catch error on contractGetData", e);
                 return callback( fail({ ctor: 'Error', _0: "Contract.getData failed - " + e.toString() }) );

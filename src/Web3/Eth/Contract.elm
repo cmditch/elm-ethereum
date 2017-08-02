@@ -50,7 +50,7 @@ stopWatching =
 
 
 getData : Abi -> Bytes -> List Value -> Task Error Bytes
-getData abi data constructorParams =
+getData (Abi abi) (Bytes data) constructorParams =
     Native.Web3.contractGetData
         { abi = abi
         , data = data
