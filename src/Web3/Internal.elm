@@ -32,8 +32,7 @@ type alias EventRequest =
     , address : Address
     , filterParams : Value
     , eventParams : Value
-    , portName : Value
-    , eventName : String
+    , portNameAndEvent : Value
     }
 
 

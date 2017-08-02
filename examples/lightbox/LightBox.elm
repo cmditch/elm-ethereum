@@ -11,7 +11,6 @@ import Web3.Eth.Contract as Contract
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required, optional)
-import String.Extra exposing (decapitalize)
 import BigInt exposing (BigInt)
 import Task exposing (Task)
 
@@ -107,8 +106,12 @@ new value { someNum_ } =
 -}
 
 
-type PortName
-    = WatchAdd
+type Event
+    = Add
+
+
+type PortNameAndEvent
+    = WatchAdd Event
 
 
 
@@ -149,8 +152,8 @@ defaultAddFilter =
 --
 
 
-watchAdd : FilterParams -> AddFilters -> Address -> PortName -> Task Error ()
-watchAdd filterParams eventParams address portName =
+watchAdd : FilterParams -> AddFilters -> Address -> PortNameAndEvent -> Task Error ()
+watchAdd filterParams eventParams address portNameAndEvent =
     let
         filterParams_ =
             filterParamsEncoder filterParams
@@ -158,9 +161,8 @@ watchAdd filterParams eventParams address portName =
         eventParams_ =
             encodeAddFilter eventParams
 
-        portName_ =
-            toString portName
-                |> decapitalize
+        portNameAndEvent_ =
+            toString portNameAndEvent
                 |> Encode.string
     in
         Contract.watch
@@ -168,8 +170,7 @@ watchAdd filterParams eventParams address portName =
             , address = address
             , filterParams = filterParams_
             , eventParams = eventParams_
-            , portName = portName_
-            , eventName = "Add"
+            , portNameAndEvent = portNameAndEvent_
             }
 
 

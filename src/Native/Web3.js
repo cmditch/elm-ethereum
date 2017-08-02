@@ -104,6 +104,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         console.log("watchEvent: ", e);
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
+                // Separate portname and eventname with something like this and a Array.split
+                //String.prototype.capitalize = function() {
+                //return this.charAt(0).toUpperCase() + this.slice(1);
+                //}
+
                 // Clear out duplicate 'watchings', otherwise they hang around in the background.
                 if (eventRegistry[e.portName]) { eventRegistry[e.portName].stopWatching() };
 

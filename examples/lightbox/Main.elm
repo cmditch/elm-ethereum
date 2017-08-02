@@ -220,7 +220,7 @@ update msg model =
                                 defaultFilterParams
                                 LightBox.defaultAddFilter
                                 "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487"
-                                LightBox.WatchAdd
+                                (LightBox.WatchAdd LightBox.Add)
                       ]
 
             AddEvents events ->
