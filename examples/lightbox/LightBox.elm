@@ -106,16 +106,27 @@ new value { someNum_ } =
 -}
 
 
+type Sentry
+    = AliceSub
+    | AliceSubtracts
+
+
 type Event
     = Add
+    | Subtract
 
 
-type EventFilter
-    = AddFilter { mathematician : Maybe Address, sum : Maybe Int }
+type alias AddFilter =
+    { mathematician : Maybe (List Address)
+    , sum : Maybe (List Int)
+    }
 
 
-type PortAndEventName
-    = AddPort Event
+type alias SubtractFilter =
+    { professor : Maybe (List Address)
+    , numberz : Maybe (List BigInt)
+    , aPrime : Maybe (List BigInt)
+    }
 
 
 
@@ -133,43 +144,22 @@ type alias AddArgs =
     { mathematician : Address, sum : BigInt }
 
 
-type alias RawAddArgs =
-    { mathematician : String, sum : String }
+type alias SubtractArgs =
+    { professor : Address, numberz : BigInt, aPrime : BigInt }
 
 
-defaultAddFilter : EventFilter
-defaultAddFilter =
-    AddFilter { mathematician = Nothing, sum = Nothing }
+addFilter : AddFilter
+addFilter =
+    { mathematician = Nothing, sum = Nothing }
 
 
-
-{-
-   TODO 'Events' API Design
-
-   I'm thinking we have a watch/get/stop function for each event,
-     Otherwise the wrong stringy eventName could be passed by the user in their update/Task.attempt.
-     Also the event filters vary per function.
-
-   Having a more general watch function would be much less code,
-     but might dangerously subvert the compiler guarantees.
-
-   Unless... each PortName came parameterized with an Event,
-     with Event being a union-type of event names, similarly with EventFilters, hrmmm.
-     Let's put this up for review. (see current branch)
-
-   The question becomes, What is the better developer experience?
-    De/constructing types, or working with a bigger bucket of functions.
-
-    Is the increase in code sizable?
-    n being the number of events in the contract
-    With a watch/get/stop function per event we're at  (n * 9)  functions
-    With a general watch/get/stop we're at  (n * 6) + 3  functions
-
--}
+subtractFilter : SubtractFilter
+subtractFilter =
+    { proffessor = Nothing, numberz = Nothing, aPrime = Nothing }
 
 
-watch : FilterParams -> EventFilter -> Address -> PortAndEventName -> Task Error ()
-watch filterParams eventParams address portAndEventName =
+watchAdd : Address -> AddFilter -> String -> Task Error ()
+watchAdd filterParams eventParams address portAndEventName =
     let
         filterParams_ =
             filterParamsEncoder filterParams
@@ -189,13 +179,25 @@ watch filterParams eventParams address portAndEventName =
             }
 
 
-stopWatching : PortAndEventName -> Task Error ()
-stopWatching portAndEventName =
+watchSubtract : Address -> AddFilter -> String -> Task Error ()
+watchSubtract filterParams eventParams address portAndEventName =
     let
+        filterParams_ =
+            filterParamsEncoder filterParams
+
+        eventParams_ =
+            encodeAddFilter eventParams
+
         portAndEventName_ =
             toString portAndEventName
     in
-        Contract.stopWatching portAndEventName_
+        Contract.watch
+            { abi = lightBoxAbi_
+            , address = address
+            , filterParams = filterParams_
+            , eventParams = eventParams_
+            , portAndEventName = portAndEventName_
+            }
 
 
 encodeAddFilter : EventFilter -> Value
