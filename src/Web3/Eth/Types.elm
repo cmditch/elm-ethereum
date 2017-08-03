@@ -148,6 +148,11 @@ type alias TxReceipt =
 -- TODO Log { type_ } field is an elm keyword... remedy?
 
 
+type EventAction
+    = Watch
+    | StopWatching
+
+
 type alias FilterParams =
     { fromBlock : Maybe BlockId
     , toBlock : Maybe BlockId

@@ -311,7 +311,7 @@ defaultTxParams =
     , value = Nothing
     , data = Nothing
     , gas = Nothing
-    , gasPrice = Just 20000000000
+    , gasPrice = Just 8000000000
     , nonce = Nothing
     }
 

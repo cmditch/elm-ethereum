@@ -100,38 +100,44 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-    function watchEvent(e){
-        console.log("watchEvent: ", e);
+    function eventManager(action, e){
+        console.log("watchEvent: ", e, "Event Action: " + action.ctor);
         return nativeBinding(function(callback) {
             try {
                 var portAndEvent = e.portAndEventName.split(" ");
                 var portName = decapitalize( portAndEvent[0] );
                 var eventName = portAndEvent[1];
+
                 // Clear out duplicate 'watchings', otherwise they hang around in the background.
+                // This will run no matter what, and serves as the Stop event action as well.
                 if (eventRegistry[portName]) { eventRegistry[portName].stopWatching() };
 
-                eventRegistry[portName] =
-                    eval("web3.eth.contract("
-                        + e.abi + ").at('"
-                        + e.address
-                        + "')."
-                        + eventName
-                        + "("
-                        + JSON.stringify(e.eventParams)
-                        + ","
-                        + JSON.stringify(e.filterParams)
-                        + ")"
-                    );
+                if (action.ctor === "Watch") {
+                    eventRegistry[portName] =
+                        eval("web3.eth.contract("
+                            + e.abi + ").at('"
+                            + e.address
+                            + "')."
+                            + eventName
+                            + "("
+                            + JSON.stringify(e.eventParams)
+                            + ","
+                            + JSON.stringify(e.filterParams)
+                            + ")"
+                        );
+                    var port = eval("window.elmShim.ports." + portName);
+                    eventRegistry[portName].watch(function(e,r) { console.log( formatLog(r) )}); // Temporary
+                    eventRegistry[portName].watch(function(e,r) { port.send( formatLog(r) )});
+                } else if (action.ctor === "StopWatching") {
+                    delete eventRegistry[portName];
+                };
 
-                var port = eval("window.elmShim.ports." + portName);
-                eventRegistry[portName].watch(function(e,r) { console.log( formatLog(r) )}); // Temporary
-                eventRegistry[portName].watch(function(e,r) { port.send( formatLog(r) )});
                 console.log(eventRegistry);
                 return callback( succeed(unit) );
-            } catch (e) {
-                console.log("Try/Catch error on watchEvent", e);
+            } catch (err) {
+                console.log("Try/Catch error on eventManager", err, e);
                 return callback(fail(
-                    {ctor: 'Error', _0: "Event sub failed - " + e.toString() }
+                    {ctor: 'Error', _0: "Event sub failed - " + err.toString() }
                 ));
             }
         });
@@ -237,7 +243,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     return {
         toTask: toTask,
         contractGetData: contractGetData,
-        watchEvent: watchEvent,
+        eventManager: F2(eventManager),
         reset: reset,
         expectStringResponse: expectStringResponse
     };

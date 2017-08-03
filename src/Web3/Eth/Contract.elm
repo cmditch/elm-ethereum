@@ -3,6 +3,7 @@ module Web3.Eth.Contract
         ( call
         , getData
         , watch
+        , stopWatching
         , pollContract
         )
 
@@ -40,13 +41,22 @@ watch eventRequest =
 
         (Address address) =
             eventRequest.address
+
+        portAndEventName =
+            Encode.string eventRequest.portAndEventName
     in
-        Native.Web3.watchEvent { eventRequest | abi = abi, address = address }
+        Native.Web3.eventManager Watch
+            { eventRequest
+                | abi = abi
+                , address = address
+                , portAndEventName = portAndEventName
+            }
 
 
-stopWatching : Task Error a
-stopWatching =
-    Native.Web3.stopEvent
+stopWatching : String -> Task Error ()
+stopWatching portAndEventName =
+    Native.Web3.eventManager StopWatching
+        { portAndEventName = Encode.string portAndEventName }
 
 
 getData : Abi -> Bytes -> List Value -> Task Error Bytes

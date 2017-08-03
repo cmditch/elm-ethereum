@@ -8,7 +8,7 @@ import Web3 exposing (Error(..), toTask)
 import Web3.Eth exposing (defaultFilterParams)
 import Web3.Eth.Decoders exposing (txIdToString, addressToString)
 import Web3.Eth.Types exposing (..)
-import LightBox
+import LightBox as LB
 import BigInt exposing (BigInt)
 import Port
 
@@ -31,7 +31,7 @@ type alias Model =
     , txIds : List TxId
     , error : List String
     , testData : String
-    , eventData : List (EventLog LightBox.AddArgs)
+    , eventData : List (EventLog LB.AddArgs)
     }
 
 
@@ -63,13 +63,12 @@ view model =
         , viewContractInfo model.contractInfo
         , bigBreak
         , viewAddButton model
-          -- , bigBreak
-          -- , viewBlock model.latestBlock
         , bigBreak
         , div [] [ text <| "Tx History: " ++ toString model.txIds ]
         , bigBreak
         , button [ onClick WatchAddEvents ] [ text " Watch Add Event" ]
         , div [] [ text <| toString model.eventData ]
+        , button [ onClick <| StopWatching (LB.AddPort LB.Add) ] [ text " Stop Watching Add Event" ]
         , bigBreak
         , viewError model.error
         , button [ onClick Test ] [ text "Try web3.reset()" ]
@@ -180,8 +179,9 @@ type Msg
     = Test
     | TestResponse (Result Web3.Error ())
     | WatchAddEvents
+    | StopWatching LB.PortAndEventName
     | StopAddEvents
-    | AddEvents (EventLog LightBox.AddArgs)
+    | AddEvents (EventLog LB.AddArgs)
     | DeployContract
     | AddNumbers Address Int Int
     | MutateAdd Address Int
@@ -213,7 +213,7 @@ update msg model =
             TestResponse response ->
                 case response of
                     Ok data ->
-                        { model | testData = "Twerked" } ! []
+                        { model | testData = "It'werked" } ! []
 
                     Err error ->
                         handleError model error
@@ -221,8 +221,8 @@ update msg model =
             WatchAddEvents ->
                 let
                     addFilter =
-                        LightBox.AddFilter
-                            { mathematician = Just <| Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487"
+                        LB.AddFilter
+                            { mathematician = Just <| Address "0x10A19C4bD26C8E8203628384083b7ee6819e36B6"
                             , sum = Nothing
                             }
 
@@ -230,12 +230,15 @@ update msg model =
                 in
                     model
                         ! [ Task.attempt EventHandler <|
-                                LightBox.watch
+                                LB.watch
                                     defaultFilterParams
                                     addFilter
                                     (Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487")
-                                    (LightBox.WatchAdd LightBox.Add)
+                                    (LB.AddPort LB.Add)
                           ]
+
+            StopWatching event ->
+                model ! [ Task.attempt EventHandler (LB.stopWatching event) ]
 
             AddEvents events ->
                 { model | eventData = events :: model.eventData } ! []
@@ -246,7 +249,7 @@ update msg model =
             DeployContract ->
                 { model | contractInfo = Deploying }
                     ! [ Task.attempt LightBoxResponse <|
-                            LightBox.new
+                            LB.new
                                 (BigInt.fromString "502030200")
                                 { someNum_ = BigInt.fromInt 13 }
                       ]
@@ -254,7 +257,7 @@ update msg model =
             AddNumbers address a b ->
                 model
                     ! [ Task.attempt LightBoxAddResponse
-                            (LightBox.add address a b)
+                            (LB.add address a b)
                       ]
 
             LatestResponse response ->
@@ -284,7 +287,7 @@ update msg model =
             MutateAdd address a ->
                 model
                     ! [ Task.attempt LightBoxMutateAddResponse
-                            (LightBox.mutateAdd address a)
+                            (LB.mutateAdd address a)
                       ]
 
             LightBoxMutateAddResponse response ->
@@ -306,4 +309,4 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.batch [ Port.watchAdd (LightBox.formatAddEventLog >> AddEvents) ]
+    Sub.batch [ Port.addPort (LB.formatAddEventLog >> AddEvents) ]

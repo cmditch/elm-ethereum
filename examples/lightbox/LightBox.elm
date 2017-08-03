@@ -115,7 +115,7 @@ type EventFilter
 
 
 type PortAndEventName
-    = WatchAdd Event
+    = AddPort Event
 
 
 
@@ -179,7 +179,6 @@ watch filterParams eventParams address portAndEventName =
 
         portAndEventName_ =
             toString portAndEventName
-                |> Encode.string
     in
         Contract.watch
             { abi = lightBoxAbi_
@@ -188,6 +187,15 @@ watch filterParams eventParams address portAndEventName =
             , eventParams = eventParams_
             , portAndEventName = portAndEventName_
             }
+
+
+stopWatching : PortAndEventName -> Task Error ()
+stopWatching portAndEventName =
+    let
+        portAndEventName_ =
+            toString portAndEventName
+    in
+        Contract.stopWatching portAndEventName_
 
 
 encodeAddFilter : EventFilter -> Value
