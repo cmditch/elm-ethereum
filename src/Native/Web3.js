@@ -20,6 +20,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     var nativeBinding = _elm_lang$core$Native_Scheduler.nativeBinding;
     var succeed = _elm_lang$core$Native_Scheduler.succeed;
     var fail = _elm_lang$core$Native_Scheduler.fail;
+    var rawSpawn = _elm_lang$core$Native_Scheduler.rawSpawn;
     var unit = {ctor: '_Tuple0'};
 
 /*
@@ -144,6 +145,47 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
+    function watch(request, onMessage)
+    {
+            return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+            {
+                    try
+    		            {
+                            var web3Filter =
+                                    eval("web3.eth.contract("
+                                        + request.abi + ").at('"
+                                        + request.address
+                                        + "')."
+                                        + request.eventName
+                                        + "("
+                                        + JSON.stringify(e.eventParams)
+                                        + ", {}"
+                                        + ")"
+                            );
+                    }
+                    catch(err)
+                    {
+                            return callback(_elm_lang$core$Native_Scheduler.fail({
+                                    ctor: 'Error',
+                                    _0: err.toString()
+                            }));
+                    }
+
+                    web3Filter.watch(function(e,r) {
+                            _elm_lang$core$Native_Scheduler.rawSpawn(
+                                    onMessage(JSON.stringify(r))
+                            );
+                    });
+
+                    return callback(_elm_lang$core$Native_Scheduler.succeed(web3Filter));
+
+            });
+    }
+
+
+
+
+
     function reset(keepIsSyncing){
         console.log("web3.reset called");
         return nativeBinding(function(callback) {
@@ -243,6 +285,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     return {
         toTask: toTask,
         contractGetData: contractGetData,
+        watch: F2(watch),
         eventManager: F2(eventManager),
         reset: reset,
         expectStringResponse: expectStringResponse

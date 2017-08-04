@@ -5,10 +5,10 @@ import Web3.Types exposing (..)
 import Web3.Eth exposing (defaultTxParams)
 import Web3.Eth.Types exposing (..)
 import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
-import Web3.Eth.Encoders exposing (txParamsEncoder, filterParamsEncoder, addressMaybeMap)
+import Web3.Eth.Encoders exposing (txParamsEncoder, filterParamsEncoder, addressMaybeMap, encodeFilter)
 import Web3.Eth.Decoders exposing (eventLogDecoder, txIdDecoder, addressDecoder)
 import Web3.Eth.Contract as Contract
-import Web3.Eth.Event as Events
+import Web3.Eth.Event as Event
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required, optional)
@@ -148,34 +148,30 @@ subtractFilter =
 
 
 add_ : Address -> AddFilter -> String -> Cmd msg
-add_ (Address contract) filter id =
+add_ contract filter name =
     let
         filter_ =
             encodeAddFilter filter
     in
-        Event.watch
+        Event.watch name
             { abi = lightBoxAbi_
             , address = contract
             , filterParams = filter_
-            . expect = expectJson decodeAddArgs
             , eventName = "Add"
-            , id = id
             }
 
 
 subtract_ : Address -> SubtractFilter -> String -> Cmd msg
-subtract_ (Address contract) filter id =
+subtract_ contract filter name =
     let
         filter_ =
             encodeSubtractFilter filter
     in
-        Event.watch
+        Event.watch name
             { abi = lightBoxAbi_
             , address = contract
             , filterParams = filter_
-            , expect = expectJson decodeSubtractArgs
             , eventName = "Subtract"
-            , id = id
             }
 
 

@@ -6,155 +6,61 @@ import Task exposing (Task)
 import Time exposing (Time)
 import Web3.Types exposing (Expect(..))
 import Web3.Eth.Types exposing (..)
+import Web3.Internal exposing (EventRequest)
+import Web3.LowLevel exposing (eventWatch)
 import Json.Encode as Encode exposing (Value)
-
-
--- EVENT REQUEST
-
-
-type alias EventRequest =
-    { abi : Abi
-    , address : Address
-    , filterParams : Value
-    , eventParams : Value
-    , id : String
-    }
-
-
-watch : EventRequest -> Cmd msg
-watch { abi, address, filterParams, eventName, id } =
-    let
-        (Abi abi_) =
-            abi
-
-        (Address address) =
-            address
-    in
-        Native.Web3.eventWatch
-
-
-
--- subtract_ : Address -> SubFilter -> String -> Cmd msg
--- subtract_ (Address contract) filter id =
---     let
---         filter_ =
---             encodeSubtractFilter filter
---     in
---         Event.watch
---             { abi = lightBoxAbi_
---             , address = contract
---             , filterParams = filter_
---             , eventParams = eventParams_
---             , eventName = "Subtract"
---             , id = id
---             }
--- COMMANDS
-
-
-type MyCmd msg
-    = Watch EventRequest
-    | StopWatching String
-
-
-{-| Send a message to a particular address. You might say something like this:
-
-    send "ws://echo.websocket.org" "Hello!"
-
-**Note:** It is important that you are also subscribed to this address with
-`listen` or `keepAlive`. If you are not, the web socket will be created to
-send one message and then closed. Not good!
-
--}
-cmdMap : (a -> b) -> MyCmd a -> MyCmd b
-cmdMap _ (Watch eventRequest) =
-    Watch eventRequest
-
 
 
 -- SUBSCRIPTIONS
 
 
-type MySub a msg
-    = Listen (EventRequest a) (EventLog a -> msg)
-    | KeepAlive String
-
-
-{-| Subscribe to any incoming messages on a websocket. You might say something
-like this:
-
-    type Msg = Echo String | ...
-
-    subscriptions model =
-      listen "ws://echo.websocket.org" Echo
-
-**Note:** If the connection goes down, the effect manager tries to reconnect
-with an exponential backoff strategy. Any messages you try to `send` while the
-connection is down are queued and will be sent as soon as possible.
-
--}
-listen : EventRequest a -> (EventLog a -> msg) -> Sub msg
-listen url tagger =
-    subscription (Listen url tagger)
-
-
-{-| Keep a connection alive, but do not report any messages. This is useful
-for keeping a connection open for when you only need to `send` messages. So
-you might say something like this:
-
-    subscriptions model =
-        keepAlive "ws://echo.websocket.org"
-
-**Note:** If the connection goes down, the effect manager tries to reconnect
-with an exponential backoff strategy. Any messages you try to `send` while the
-connection is down are queued and will be sent as soon as possible.
-
--}
-keepAlive : String -> Sub msg
-keepAlive url =
-    subscription (KeepAlive url)
+type MySub msg
+    = Sentry String (String -> msg)
 
 
 subMap : (a -> b) -> MySub a -> MySub b
-subMap func sub =
-    case sub of
-        Listen url tagger ->
-            Listen url (tagger >> func)
-
-        KeepAlive url ->
-            KeepAlive url
+subMap func (Sentry name toMsg) =
+    Sentry name (toMsg >> func)
 
 
 
+-- COMMANDS
+
+
+type MyCmd msg
+    = Watch String EventRequest
+
+
+
+-- | StopWatching String
+
+
+cmdMap : (a -> b) -> MyCmd a -> MyCmd b
+cmdMap _ cmd =
+    case cmd of
+        Watch name request ->
+            Watch name request
+
+
+
+-- StopWatching name ->
+--     StopWatching name
 -- MANAGER
 
 
+type Web3Event
+    = Web3Event
+
+
 type alias State msg =
-    { sockets : SocketsDict
-    , queues : QueuesDict
-    , subs : SubsDict msg
+    { subs : Dict.Dict String (List (String -> msg))
+    , web3Events : Dict.Dict String Web3Event
     }
-
-
-type alias SocketsDict =
-    Dict.Dict String Connection
-
-
-type alias QueuesDict =
-    Dict.Dict String (List String)
-
-
-type alias SubsDict msg =
-    Dict.Dict String (List (String -> msg))
-
-
-type Connection
-    = Opening Int Process.Id
-    | Connected WS.WebSocket
 
 
 init : Task Never (State msg)
 init =
-    Task.succeed (State Dict.empty Dict.empty Dict.empty)
+    Task.succeed (State Dict.empty Dict.empty)
 
 
 
@@ -165,200 +71,50 @@ init =
     Task.andThen (\_ -> t2) t1
 
 
-onEffects :
-    Platform.Router msg Msg
-    -> List (MyCmd msg)
-    -> List (MySub msg)
-    -> State msg
-    -> Task Never (State msg)
+onEffects : Platform.Router msg Msg -> List (MyCmd msg) -> List (MySub msg) -> State msg -> Task Never (State msg)
 onEffects router cmds subs state =
-    let
-        sendMessagesGetNewQueues =
-            sendMessagesHelp cmds state.sockets state.queues
-
-        newSubs =
-            buildSubDict subs Dict.empty
-
-        cleanup newQueues =
-            let
-                newEntries =
-                    Dict.union newQueues (Dict.map (\k v -> []) newSubs)
-
-                leftStep name _ getNewSockets =
-                    getNewSockets
-                        |> Task.andThen
-                            (\newSockets ->
-                                attemptOpen router 0 name
-                                    |> Task.andThen (\pid -> Task.succeed (Dict.insert name (Opening 0 pid) newSockets))
-                            )
-
-                bothStep name _ connection getNewSockets =
-                    Task.map (Dict.insert name connection) getNewSockets
-
-                rightStep name connection getNewSockets =
-                    closeConnection connection &> getNewSockets
-
-                collectNewSockets =
-                    Dict.merge leftStep bothStep rightStep newEntries state.sockets (Task.succeed Dict.empty)
-            in
-                collectNewSockets
-                    |> Task.andThen (\newSockets -> Task.succeed (State newSockets newQueues newSubs))
-    in
-        sendMessagesGetNewQueues
-            |> Task.andThen cleanup
-
-
-sendMessagesHelp : List (MyCmd msg) -> SocketsDict -> QueuesDict -> Task x QueuesDict
-sendMessagesHelp cmds socketsDict queuesDict =
     case cmds of
         [] ->
-            Task.succeed queuesDict
+            Task.succeed state
 
-        (Send name msg) :: rest ->
-            case Dict.get name socketsDict of
-                Just (Connected socket) ->
-                    WS.send socket msg
-                        &> sendMessagesHelp rest socketsDict queuesDict
-
-                _ ->
-                    sendMessagesHelp rest socketsDict (Dict.update name (add msg) queuesDict)
-
-
-buildSubDict : List (MySub msg) -> SubsDict msg -> SubsDict msg
-buildSubDict subs dict =
-    case subs of
-        [] ->
-            dict
-
-        (Listen name tagger) :: rest ->
-            buildSubDict rest (Dict.update name (add tagger) dict)
-
-        (KeepAlive name) :: rest ->
-            buildSubDict rest (Dict.update name (Just << Maybe.withDefault []) dict)
-
-
-add : a -> Maybe (List a) -> Maybe (List a)
-add value maybeList =
-    case maybeList of
-        Nothing ->
-            Just [ value ]
-
-        Just list ->
-            Just (value :: list)
-
-
-
--- HANDLE SELF MESSAGES
+        (Watch name request) :: rest ->
+            initWatch name request router
+                |> Task.andThen (\web3Event -> Task.succeed (Dict.insert name web3Event state.web3Events))
+                |> Task.andThen (\web3Events -> Task.succeed { state | web3Events = web3Events })
 
 
 type Msg
-    = Receive String String
-    | Die String
-    | GoodOpen String WS.WebSocket
-    | BadOpen String
+    = RecieveLog String String
 
 
 onSelfMsg : Platform.Router msg Msg -> Msg -> State msg -> Task Never (State msg)
-onSelfMsg router selfMsg state =
-    case selfMsg of
-        Receive name str ->
-            let
-                sends =
-                    Dict.get name state.subs
-                        |> Maybe.withDefault []
-                        |> List.map (\tagger -> Platform.sendToApp router (tagger str))
-            in
-                Task.sequence sends &> Task.succeed state
-
-        Die name ->
-            case Dict.get name state.sockets of
-                Nothing ->
-                    Task.succeed state
-
-                Just _ ->
-                    attemptOpen router 0 name
-                        |> Task.andThen (\pid -> Task.succeed (updateSocket name (Opening 0 pid) state))
-
-        GoodOpen name socket ->
-            case Dict.get name state.queues of
-                Nothing ->
-                    Task.succeed (updateSocket name (Connected socket) state)
-
-                Just messages ->
-                    List.foldl
-                        (\msg task -> WS.send socket msg &> task)
-                        (Task.succeed (removeQueue name (updateSocket name (Connected socket) state)))
-                        messages
-
-        BadOpen name ->
-            case Dict.get name state.sockets of
-                Nothing ->
-                    Task.succeed state
-
-                Just (Opening n _) ->
-                    attemptOpen router (n + 1) name
-                        |> Task.andThen (\pid -> Task.succeed (updateSocket name (Opening (n + 1) pid) state))
-
-                Just (Connected _) ->
-                    Task.succeed state
-
-
-updateSocket : String -> Connection -> State msg -> State msg
-updateSocket name connection state =
-    { state | sockets = Dict.insert name connection state.sockets }
-
-
-removeQueue : String -> State msg -> State msg
-removeQueue name state =
-    { state | queues = Dict.remove name state.queues }
-
-
-
--- OPENING WEBSOCKETS WITH EXPONENTIAL BACKOFF
-
-
-attemptOpen : Platform.Router msg Msg -> Int -> String -> Task x Process.Id
-attemptOpen router backoff name =
+onSelfMsg router (RecieveLog filterId log) state =
     let
-        goodOpen ws =
-            Platform.sendToSelf router (GoodOpen name ws)
-
-        badOpen _ =
-            Platform.sendToSelf router (BadOpen name)
-
-        actuallyAttemptOpen =
-            open name router
-                |> Task.andThen goodOpen
-                |> Task.onError badOpen
+        sends =
+            Dict.get filterId state.subs
+                |> Maybe.withDefault []
+                |> List.map (\tagger -> Platform.sendToApp router (tagger log))
     in
-        Process.spawn (after backoff &> actuallyAttemptOpen)
+        Task.sequence sends &> Task.succeed state
 
 
-open : String -> Platform.Router msg Msg -> Task WS.BadOpen WS.WebSocket
-open name router =
-    WS.open name
-        { onMessage = \_ msg -> Platform.sendToSelf router (Receive name msg)
-        , onClose = \details -> Platform.sendToSelf router (Die name)
-        }
+sentry : String -> (String -> msg) -> Sub msg
+sentry eventId toMsg =
+    subscription (Sentry eventId toMsg)
 
 
-after : Int -> Task x ()
-after backoff =
-    if backoff < 1 then
-        Task.succeed ()
-    else
-        Process.sleep (toFloat (10 * 2 ^ backoff))
+initWatch : String -> EventRequest -> Platform.Router msg Msg -> Task Never Web3Event
+initWatch name request router =
+    let
+        (Abi abi_) =
+            request.abi
+
+        (Address address_) =
+            request.address
+    in
+        Native.Web3.watch { request | address = address_, abi = abi_ } (\msg -> Platform.sendToSelf router (RecieveLog name msg))
 
 
-
--- CLOSE CONNECTIONS
-
-
-closeConnection : Connection -> Task x ()
-closeConnection connection =
-    case connection of
-        Opening _ pid ->
-            Process.kill pid
-
-        Connected socket ->
-            WS.close socket
+watch : String -> EventRequest -> Cmd msg
+watch name request =
+    command <| Watch name request

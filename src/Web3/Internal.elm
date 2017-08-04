@@ -31,8 +31,7 @@ type alias EventRequest =
     { abi : Abi
     , address : Address
     , filterParams : Value
-    , eventParams : Value
-    , portAndEventName : String
+    , eventName : String
     }
 
 
