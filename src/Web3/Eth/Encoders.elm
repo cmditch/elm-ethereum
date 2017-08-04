@@ -5,6 +5,7 @@ module Web3.Eth.Encoders
         , txParamsToString
         , getBlockIdValue
         , addressMaybeMap
+        , encodeFilter
         )
 
 import Web3.Eth.Types exposing (..)
@@ -107,3 +108,11 @@ addressMaybeMap =
 intMaybeMap : Maybe Int -> Maybe String
 intMaybeMap =
     Maybe.map toString
+
+
+encodeFilter : List ( String, Maybe Value ) -> Value
+encodeFilter object =
+    object
+        |> List.filter (\( k, v ) -> v /= Nothing)
+        |> List.map (\( k, v ) -> ( k, Maybe.withDefault Encode.null v ))
+        |> Encode.object

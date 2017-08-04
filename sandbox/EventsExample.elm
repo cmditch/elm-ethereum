@@ -3,6 +3,9 @@ module Main exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Web3.Eth.Types exposing (..)
+import LightBox exposing (..)
+import Web3.Eth.Contract as Contract
 
 
 main =
@@ -25,7 +28,7 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model [], Cmd.none )
+    ( [], Cmd.none )
 
 
 
@@ -45,15 +48,14 @@ update msg model =
         WatchAdd ->
             let
                 bob =
-                    Address "0x123123132131231231231231231123"
-
-                watchRequest =
-                    LightBox.watchAdd
-                        contractAddress
-                        { addFilter | address = Just bob }
-                        BobAdds
+                    Address "0x12312313213123123123123123112323"
             in
-                ( model, Web3.Eth.Event.watch watchRequest )
+                ( model
+                , LightBox.add_
+                    contractAddress
+                    { addFilter | mathematician = Just [ bob ] }
+                    "bobAdds"
+                )
 
         AddEvents log ->
             ( log :: model, Cmd.none )
@@ -64,9 +66,10 @@ update msg model =
                     Address "0x42424242424242424242424242424242"
             in
                 ( model
-                , LightBox.watchSubtract contractAddress
-                    { subFilter | address = Just alice }
-                    AliceSubtracts
+                , LightBox.subtract_
+                    contractAddress
+                    { subFilter | professor = Just [ alice ] }
+                    "aliceSubtracts"
                 )
 
         SubtractEvents log ->
@@ -80,8 +83,8 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ LightBox.sentry BobAdds (decodeAddEvent >> AddEvents)
-        , LightBox.sentry AliceSubtracts (decodeSubEvent >> SubtractEvents)
+        [ Contract.sentry "bobAdds" (decodeAddEvent >> AddEvents)
+        , Contract.sentry "aliceSubtracts" (decodeSubEvent >> SubtractEvents)
         ]
 
 

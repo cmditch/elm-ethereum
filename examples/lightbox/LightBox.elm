@@ -8,6 +8,7 @@ import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
 import Web3.Eth.Encoders exposing (txParamsEncoder, filterParamsEncoder, addressMaybeMap)
 import Web3.Eth.Decoders exposing (eventLogDecoder, txIdDecoder, addressDecoder)
 import Web3.Eth.Contract as Contract
+import Web3.Eth.Event as Events
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required, optional)
@@ -97,18 +98,13 @@ new value { someNum_ } =
 {-
    Events
 
-   Each event is defined by a constructor within the union-type PortName.
-   This union-type is probably the only thing in this file that should be edited by the user,
-   and should sit at the very top of the file above the clearly marked "do not touch" section.
+   Each event will have:
+    type alias : EventArgs, RawEventArgs, EventFilters
+    functions : defaultEventFilter, watchEvent, stopWatchingEvent, getEvent
+    encodeEventFilters, decodeEventArgs, decodeEventEventLog
 
-   This constructor names must match it's decapitalized version within your ports definition.
-   see Port.elm
 -}
-
-
-type Sentry
-    = AliceSub
-    | AliceSubtracts
+-- event Add(mathematician indexed address, sum int8) helpers
 
 
 type Event
@@ -129,17 +125,6 @@ type alias SubtractFilter =
     }
 
 
-
-{-
-   Each event will have:
-    type alias : EventArgs, RawEventArgs, EventFilters
-    functions : defaultEventFilter, watchEvent, stopWatchingEvent, getEvent
-    encodeEventFilters, decodeEventArgs, decodeEventEventLog
-
--}
--- event Add(mathematician indexed address, sum int8) helpers
-
-
 type alias AddArgs =
     { mathematician : Address, sum : BigInt }
 
@@ -155,59 +140,60 @@ addFilter =
 
 subtractFilter : SubtractFilter
 subtractFilter =
-    { proffessor = Nothing, numberz = Nothing, aPrime = Nothing }
+    { professor = Nothing, numberz = Nothing, aPrime = Nothing }
 
 
-watchAdd : Address -> AddFilter -> String -> Task Error ()
-watchAdd filterParams eventParams address portAndEventName =
+
+--  EVENT WATCHERS
+
+
+add_ : Address -> AddFilter -> String -> Cmd msg
+add_ (Address contract) filter id =
     let
-        filterParams_ =
-            filterParamsEncoder filterParams
-
-        eventParams_ =
-            encodeAddFilter eventParams
-
-        portAndEventName_ =
-            toString portAndEventName
+        filter_ =
+            encodeAddFilter filter
     in
-        Contract.watch
+        Event.watch
             { abi = lightBoxAbi_
-            , address = address
-            , filterParams = filterParams_
-            , eventParams = eventParams_
-            , portAndEventName = portAndEventName_
+            , address = contract
+            , filterParams = filter_
+            . expect = expectJson decodeAddArgs
+            , eventName = "Add"
+            , id = id
             }
 
 
-watchSubtract : Address -> AddFilter -> String -> Task Error ()
-watchSubtract filterParams eventParams address portAndEventName =
+subtract_ : Address -> SubtractFilter -> String -> Cmd msg
+subtract_ (Address contract) filter id =
     let
-        filterParams_ =
-            filterParamsEncoder filterParams
-
-        eventParams_ =
-            encodeAddFilter eventParams
-
-        portAndEventName_ =
-            toString portAndEventName
+        filter_ =
+            encodeSubtractFilter filter
     in
-        Contract.watch
+        Event.watch
             { abi = lightBoxAbi_
-            , address = address
-            , filterParams = filterParams_
-            , eventParams = eventParams_
-            , portAndEventName = portAndEventName_
+            , address = contract
+            , filterParams = filter_
+            , expect = expectJson decodeSubtractArgs
+            , eventName = "Subtract"
+            , id = id
             }
 
 
-encodeAddFilter : EventFilter -> Value
-encodeAddFilter (AddFilter { mathematician, sum }) =
-    [ ( "mathematician", Maybe.map Encode.string (addressMaybeMap mathematician) )
-    , ( "sum", Maybe.map Encode.int sum )
-    ]
-        |> List.filter (\( k, v ) -> v /= Nothing)
-        |> List.map (\( k, v ) -> ( k, Maybe.withDefault Encode.null v ))
-        |> Encode.object
+encodeAddFilter : AddFilter -> Value
+encodeAddFilter { mathematician, sum } =
+    encodeFilter
+        [ ( "mathematician", Maybe.map Encode.string (addressMaybeMap mathematician) )
+        , ( "sum", Maybe.map Encode.int sum )
+        ]
+
+
+encodeSubtractFilter : Subtract -> Value
+encodeSubtractFilter { professor, numberz, aPrime } =
+    encodeFilter
+        [ ( "professor", Maybe.map Encode.string (addressMaybeMap professor) )
+        , ( "numberz", Maybe.map (BigInt.toString >> Encode.string) numberz )
+        , ( "aPrime", Maybe.map (BigInt.toString >> Encode.string) aPrime )
+        ]
 
 
 decodeAddArgs : Decoder AddArgs
@@ -217,41 +203,19 @@ decodeAddArgs =
         |> required "sum" bigIntDecoder
 
 
+decodeSubtractArgs : Decoder AddArgs
+decodeSubtractArgs =
+    decode AddArgs
+        |> required "professor" addressDecoder
+        |> required "numberz" bigIntDecoder
+        |> required "aPrime" bigIntDecoder
+
+
 decodeAddEventLog : Decoder (EventLog AddArgs)
 decodeAddEventLog =
     eventLogDecoder decodeAddArgs
 
 
-
--- formatRawEvent : Incoming port value -> Model value
-{-
-   TODO
-    Question is:
-       Do we use Maybe.withDefault, or make the user deal with a Maybe BigInt
-        for all EventLog's with BigNumber.js types.
-
-       I think withDefault is fairly safe here. We're parsing their ABI,
-        so we know anything returning an int or uint will be turned into BigNumbers.
-
-       The withDefault failure should never occur.
-
-       I think we need to choose a number, like -1 or -42, and make it explicit in the docs,
-        that if you see this number during tests, something errory has occured.
--}
-
-
-formatAddEventLog : EventLog RawAddArgs -> EventLog AddArgs
-formatAddEventLog event =
-    let
-        { args } =
-            event
-
-        formatedArgs =
-            { args
-                | mathematician = (Address args.mathematician)
-                , sum =
-                    BigInt.fromString args.sum
-                        |> Maybe.withDefault (BigInt.fromInt -42)
-            }
-    in
-        { event | args = formatedArgs }
+decodeSubtractEventLog : Decoder (EventLog Subtract)
+decodeSubtractEventLog =
+    eventLogDecoder decodeSubtractArgs
