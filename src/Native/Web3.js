@@ -158,7 +158,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                                         + "')."
                                         + request.eventName
                                         + "("
-                                        + JSON.stringify(e.eventParams)
+                                        + JSON.stringify(request.eventParams)
                                         + ", {}"
                                         + ")"
                             );
@@ -169,6 +169,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                                     ctor: 'Error',
                                     _0: err.toString()
                             }));
+                            console.log("Watch error: ", err);
                     }
 
                     web3Filter.watch(function(e,r) {
@@ -176,7 +177,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                                     onMessage(JSON.stringify(formatLog(r)))
                             );
                     });
-
+                    console.log("Event assigned: ", web3Filter);
                     return callback(_elm_lang$core$Native_Scheduler.succeed(web3Filter));
             });
     }

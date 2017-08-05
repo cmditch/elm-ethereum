@@ -68,14 +68,55 @@ init =
 
 onEffects : Platform.Router msg Msg -> List (MyCmd msg) -> List (MySub msg) -> State msg -> Task Never (State msg)
 onEffects router cmds subs state =
+    let
+        cmdsTask =
+            cmdsHelper router state cmds
+
+        subsTask =
+            subsHelper state subs
+    in
+        cmdsTask &> subsTask
+
+
+subsHelper state subs =
+    let
+        a =
+            Debug.log "subs: " (toString subs)
+    in
+        case subs of
+            [] ->
+                Task.succeed state
+
+            (Sentry name toMsg) :: rest ->
+                Task.succeed (Dict.get name state.subs |> Maybe.withDefault [])
+                    |> Task.andThen (\subsList -> Task.succeed <| Dict.insert name (toMsg :: subsList) state.subs)
+                    |> Task.andThen
+                        (\subs_ ->
+                            Task.succeed (Dict.get name subs_ |> Maybe.withDefault [])
+                                |> Task.andThen (\subsAtKey -> Task.succeed (Debug.log ("subsAtKey " ++ name ++ ": ") (toString subsAtKey)))
+                                |> Task.andThen (\_ -> Task.succeed { state | subs = subs_ })
+                        )
+
+
+cmdsHelper router state cmds =
     case cmds of
         [] ->
             Task.succeed state
 
         (Watch name request) :: rest ->
-            initWatch name request router
-                |> Task.andThen (\web3Event -> Task.succeed (Dict.insert name web3Event state.web3Events))
-                |> Task.andThen (\web3Events -> Task.succeed { state | web3Events = web3Events })
+            let
+                a =
+                    Dict.get name state.subs
+                        |> Maybe.withDefault []
+                        |> Debug.log "onSelfMsg State: "
+                        << toString
+
+                b =
+                    Debug.log "Event name: " name
+            in
+                initWatch name request router
+                    |> Task.andThen (\web3Event -> Task.succeed (Dict.insert name web3Event state.web3Events))
+                    |> Task.andThen (\web3Events -> Task.succeed { state | web3Events = web3Events })
 
 
 type Msg
@@ -85,6 +126,15 @@ type Msg
 onSelfMsg : Platform.Router msg Msg -> Msg -> State msg -> Task Never (State msg)
 onSelfMsg router (RecieveLog name log) state =
     let
+        b =
+            Debug.log "State" (name ++ " -- " ++ log)
+
+        c =
+            Dict.get name state.subs
+                |> Maybe.withDefault []
+                |> Debug.log "tagged with: "
+                << toString
+
         sends =
             Dict.get name state.subs
                 |> Maybe.withDefault []
