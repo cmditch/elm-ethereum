@@ -6,6 +6,7 @@ module Web3.Eth.Encoders
         , getBlockIdValue
         , addressMaybeMap
         , encodeFilter
+        , encodeAddressList
         )
 
 import Web3.Eth.Types exposing (..)
@@ -93,6 +94,12 @@ getBlockIdValue blockId =
 
         Pending ->
             Encode.string "pending"
+
+
+encodeAddressList : List Address -> Value
+encodeAddressList =
+    List.map (addressToString >> Encode.string)
+        >> Encode.list
 
 
 bytesMaybeMap : Maybe Bytes -> Maybe String

@@ -6,6 +6,7 @@ import Html.Events exposing (..)
 import Web3.Eth.Types exposing (..)
 import LightBox exposing (..)
 import Web3.Eth.Contract as Contract
+import Web3.Eth.Event as Event exposing (..)
 
 
 main =
@@ -18,7 +19,6 @@ main =
 
 
 
-""
 -- MODEL
 
 
@@ -37,9 +37,7 @@ init =
 
 type Msg
     = WatchAdd
-    | AddEvents (EventLog AddArgs)
-    | WatchSubtract
-    | SubtractEvents (EventLog SubtractArgs)
+    | AddEvents String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -48,44 +46,41 @@ update msg model =
         WatchAdd ->
             let
                 bob =
-                    Address "0x12312313213123123123123123112323"
+                    Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487"
             in
                 ( model
                 , LightBox.add_
-                    contractAddress
-                    { addFilter | mathematician = Just [ bob ] }
+                    bob
+                    addFilter
                     "bobAdds"
                 )
 
         AddEvents log ->
-            ( log :: model, Cmd.none )
-
-        WatchSubtract ->
-            let
-                alice =
-                    Address "0x42424242424242424242424242424242"
-            in
-                ( model
-                , LightBox.subtract_
-                    contractAddress
-                    { subFilter | professor = Just [ alice ] }
-                    "aliceSubtracts"
-                )
-
-        SubtractEvents log ->
-            ( log :: model, Cmd.none )
+            (log :: model) ! []
 
 
 
+-- WatchSubtract ->
+--     let
+--         alice =
+--             Address "0x42424242424242424242424242424242"
+--     in
+--         ( model
+--         , LightBox.subtract_
+--             contractAddress
+--             { subFilter | professor = Just [ alice ] }
+--             "aliceSubtracts"
+--         )
+--
+-- SubtractEvents log ->
+--     ( log :: model, Cmd.none )
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Contract.sentry "bobAdds" (decodeAddEvent >> AddEvents)
-        , Contract.sentry "aliceSubtracts" (decodeSubEvent >> SubtractEvents)
-        ]
+        [ Event.sentry "bobAdds" AddEvents ]
 
 
 
@@ -95,8 +90,8 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     div []
-        [ div [] (List.map viewMessage model.messages)
-        , button [ onClick Send ] [ text "Watch For Event" ]
+        [ div [] (List.map viewMessage model)
+        , button [ onClick WatchAdd ] [ text "Watch For Event" ]
         ]
 
 

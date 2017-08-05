@@ -43,13 +43,13 @@ watch eventRequest =
             eventRequest.address
 
         portAndEventName =
-            Encode.string eventRequest.portAndEventName
+            Encode.string eventRequest.eventName
     in
         Native.Web3.eventManager Watch
             { eventRequest
                 | abi = abi
                 , address = address
-                , portAndEventName = portAndEventName
+                , eventName = portAndEventName
             }
 
 

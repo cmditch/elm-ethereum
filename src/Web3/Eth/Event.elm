@@ -1,14 +1,9 @@
-effect module Web3.Eth.Event where { command = MyCmd, subscription = MySub } exposing (MyCmd)
+effect module Web3.Eth.Event where { command = MyCmd, subscription = MySub } exposing (..)
 
 import Dict
-import Process
 import Task exposing (Task)
-import Time exposing (Time)
-import Web3.Types exposing (Expect(..))
 import Web3.Eth.Types exposing (..)
 import Web3.Internal exposing (EventRequest)
-import Web3.LowLevel exposing (eventWatch)
-import Json.Encode as Encode exposing (Value)
 
 
 -- SUBSCRIPTIONS
@@ -88,10 +83,10 @@ type Msg
 
 
 onSelfMsg : Platform.Router msg Msg -> Msg -> State msg -> Task Never (State msg)
-onSelfMsg router (RecieveLog filterId log) state =
+onSelfMsg router (RecieveLog name log) state =
     let
         sends =
-            Dict.get filterId state.subs
+            Dict.get name state.subs
                 |> Maybe.withDefault []
                 |> List.map (\tagger -> Platform.sendToApp router (tagger log))
     in
@@ -112,7 +107,10 @@ initWatch name request router =
         (Address address_) =
             request.address
     in
-        Native.Web3.watch { request | address = address_, abi = abi_ } (\msg -> Platform.sendToSelf router (RecieveLog name msg))
+        Native.Web3.watch
+            { request | address = address_, abi = abi_ }
+            -- This is the callback which talks to Event.onSelfMsg, in Web3.js it's within watch() as onMessage(stringifiedWeb3Log)
+            (\log -> Platform.sendToSelf router (RecieveLog name log))
 
 
 watch : String -> EventRequest -> Cmd msg

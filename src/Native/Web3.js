@@ -173,12 +173,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
                     web3Filter.watch(function(e,r) {
                             _elm_lang$core$Native_Scheduler.rawSpawn(
-                                    onMessage(JSON.stringify(r))
+                                    onMessage(JSON.stringify(formatLog(r)))
                             );
                     });
 
                     return callback(_elm_lang$core$Native_Scheduler.succeed(web3Filter));
-
             });
     }
 

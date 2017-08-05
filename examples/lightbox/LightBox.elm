@@ -5,7 +5,7 @@ import Web3.Types exposing (..)
 import Web3.Eth exposing (defaultTxParams)
 import Web3.Eth.Types exposing (..)
 import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
-import Web3.Eth.Encoders exposing (txParamsEncoder, filterParamsEncoder, addressMaybeMap, encodeFilter)
+import Web3.Eth.Encoders exposing (txParamsEncoder, filterParamsEncoder, addressMaybeMap, encodeFilter, encodeAddressList)
 import Web3.Eth.Decoders exposing (eventLogDecoder, txIdDecoder, addressDecoder)
 import Web3.Eth.Contract as Contract
 import Web3.Eth.Event as Event
@@ -161,35 +161,42 @@ add_ contract filter name =
             }
 
 
-subtract_ : Address -> SubtractFilter -> String -> Cmd msg
-subtract_ contract filter name =
-    let
-        filter_ =
-            encodeSubtractFilter filter
-    in
-        Event.watch name
-            { abi = lightBoxAbi_
-            , address = contract
-            , filterParams = filter_
-            , eventName = "Subtract"
-            }
+
+--
+-- subtract_ : Address -> SubtractFilter -> String -> Cmd msg
+-- subtract_ contract filter name =
+--     let
+--         filter_ =
+--             encodeSubtractFilter filter
+--     in
+--         Event.watch name
+--             { abi = lightBoxAbi_
+--             , address = contract
+--             , filterParams = filter_
+--             , eventName = "Subtract"
+--             }
+-- type alias AddFilter =
+--     { mathematician : Maybe (List Address)
+--     , sum : Maybe (List Int)
+--     }
 
 
 encodeAddFilter : AddFilter -> Value
 encodeAddFilter { mathematician, sum } =
     encodeFilter
-        [ ( "mathematician", Maybe.map Encode.string (addressMaybeMap mathematician) )
-        , ( "sum", Maybe.map Encode.int sum )
+        [ ( "mathematician", Maybe.map encodeAddressList mathematician )
+        , ( "sum", Maybe.map ((List.map Encode.int) >> Encode.list) sum )
         ]
 
 
-encodeSubtractFilter : Subtract -> Value
-encodeSubtractFilter { professor, numberz, aPrime } =
-    encodeFilter
-        [ ( "professor", Maybe.map Encode.string (addressMaybeMap professor) )
-        , ( "numberz", Maybe.map (BigInt.toString >> Encode.string) numberz )
-        , ( "aPrime", Maybe.map (BigInt.toString >> Encode.string) aPrime )
-        ]
+
+-- encodeSubtractFilter : Subtract -> Value
+-- encodeSubtractFilter { professor, numberz, aPrime } =
+--     encodeFilter
+--         [ ( "professor", Maybe.map Encode.string (addressMaybeMap professor) )
+--         , ( "numberz", Maybe.map (BigInt.toString >> Encode.string) numberz )
+--         , ( "aPrime", Maybe.map (BigInt.toString >> Encode.string) aPrime )
+--         ]
 
 
 decodeAddArgs : Decoder AddArgs
@@ -199,12 +206,13 @@ decodeAddArgs =
         |> required "sum" bigIntDecoder
 
 
-decodeSubtractArgs : Decoder AddArgs
-decodeSubtractArgs =
-    decode AddArgs
-        |> required "professor" addressDecoder
-        |> required "numberz" bigIntDecoder
-        |> required "aPrime" bigIntDecoder
+
+-- decodeSubtractArgs : Decoder AddArgs
+-- decodeSubtractArgs =
+--     decode AddArgs
+--         |> required "professor" addressDecoder
+--         |> required "numberz" bigIntDecoder
+--         |> required "aPrime" bigIntDecoder
 
 
 decodeAddEventLog : Decoder (EventLog AddArgs)
@@ -212,6 +220,7 @@ decodeAddEventLog =
     eventLogDecoder decodeAddArgs
 
 
-decodeSubtractEventLog : Decoder (EventLog Subtract)
-decodeSubtractEventLog =
-    eventLogDecoder decodeSubtractArgs
+
+-- decodeSubtractEventLog : Decoder (EventLog Subtract)
+-- decodeSubtractEventLog =
+--     eventLogDecoder decodeSubtractArgs
