@@ -1,14 +1,13 @@
 module Main exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Web3.Eth.Types exposing (..)
 import LightBox exposing (..)
-import Web3.Eth.Contract as Contract
 import Web3.Eth.Event as Event exposing (..)
 
 
+main : Program Never Model Msg
 main =
     Html.program
         { init = init
@@ -23,12 +22,15 @@ main =
 
 
 type alias Model =
-    List String
+    { log : List String
+    , funLog : List String
+    , isWatchingAdd : Bool
+    }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( [], Cmd.none )
+    ( Model [] [] False, Cmd.none )
 
 
 
@@ -37,7 +39,9 @@ init =
 
 type Msg
     = WatchAdd
+    | StopWatchingAdd
     | AddEvents String
+    | AddEventsAgainForFun String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -48,15 +52,21 @@ update msg model =
                 bob =
                     Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487"
             in
-                ( model
+                ( { model | isWatchingAdd = True }
                 , LightBox.add_
                     bob
                     addFilter
                     "bobAdds"
                 )
 
+        StopWatchingAdd ->
+            { model | isWatchingAdd = False } ! [ Event.stopWatching "bobAdds" ]
+
         AddEvents log ->
-            (log :: model) ! []
+            { model | log = log :: model.log } ! []
+
+        AddEventsAgainForFun log ->
+            { model | funLog = String.reverse log :: model.funLog } ! []
 
 
 
@@ -80,7 +90,9 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Event.sentry "bobAdds" AddEvents ]
+        [ Event.sentry "bobAdds" AddEvents
+        , Event.sentry "bobAdds" AddEventsAgainForFun
+        ]
 
 
 
@@ -90,12 +102,27 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     div []
-        [ div [] (List.map viewMessage model)
-        , button [ onClick WatchAdd ] [ text "Watch For Event" ]
+        [ div [] [ text "Logs from AddEvents" ]
+        , div [] (List.map viewMessage model.log)
+        , div [] [ br [] [], br [] [] ]
+        , div [] [ text "Logs from AddEventsAgainForFun" ]
+        , div [] (List.map viewMessage model.funLog)
+        , div [] [ br [] [], br [] [] ]
+        , viewButton model
         ]
 
 
-viewMessage : String -> Html msg
+viewMessage : String -> Html Msg
 viewMessage msg =
     div []
         [ text msg ]
+
+
+viewButton : Model -> Html Msg
+viewButton model =
+    case model.isWatchingAdd of
+        False ->
+            button [ onClick WatchAdd ] [ text "Watch For Event" ]
+
+        True ->
+            button [ onClick StopWatchingAdd ] [ text "Stop Watching the Event" ]

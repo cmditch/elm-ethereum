@@ -13,7 +13,7 @@ contract LightBox {
     owner = msg.sender;
   }
 
-  function add(uint8 a, uint8 b) constant returns (uint8) {
+  function add_(uint8 a, uint8 b) constant returns (uint8) {
     var sum = a + b;
     return sum;
   }
