@@ -4,6 +4,7 @@ effect module Web3.Eth.Event
         ( sentry
         , watch
         , stopWatching
+        , reset
         )
 
 import Dict
@@ -36,6 +37,7 @@ sentry eventId toMsg =
 type MyCmd msg
     = Watch String EventRequest
     | StopWatching String
+    | Reset
 
 
 cmdMap : (a -> b) -> MyCmd a -> MyCmd b
@@ -47,6 +49,9 @@ cmdMap _ cmd =
         StopWatching name ->
             StopWatching name
 
+        Reset ->
+            Reset
+
 
 watch : String -> EventRequest -> Cmd msg
 watch name request =
@@ -56,6 +61,11 @@ watch name request =
 stopWatching : String -> Cmd msg
 stopWatching name =
     command <| StopWatching name
+
+
+reset : Cmd msg
+reset =
+    command <| Reset
 
 
 
@@ -132,6 +142,14 @@ sendMessagesHelp router cmds eventDict =
 
                 Nothing ->
                     sendMessagesHelp router rest eventDict
+
+        -- TODO Performing reset manually on only events in the Web3Event dict, without using web3.reset().
+        --      Need to evaluate this in light of what reset actually does.
+        Reset :: rest ->
+            Dict.values eventDict
+                |> List.map initStopWatching
+                |> List.foldl (&>) (Task.succeed ())
+                |> Task.andThen (\_ -> sendMessagesHelp router rest Dict.empty)
 
 
 initWatch : Platform.Router msg Msg -> String -> EventRequest -> Task Never Web3Event

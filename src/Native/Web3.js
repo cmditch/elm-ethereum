@@ -139,6 +139,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     }
 
                     web3Filter.watch(function(e,r) {
+                            if (e) { return console.log(e); }
                             rawSpawn(onMessage(JSON.stringify(formatLog(r))));
                     });
                     console.log("Event watched: ", web3Filter);

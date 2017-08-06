@@ -40,6 +40,7 @@ init =
 type Msg
     = WatchAdd
     | StopWatchingAdd
+    | Reset
     | AddEvents String
     | AddEventsAgainForFun String
 
@@ -52,15 +53,16 @@ update msg model =
                 bob =
                     Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487"
             in
-                ( { model | isWatchingAdd = True }
-                , LightBox.add_
-                    bob
-                    addFilter
-                    "bobAdds"
-                )
+                { model | isWatchingAdd = True }
+                    ! [ LightBox.add_ bob addFilter "bobAdds"
+                      , LightBox.add_ bob addFilter "caraAdds"
+                      ]
 
         StopWatchingAdd ->
             { model | isWatchingAdd = False } ! [ Event.stopWatching "bobAdds" ]
+
+        Reset ->
+            { model | isWatchingAdd = False } ! [ Event.reset ]
 
         AddEvents log ->
             { model | log = log :: model.log } ! []
@@ -91,7 +93,8 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Event.sentry "bobAdds" AddEvents
-        , Event.sentry "bobAdds" AddEventsAgainForFun
+        , Event.sentry "caraAdds" AddEventsAgainForFun
+        , Event.sentry "nullTest" AddEvents
         ]
 
 
@@ -109,6 +112,7 @@ view model =
         , div [] (List.map viewMessage model.funLog)
         , div [] [ br [] [], br [] [] ]
         , viewButton model
+        , button [ onClick Reset ] [ text "Reset all events" ]
         ]
 
 

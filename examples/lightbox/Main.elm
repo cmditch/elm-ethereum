@@ -5,12 +5,11 @@ import Html exposing (..)
 import Html.Attributes exposing (href, target)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
-import Web3.Eth exposing (defaultFilterParams)
 import Web3.Eth.Decoders exposing (txIdToString, addressToString)
 import Web3.Eth.Types exposing (..)
 import LightBox as LB
+import Web3.Eth.Event as Event
 import BigInt exposing (BigInt)
-import Port
 
 
 main : Program Never Model Msg
@@ -31,7 +30,8 @@ type alias Model =
     , txIds : List TxId
     , error : List String
     , testData : String
-    , eventData : List (EventLog LB.AddArgs)
+    , eventData : List String
+    , isWatchingAdd : Bool
     }
 
 
@@ -52,6 +52,7 @@ init =
     , error = []
     , testData = ""
     , eventData = []
+    , isWatchingAdd = False
     }
         ! [{- TODO Web3.init command needed. Program w/ flags  for wallet check and web3 connection status -}]
 
@@ -66,9 +67,7 @@ view model =
         , bigBreak
         , div [] [ text <| "Tx History: " ++ toString model.txIds ]
         , bigBreak
-        , button [ onClick WatchAddEvents ] [ text " Watch Add Event" ]
-        , div [] [ text <| toString model.eventData ]
-        , button [ onClick <| StopWatching (LB.AddPort LB.Add) ] [ text " Stop Watching Add Event" ]
+        , viewEventStuff model
         , bigBreak
         , viewError model.error
         , button [ onClick Test ] [ text "Try web3.reset()" ]
@@ -83,6 +82,34 @@ bigBreak =
         , br [] []
         , br [] []
         ]
+
+
+viewEventStuff : Model -> Html Msg
+viewEventStuff model =
+    div []
+        [ div [] [ text "Logs from AddEvents" ]
+        , div [] (List.map viewMessage model.eventData)
+        , bigBreak
+        , viewButton model
+        , br [] []
+        , button [ onClick Reset ] [ text "Reset all events" ]
+        ]
+
+
+viewMessage : String -> Html Msg
+viewMessage msg =
+    div []
+        [ text msg ]
+
+
+viewButton : Model -> Html Msg
+viewButton model =
+    case model.isWatchingAdd of
+        False ->
+            button [ onClick WatchAdd ] [ text "Watch For Event" ]
+
+        True ->
+            button [ onClick StopWatchingAdd ] [ text "Stop Watching the Event" ]
 
 
 viewAddButton : Model -> Html Msg
@@ -178,10 +205,10 @@ viewError error =
 type Msg
     = Test
     | TestResponse (Result Web3.Error ())
-    | WatchAddEvents
-    | StopWatching LB.PortAndEventName
-    | StopAddEvents
-    | AddEvents (EventLog LB.AddArgs)
+    | WatchAdd
+    | StopWatchingAdd
+    | Reset
+    | AddEvents String
     | DeployContract
     | AddNumbers Address Int Int
     | MutateAdd Address Int
@@ -189,7 +216,6 @@ type Msg
     | LightBoxResponse (Result Web3.Error ContractInfo)
     | LightBoxAddResponse (Result Web3.Error BigInt)
     | LightBoxMutateAddResponse (Result Web3.Error TxId)
-    | EventHandler (Result Web3.Error ())
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -218,33 +244,22 @@ update msg model =
                     Err error ->
                         handleError model error
 
-            WatchAddEvents ->
-                let
-                    addFilter =
-                        LB.AddFilter
-                            { mathematician = Just <| Address "0x10A19C4bD26C8E8203628384083b7ee6819e36B6"
-                            , sum = Nothing
-                            }
+            WatchAdd ->
+                case model.contractInfo of
+                    Deployed { contractAddress } ->
+                        { model | isWatchingAdd = True } ! [ LB.add_ contractAddress LB.addFilter "bobAdds" ]
 
-                    -- TODO Notice the UX for more union-typed primitives + reuseable watch/stop/get events
-                in
-                    model
-                        ! [ Task.attempt EventHandler <|
-                                LB.watch
-                                    defaultFilterParams
-                                    addFilter
-                                    (Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487")
-                                    (LB.AddPort LB.Add)
-                          ]
+                    _ ->
+                        model ! []
 
-            StopWatching event ->
-                model ! [ Task.attempt EventHandler (LB.stopWatching event) ]
+            StopWatchingAdd ->
+                { model | isWatchingAdd = False } ! [ Event.stopWatching "bobAdds" ]
 
             AddEvents events ->
                 { model | eventData = events :: model.eventData } ! []
 
-            StopAddEvents ->
-                model ! []
+            Reset ->
+                { model | isWatchingAdd = False } ! [ Event.reset ]
 
             DeployContract ->
                 { model | contractInfo = Deploying }
@@ -298,15 +313,10 @@ update msg model =
                     Err error ->
                         handleError model error
 
-            EventHandler response ->
-                case response of
-                    Ok _ ->
-                        model ! []
-
-                    Err error ->
-                        handleError model error
-
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.batch [ Port.addPort (LB.formatAddEventLog >> AddEvents) ]
+subscriptions model =
+    Sub.batch
+        [ Event.sentry "bobAdds" AddEvents
+        , Event.sentry "nullTest" AddEvents
+        ]
