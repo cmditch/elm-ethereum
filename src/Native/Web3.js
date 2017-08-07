@@ -37,16 +37,22 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             return nativeBinding(function(callback) {
                     try
                     {
-                            function web3Callback(e,r) {
+                            function web3Callback(e,r)
+                            {
                                     var result = handleWeb3Response({
                                             error: e,
                                             response: r,
                                             decoder: request.expect.responseToResult
                                     });
+
                                     console.log("Async result: ", result)
-                                    if (result.ctor === "Ok") {
+
+                                    if (result.ctor === "Ok")
+                                    {
                                             return callback(succeed(result._0));
-                                    } else if (result.ctor === "Err") {
+                                    }
+                                    else if (result.ctor === "Err")
+                                    {
                                             console.log("Err within Async found!", result);
                                             return callback(fail({ ctor: 'Error', _0: result._0 }));
                                     }
@@ -54,19 +60,27 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
                             var func = eval("web3." + request.func);
 
-                            if (request.callType.ctor === "Async") {
+                            if (request.callType.ctor === "Async")
+                            {
                                     func.apply(null, request.args.concat( web3Callback ));
-                            } else if (request.callType.ctor === "Sync") {
+                            }
+                            else if (request.callType.ctor === "Sync")
+                            {
                                     var web3Response = func.apply(null, request.args);
                                     var result = handleWeb3Response({
                                             error: null,
                                             response: r,
                                             decoder: undefined
                                     });
+
                                     console.log("Sync result: ", result);
-                                    if (result.ctor === "Ok") {
+
+                                    if (result.ctor === "Ok")
+                                    {
                                             return callback(succeed(result._0));
-                                    } else if (result.ctor === "Err") {
+                                    }
+                                    else if (result.ctor === "Err")
+                                    {
                                             return callback(fail({ ctor: 'Error', _0: result._0 }));
                                     }
                             };
@@ -131,6 +145,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     eventFilter.watch(function(e,r) {
                             if (e) { return console.log(e); }
                             rawSpawn(onMessage(JSON.stringify(formatLog(r))));
+                            console.log(r);
                     });
                     console.log("Event watched: ", eventFilter);
                     return callback(succeed(eventFilter));
@@ -160,18 +175,23 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     //  TODO Handle this in the Effects Manager
-    function reset(keepIsSyncing){
-        console.log("web3.reset called");
-        return nativeBinding(function(callback) {
-            try {
-                eval("web3.reset(" + keepIsSyncing.toString() + ")")
-                console.log(eventRegistry);
-                return callback( succeed(unit) );
-        } catch (err) {
-                console.log("Try/Catch error on web3.reset", err);
-                return callback( fail({ ctor: 'Error', _0: "Event reset failed - " + err.toString() }) );
-            }
-        });
+    function reset(keepIsSyncing)
+    {
+            console.log("web3.reset called");
+            return nativeBinding(function(callback)
+            {
+                    try
+                    {
+                            eval("web3.reset(" + keepIsSyncing.toString() + ")")
+                            console.log(eventRegistry);
+                            return callback( succeed(unit) );
+                    }
+                    catch (err)
+                    {
+                            console.log("Try/Catch error on web3.reset", err);
+                            return callback( fail({ ctor: 'Error', _0: "Event reset failed - " + err.toString() }) );
+                    }
+            });
     };
 
 
@@ -187,25 +207,35 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 //  Run on all web3 repsonses.
 //  (error, response, Expect/Decoder function) -> Result Err Ok
 */
-    function handleWeb3Response(r) {
-        console.log("handleWeb3Response: ")
-        if (r.error !== null) {
-            console.log("Web3 response error: ",r);
-            return {ctor: "Err", _0: r.error.message.split("\n")[0] }
-        } else if (r.response === null) {
-            console.log("Web3 response was null: ", r);
-            return {ctor: "Err", _0: config.error.nullResponse }
-        } else if (r.response === undefined) {
-            console.log("Web3 response was undefined: ", r);
-            return { ctor: "Err", _0: config.error.undefinedResposnse }
-        } else if (r.decoder !== undefined){
-            console.log("Web3 was async w/ decoder: ", r);
-            // decoder returns a Result
-            return r.decoder( formatWeb3Response(r.response) )
-        } else {
-            console.log("Web3 was sync: ", r);
-            return { ctor: 'Ok', _0: r.response }
-        }
+    function handleWeb3Response(r)
+    {
+            console.log("handleWeb3Response: ")
+            if (r.error !== null)
+            {
+                console.log("Web3 response error: ",r);
+                return {ctor: "Err", _0: r.error.message.split("\n")[0] }
+            }
+            else if (r.response === null)
+            {
+                console.log("Web3 response was null: ", r);
+                return {ctor: "Err", _0: config.error.nullResponse }
+            }
+            else if (r.response === undefined)
+            {
+                console.log("Web3 response was undefined: ", r);
+                return { ctor: "Err", _0: config.error.undefinedResposnse }
+            }
+            else if (r.decoder !== undefined)
+            {
+                console.log("Web3 was async w/ decoder: ", r);
+                // decoder returns a Result
+                return r.decoder( formatWeb3Response(r.response) )
+            }
+            else
+            {
+                console.log("Web3 was sync: ", r);
+                return { ctor: 'Ok', _0: r.response }
+            }
     };
 
 
@@ -213,15 +243,21 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 //  Run on all async web3 repsonses.
 //  Turns BigNumber into full strings.
 */
-    function formatWeb3Response(r) {
-        console.log("formatWeb3Response executed (remove bigNums for async ) ");
-        if (r.isBigNumber) { return JSON.stringify(r.toFixed()) }
-        config.web3BigNumberFields.forEach( val => {
-            if (r[val] !== undefined && r[val].isBigNumber) {
-                r[val] = r[val].toFixed();
-            }
-        });
-        return JSON.stringify(r);
+    function formatWeb3Response(r)
+    {
+            console.log("formatWeb3Response executed (remove bigNums for async ) ");
+
+            if (r.isBigNumber) { return JSON.stringify(r.toFixed()) }
+
+            config.web3BigNumberFields.forEach(function(val)
+            {
+                    if (r[val] !== undefined && r[val].isBigNumber)
+                    {
+                            r[val] = r[val].toFixed()
+                    }
+            });
+
+            return JSON.stringify(r);
     };
 
 
@@ -229,27 +265,39 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 //  Run on all web3 event repsonses (logs).
 //  Turns BigNumber into full strings.
 */
-    function formatLog(log) {
-        Object.keys(log.args).forEach(function(arg) {
-            log.args[arg] = formatIfBigNum(log.args[arg]);
-        });
-        return log;
-    }
-
-
-    function formatIfBigNum(value) {
-        if (value.isBigNumber) {
-          return value.toFixed();
-        } else {
-          return value;
-        }
-    }
-
-
-    function formatLogsArray(logsArray) {
-            logsArray.map(function(log) { formatLog(log) } );
+    function formatLogsArray(logsArray)
+    {
+            logsArray.map(function(log) { formatSingleLog(log) } );
             return logsArray;
     }
+
+
+    function formatLog(log)
+    {
+            Object.keys(log.args).forEach(function(arg)
+            {
+                    log.args[arg] = formatIfBigNum(log.args[arg]);
+            });
+            return log;
+    }
+
+
+    function formatIfBigNum(value)
+    {
+            if (value.isBigNumber)
+            {
+                    return value.toFixed();
+            }
+            else if (Array.isArray(value))
+            {
+                    return value.map(function(val) { formatIfBigNum(val) });
+            }
+            else {
+                    return value;
+            }
+    }
+
+
 
 
     return {

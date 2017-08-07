@@ -4,7 +4,7 @@ contract LightBox {
   int8 public someNum;
   uint public otherNum;
   address public owner;
-  uint[23] public uintArray = [2, 124, 123, 123, 43, 124, 1412423, 123, 657, 42, 4, 123, 124, 756, 123, 657, 123, 1823, 12653, 123, 1293, 12356, 123];
+  uint[23] public uintArray = [123123123123123123123123, 124, 123, 12312312312123123123123123, 43, 123123123123123123123123, 1412423, 123, 657, 42, 4, 123, 123122323123123123123123123, 756, 123, 657, 123123123123123123123123, 1823, 12653, 123, 1293, 12356, 123];
 
   event Add(address indexed mathematician, int8 sum);
   event Subtract(address indexed professor, uint numberz, int aPrime);
