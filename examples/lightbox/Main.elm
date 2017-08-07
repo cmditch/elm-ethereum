@@ -259,7 +259,10 @@ update msg model =
                         model ! []
 
             StopWatchingAdd ->
-                { model | isWatchingAdd = False } ! [ Contract.stopWatching "bobAdds" ]
+                { model | isWatchingAdd = False }
+                    ! [ Contract.stopWatching "addLog"
+                      , Contract.stopWatching "uintArrayLog"
+                      ]
 
             AddEvents events ->
                 { model | eventData = events :: model.eventData } ! []
@@ -270,8 +273,11 @@ update msg model =
                         let
                             newLogs =
                                 log :: model.uintLogs
+
+                            stringedBigInts =
+                                List.map BigInt.toString log.args.uintArray
                         in
-                            { model | uintLogs = newLogs, eventData = toString newLogs :: model.eventData } ! []
+                            { model | uintLogs = newLogs, eventData = toString stringedBigInts :: model.eventData } ! []
 
                     Err err ->
                         { model | error = err :: model.error } ! []
