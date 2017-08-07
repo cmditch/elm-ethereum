@@ -267,7 +267,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 */
     function formatLogsArray(logsArray)
     {
-            logsArray.map(function(log) { formatSingleLog(log) } );
+            logsArray.map(function(log) { formatLog(log) } );
             return logsArray;
     }
 
@@ -283,14 +283,24 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function formatIfBigNum(value)
-    {
+    {       console.log(value)
             if (value.isBigNumber)
             {
                     return value.toFixed();
             }
             else if (Array.isArray(value))
             {
-                    return value.map(function(val) { formatIfBigNum(val) });
+                    return value.map(function(val)
+                    {       if (val.isBigNumber)
+                            {
+                                    return val.toFixed();
+                            }
+                            else
+                            {
+                                    return val;
+                            }
+
+                    });
             }
             else {
                     return value;

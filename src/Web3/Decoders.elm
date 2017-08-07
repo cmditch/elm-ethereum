@@ -10,7 +10,7 @@ module Web3.Decoders
 
 import Web3.Internal exposing (expectStringResponse)
 import Web3.Types exposing (Expect)
-import Json.Decode as Decode exposing (int, string, bool, Decoder)
+import Json.Decode as Decode exposing (int, list, string, bool, Decoder)
 import BigInt exposing (BigInt)
 
 

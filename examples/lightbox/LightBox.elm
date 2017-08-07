@@ -5,7 +5,6 @@ import Web3.Types exposing (..)
 import Web3.Eth exposing (defaultTxParams)
 import Web3.Eth.Types exposing (..)
 import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
-import Web3.Eth.Encoders exposing (encodeTxParams, encodeFilterParams, addressMaybeMap, listOfMaybesToVal, encodeAddressList, encodeBigIntList)
 import Web3.Eth.Decoders exposing (eventLogDecoder, txIdDecoder, addressDecoder)
 import Web3.Eth.Contract as Contract
 import Json.Encode as Encode exposing (Value)
@@ -13,6 +12,17 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required, optional)
 import BigInt exposing (BigInt)
 import Task exposing (Task)
+import Web3.Eth.Encoders
+    exposing
+        ( encodeTxParams
+        , encodeFilterParams
+        , addressMaybeMap
+        , listOfMaybesToVal
+        , encodeAddressList
+        , encodeBigIntList
+        , encodeIntList
+        , encodeListBigIntList
+        )
 
 
 {-
@@ -169,7 +179,7 @@ encodeAddFilter : AddFilter -> Value
 encodeAddFilter { mathematician, sum } =
     listOfMaybesToVal
         [ ( "mathematician", Maybe.map encodeAddressList mathematician )
-        , ( "sum", Maybe.map ((List.map Encode.int) >> Encode.list) sum )
+        , ( "sum", Maybe.map encodeIntList sum )
         ]
 
 
@@ -266,35 +276,30 @@ watchUintArray_ contract argsFilter name =
 
 
 type alias UintArrayArgs =
-    { mathematician : Address, sum : BigInt }
+    { uintArray : List BigInt }
 
 
 type alias UintArrayFilter =
-    { mathematician : Maybe (List Address)
-    , sum : Maybe (List Int)
-    }
+    { uintArray : Maybe (List (List BigInt)) }
 
 
 uintArrayFilter : UintArrayFilter
 uintArrayFilter =
-    { mathematician = Nothing, sum = Nothing }
+    { uintArray = Nothing }
 
 
 encodeUintArrayFilter : UintArrayFilter -> Value
-encodeUintArrayFilter { mathematician, sum } =
+encodeUintArrayFilter { uintArray } =
     listOfMaybesToVal
-        [ ( "mathematician", Maybe.map encodeAddressList mathematician )
-        , ( "sum", Maybe.map ((List.map Encode.int) >> Encode.list) sum )
-        ]
+        [ ( "uintArray", Maybe.map encodeListBigIntList uintArray ) ]
 
 
-decodeUintArrayArgs : Decoder UintArrayArgs
-decodeUintArrayArgs =
+uintArrayArgsDecoder : Decoder UintArrayArgs
+uintArrayArgsDecoder =
     decode UintArrayArgs
-        |> required "mathematician" addressDecoder
-        |> required "sum" bigIntDecoder
+        |> required "uintArray" (Decode.list bigIntDecoder)
 
 
-decodeUintArrayEventLog : Decoder (EventLog UintArrayArgs)
-decodeUintArrayEventLog =
-    eventLogDecoder decodeUintArrayArgs
+decodeUintArrayArgs : String -> Result String (EventLog UintArrayArgs)
+decodeUintArrayArgs =
+    Decode.decodeString <| eventLogDecoder uintArrayArgsDecoder

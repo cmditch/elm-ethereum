@@ -31,6 +31,7 @@ type alias Model =
     , error : List String
     , testData : String
     , eventData : List String
+    , uintLogs : List (EventLog LB.UintArrayArgs)
     , isWatchingAdd : Bool
     }
 
@@ -52,6 +53,7 @@ init =
     , error = []
     , testData = ""
     , eventData = []
+    , uintLogs = []
     , isWatchingAdd = False
     }
         ! [{- TODO Web3.init command needed. Program w/ flags  for wallet check and web3 connection status -}]
@@ -209,6 +211,7 @@ type Msg
     | StopWatchingAdd
     | Reset
     | AddEvents String
+    | UintArrayEvents (Result String (EventLog LB.UintArrayArgs))
     | DeployContract
     | AddNumbers Address Int Int
     | MutateAdd Address Int
@@ -249,7 +252,7 @@ update msg model =
                     Deployed { address } ->
                         { model | isWatchingAdd = True }
                             ! [ LB.watchAdd_ address LB.addFilter "addLog"
-                              , LB.watchUintArray_ address LB.addFilter "uintArrayLog"
+                              , LB.watchUintArray_ address LB.uintArrayFilter "uintArrayLog"
                               ]
 
                     _ ->
@@ -260,6 +263,18 @@ update msg model =
 
             AddEvents events ->
                 { model | eventData = events :: model.eventData } ! []
+
+            UintArrayEvents result ->
+                case result of
+                    Ok log ->
+                        let
+                            newLogs =
+                                log :: model.uintLogs
+                        in
+                            { model | uintLogs = newLogs, eventData = toString newLogs :: model.eventData } ! []
+
+                    Err err ->
+                        { model | error = err :: model.error } ! []
 
             Reset ->
                 { model | isWatchingAdd = False } ! [ Contract.reset ]
@@ -321,5 +336,5 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Contract.sentry "addLog" AddEvents
-        , Contract.sentry "uintArrayLog" AddEvents
+        , Contract.sentry "uintArrayLog" (LB.decodeUintArrayArgs >> UintArrayEvents)
         ]

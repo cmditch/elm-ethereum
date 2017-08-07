@@ -4,6 +4,8 @@ module Web3.Eth.Encoders
         , encodeFilterParams
         , encodeAddressList
         , encodeBigIntList
+        , encodeListBigIntList
+        , encodeIntList
         , getBlockIdValue
         , addressMaybeMap
         , listOfMaybesToVal
@@ -81,6 +83,17 @@ encodeBigIntList : List BigInt -> Value
 encodeBigIntList =
     List.map (BigInt.toString >> Encode.string)
         >> Encode.list
+
+
+encodeListBigIntList : List (List BigInt) -> Value
+encodeListBigIntList =
+    List.map encodeBigIntList
+        >> Encode.list
+
+
+encodeIntList : List Int -> Value
+encodeIntList =
+    List.map Encode.int >> Encode.list
 
 
 bytesMaybeMap : Maybe Bytes -> Maybe String
