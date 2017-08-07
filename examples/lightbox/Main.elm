@@ -247,7 +247,10 @@ update msg model =
             WatchAdd ->
                 case model.contractInfo of
                     Deployed { address } ->
-                        { model | isWatchingAdd = True } ! [ LB.watchAdd_ address LB.addFilter "bobAdds" ]
+                        { model | isWatchingAdd = True }
+                            ! [ LB.watchAdd_ address LB.addFilter "addLog"
+                              , LB.watchUintArray_ address LB.addFilter "uintArrayLog"
+                              ]
 
                     _ ->
                         model ! []
@@ -317,6 +320,6 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Contract.sentry "bobAdds" AddEvents
-        , Contract.sentry "nullTest" AddEvents
+        [ Contract.sentry "addLog" AddEvents
+        , Contract.sentry "uintArrayLog" AddEvents
         ]
