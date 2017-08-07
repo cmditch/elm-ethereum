@@ -149,32 +149,37 @@ eventLogDecoder argsDecoder =
 
 addressDecoder : Decoder Address
 addressDecoder =
-    string |> Decode.andThen (Address >> Decode.succeed)
+    specialTypeDecoder Address
 
 
 checksumAddressDecoder : Decoder ChecksumAddress
 checksumAddressDecoder =
-    string |> Decode.andThen (ChecksumAddress >> Decode.succeed)
+    specialTypeDecoder ChecksumAddress
 
 
 keccakDecoder : Decoder Keccak256
 keccakDecoder =
-    string |> Decode.andThen (Keccak256 >> Decode.succeed)
+    specialTypeDecoder Keccak256
 
 
 txIdDecoder : Decoder TxId
 txIdDecoder =
-    string |> Decode.andThen (TxId >> Decode.succeed)
+    specialTypeDecoder TxId
 
 
 bytesDecoder : Decoder Bytes
 bytesDecoder =
-    string |> Decode.andThen (Bytes >> Decode.succeed)
+    specialTypeDecoder Bytes
 
 
 hexDecoder : Decoder Hex
 hexDecoder =
-    string |> Decode.andThen (Hex >> Decode.succeed)
+    specialTypeDecoder Hex
+
+
+specialTypeDecoder : (String -> a) -> Decoder a
+specialTypeDecoder wrapper =
+    string |> Decode.andThen (wrapper >> Decode.succeed)
 
 
 contractInfoDecoder : Decoder ContractInfo

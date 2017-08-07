@@ -1,33 +1,33 @@
-effect module Web3.Eth.Event
+effect module Web3.EM
     where { command = MyCmd, subscription = MySub }
     exposing
-        ( sentry
-        , watch
-        , stopWatching
+        ( eventSentry
+        , watchEvent
+        , stopWatchingEvent
         , reset
         )
 
 import Dict
 import Task exposing (Task)
-import Web3.Eth.Types exposing (..)
-import Web3.Internal exposing (EventRequest)
+import Json.Encode as Encode
+import Web3.Internal exposing (EventRequest, contractFuncHelper)
 
 
 -- SUBSCRIPTIONS
 
 
 type MySub msg
-    = Sentry String (String -> msg)
+    = EventSentry String (String -> msg)
 
 
 subMap : (a -> b) -> MySub a -> MySub b
-subMap func (Sentry name toMsg) =
-    Sentry name (toMsg >> func)
+subMap func (EventSentry name toMsg) =
+    EventSentry name (toMsg >> func)
 
 
-sentry : String -> (String -> msg) -> Sub msg
-sentry eventId toMsg =
-    subscription (Sentry eventId toMsg)
+eventSentry : String -> (String -> msg) -> Sub msg
+eventSentry eventId toMsg =
+    subscription (EventSentry eventId toMsg)
 
 
 
@@ -35,32 +35,32 @@ sentry eventId toMsg =
 
 
 type MyCmd msg
-    = Watch String EventRequest
-    | StopWatching String
+    = WatchEvent String EventRequest
+    | StopWatchingEvent String
     | Reset
 
 
 cmdMap : (a -> b) -> MyCmd a -> MyCmd b
 cmdMap _ cmd =
     case cmd of
-        Watch name request ->
-            Watch name request
+        WatchEvent name request ->
+            WatchEvent name request
 
-        StopWatching name ->
-            StopWatching name
+        StopWatchingEvent name ->
+            StopWatchingEvent name
 
         Reset ->
             Reset
 
 
-watch : String -> EventRequest -> Cmd msg
-watch name request =
-    command <| Watch name request
+watchEvent : String -> EventRequest -> Cmd msg
+watchEvent name request =
+    command <| WatchEvent name request
 
 
-stopWatching : String -> Cmd msg
-stopWatching name =
-    command <| StopWatching name
+stopWatchingEvent : String -> Cmd msg
+stopWatchingEvent name =
+    command <| StopWatchingEvent name
 
 
 reset : Cmd msg
@@ -123,7 +123,7 @@ sendMessagesHelp router cmds eventDict =
         [] ->
             Task.succeed eventDict
 
-        (Watch name request) :: rest ->
+        (WatchEvent name request) :: rest ->
             case Dict.get name eventDict of
                 Just _ ->
                     sendMessagesHelp router rest eventDict
@@ -133,7 +133,7 @@ sendMessagesHelp router cmds eventDict =
                         |> Task.andThen (\web3Event -> Task.succeed <| Dict.insert name web3Event eventDict)
                         |> Task.andThen (\newEventDict -> sendMessagesHelp router rest newEventDict)
 
-        (StopWatching name) :: rest ->
+        (StopWatchingEvent name) :: rest ->
             case Dict.get name eventDict of
                 Just web3Event ->
                     initStopWatching web3Event
@@ -153,24 +153,23 @@ sendMessagesHelp router cmds eventDict =
 
 
 initWatch : Platform.Router msg Msg -> String -> EventRequest -> Task Never Web3Event
-initWatch router name request =
+initWatch router name { abi, address, argsFilter, filterParams, eventName } =
     let
-        -- TODO Build up the function string in here?
-        (Abi abi_) =
-            request.abi
+        func =
+            contractFuncHelper abi address eventName
 
-        (Address address_) =
-            request.address
+        args =
+            Encode.list [ argsFilter, filterParams ]
     in
-        Native.Web3.watch
-            { request | address = address_, abi = abi_ }
+        Native.Web3.watchEvent
+            { func = func, args = args }
             -- This is the callback which talks to Event.onSelfMsg, in Web3.js it's within watch() as onMessage(stringifiedWeb3Log)
             (\log -> Platform.sendToSelf router (RecieveLog name log))
 
 
 initStopWatching : Web3Event -> Task Never ()
 initStopWatching web3Event =
-    Native.Web3.stopWatching web3Event
+    Native.Web3.stopWatchingEvent web3Event
 
 
 buildSubsDict : List (MySub msg) -> SubsDict msg -> SubsDict msg
@@ -179,7 +178,7 @@ buildSubsDict subs dict =
         [] ->
             dict
 
-        (Sentry name toMsg) :: rest ->
+        (EventSentry name toMsg) :: rest ->
             buildSubsDict rest (Dict.update name (add toMsg) dict)
 
 

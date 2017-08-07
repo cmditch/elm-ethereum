@@ -1,11 +1,11 @@
 module Web3.Eth.Encoders
     exposing
         ( txParamsEncoder
-        , filterParamsEncoder
+        , encodeFilterParams
         , txParamsToString
         , getBlockIdValue
         , addressMaybeMap
-        , encodeFilter
+        , listOfMaybesToVal
         , encodeAddressList
         )
 
@@ -17,21 +17,20 @@ import Json.Encode as Encode exposing (Value, string, int, null, list, object)
 
 txParamsEncoder : TxParams -> Value
 txParamsEncoder { from, to, value, gas, data, gasPrice, nonce } =
-    [ ( "from", Maybe.map string (addressMaybeMap from) )
-    , ( "to", Maybe.map string (addressMaybeMap to) )
-    , ( "value", Maybe.map (BigInt.toString >> string) value )
-    , ( "gas", Maybe.map int gas )
-    , ( "data", Maybe.map string (bytesMaybeMap data) )
-    , ( "gasPrice", Maybe.map int gasPrice )
-    , ( "nonce", Maybe.map int nonce )
-    ]
-        |> List.filter (\( k, v ) -> v /= Nothing)
-        |> List.map (\( k, v ) -> ( k, Maybe.withDefault null v ))
-        |> Encode.object
+    listOfMaybesToVal
+        [ ( "from", Maybe.map string (addressMaybeMap from) )
+        , ( "to", Maybe.map string (addressMaybeMap to) )
+        , ( "value", Maybe.map (BigInt.toString >> string) value )
+        , ( "gas", Maybe.map int gas )
+        , ( "data", Maybe.map string (bytesMaybeMap data) )
+        , ( "gasPrice", Maybe.map int gasPrice )
+        , ( "nonce", Maybe.map int nonce )
+        ]
 
 
 txParamsToString : TxParams -> String
 txParamsToString { from, to, value, gas, data, gasPrice, nonce } =
+    -- TODO Can probably deprecate this function
     let
         wDef =
             Maybe.withDefault ""
@@ -51,16 +50,14 @@ txParamsToString { from, to, value, gas, data, gasPrice, nonce } =
             |> String.join ""
 
 
-filterParamsEncoder : FilterParams -> Value
-filterParamsEncoder { fromBlock, toBlock, address, topics } =
-    [ ( "fromBlock", Maybe.map getBlockIdValue fromBlock )
-    , ( "toBlock", Maybe.map getBlockIdValue toBlock )
-    , ( "address", Maybe.map string (addressMaybeMap address) )
-    , ( "topics", Maybe.map maybeStringListEncoder topics )
-    ]
-        |> List.filter (\( k, v ) -> v /= Nothing)
-        |> List.map (\( k, v ) -> ( k, Maybe.withDefault null v ))
-        |> Encode.object
+encodeFilterParams : FilterParams -> Value
+encodeFilterParams { fromBlock, toBlock, address, topics } =
+    listOfMaybesToVal
+        [ ( "fromBlock", Maybe.map getBlockIdValue fromBlock )
+        , ( "toBlock", Maybe.map getBlockIdValue toBlock )
+        , ( "address", Maybe.map string (addressMaybeMap address) )
+        , ( "topics", Maybe.map maybeStringListEncoder topics )
+        ]
 
 
 maybeStringListEncoder : List (Maybe String) -> Value
@@ -117,8 +114,8 @@ intMaybeMap =
     Maybe.map toString
 
 
-encodeFilter : List ( String, Maybe Value ) -> Value
-encodeFilter object =
+listOfMaybesToVal : List ( String, Maybe Value ) -> Value
+listOfMaybesToVal object =
     object
         |> List.filter (\( k, v ) -> v /= Nothing)
         |> List.map (\( k, v ) -> ( k, Maybe.withDefault Encode.null v ))

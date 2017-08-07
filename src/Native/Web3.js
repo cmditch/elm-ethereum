@@ -111,23 +111,13 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-    function watch(request, onMessage)
-    {
+    function watchEvent(request, onMessage)
+    { console.log(request)
             return nativeBinding(function(callback)
             {
                     try
-        		    {   // TODO Create the full string in Elm?
-                            var web3Filter =
-                                    eval("web3.eth.contract("
-                                        + request.abi + ").at('"
-                                        + request.address
-                                        + "')."
-                                        + request.eventName
-                                        + "("
-                                        + JSON.stringify(request.eventParams)
-                                        + ", {}"
-                                        + ")"
-                            );
+        		    {
+                            var eventFilter = eval("web3." + request.func).apply(null, request.args);
                     }
                     catch(err)
                     {
@@ -138,24 +128,23 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                             console.log("Event watch error: ", err);
                     }
 
-                    web3Filter.watch(function(e,r) {
+                    eventFilter.watch(function(e,r) {
                             if (e) { return console.log(e); }
                             rawSpawn(onMessage(JSON.stringify(formatLog(r))));
                     });
-                    console.log("Event watched: ", web3Filter);
-                    return callback(succeed(web3Filter));
+                    console.log("Event watched: ", eventFilter);
+                    return callback(succeed(eventFilter));
             });
     }
 
 
-    function stopWatching(web3Filter)
+    function stopWatchingEvent(web3Filter)
     {
             return nativeBinding(function(callback)
             {
                     try
-                    {
+                    {       console.log("Event watching stopped: ", web3Filter);
                             web3Filter.stopWatching();
-                            console.log("Event watching stopped: ", web3Filter);
                             return callback(succeed(unit));
                     }
                     catch (err)
@@ -266,8 +255,8 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     return {
             toTask: toTask,
             contractGetData: contractGetData,
-            watch: F2(watch),
-            stopWatching: stopWatching,
+            watchEvent: F2(watchEvent),
+            stopWatchingEvent: stopWatchingEvent,
             reset: reset, //TODO implement into Effect Manager and clear Web3Event Dict
             expectStringResponse: expectStringResponse
     };

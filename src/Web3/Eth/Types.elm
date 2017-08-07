@@ -29,8 +29,8 @@ type Abi
 
 
 type alias ContractInfo =
-    { contractAddress : Address
-    , transactionHash : TxId
+    { address : Address
+    , txId : TxId
     }
 
 

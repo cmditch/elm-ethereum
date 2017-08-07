@@ -5,10 +5,9 @@ import Web3.Types exposing (..)
 import Web3.Eth exposing (defaultTxParams)
 import Web3.Eth.Types exposing (..)
 import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
-import Web3.Eth.Encoders exposing (txParamsEncoder, filterParamsEncoder, addressMaybeMap, encodeFilter, encodeAddressList)
+import Web3.Eth.Encoders exposing (txParamsEncoder, encodeFilterParams, addressMaybeMap, listOfMaybesToVal, encodeAddressList)
 import Web3.Eth.Decoders exposing (eventLogDecoder, txIdDecoder, addressDecoder)
 import Web3.Eth.Contract as Contract
-import Web3.Eth.Event as Event
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required, optional)
@@ -47,7 +46,7 @@ lightBoxBytecode_ =
 add : Address -> Int -> Int -> Task Error BigInt
 add address a b =
     Web3.toTask
-        { func = Contract.call lightBoxAbi_ "add" address
+        { func = Contract.call lightBoxAbi_ address "add"
         , args = Encode.list [ Encode.int a, Encode.int b ]
         , expect = expectJson bigIntDecoder
         , callType = Async
@@ -57,7 +56,7 @@ add address a b =
 mutateAdd : Address -> Int -> Task Error TxId
 mutateAdd address n =
     Web3.toTask
-        { func = Contract.call lightBoxAbi_ "mutateAdd" address
+        { func = Contract.call lightBoxAbi_ address "mutateAdd"
         , args = Encode.list [ Encode.int n, txParamsEncoder defaultTxParams ]
         , expect = expectJson txIdDecoder
         , callType = Async
@@ -96,20 +95,61 @@ new value { someNum_ } =
 
 
 {-
-   Events
-
+   TODO
    Each event will have:
-    type alias : EventArgs, RawEventArgs, EventFilters
-    functions : defaultEventFilter, watchEvent, stopWatchingEvent, getEvent
-    encodeEventFilters, decodeEventArgs, decodeEventEventLog
+     type alias : EventArgs, EventFilters
+     functions : defaultEventFilter, watchEvent, getEvent
+     encodeEventFilters, decodeEventArgs, decodeEventEventLog
 
 -}
--- event Add(mathematician indexed address, sum int8) helpers
+-- EVENTS
 
 
 type Event
     = Add
     | Subtract
+
+
+
+-- EVENT HELPER
+-- Add(mathematician indexed address, sum int8)
+
+
+watchAdd_ : Address -> AddFilter -> String -> Cmd msg
+watchAdd_ address argsFilter name =
+    let
+        argsFilter_ =
+            encodeAddFilter argsFilter
+    in
+        Contract.watch name
+            { abi = lightBoxAbi_
+            , address = address
+            , argsFilter = argsFilter_
+            , filterParams = Encode.object []
+            , eventName = "Add"
+            }
+
+
+getAdd_ : Address -> AddFilter -> FilterParams -> Task Error (List (EventLog AddArgs))
+getAdd_ address argsFilter filterParams =
+    let
+        argsFilter_ =
+            encodeAddFilter argsFilter
+
+        filterParams_ =
+            encodeFilterParams filterParams
+    in
+        Contract.get decodeAddEventLog
+            { abi = lightBoxAbi_
+            , address = address
+            , argsFilter = argsFilter_
+            , filterParams = filterParams_
+            , eventName = "Add"
+            }
+
+
+type alias AddArgs =
+    { mathematician : Address, sum : BigInt }
 
 
 type alias AddFilter =
@@ -118,47 +158,29 @@ type alias AddFilter =
     }
 
 
-type alias SubtractFilter =
-    { professor : Maybe (List Address)
-    , numberz : Maybe (List BigInt)
-    , aPrime : Maybe (List BigInt)
-    }
-
-
-type alias AddArgs =
-    { mathematician : Address, sum : BigInt }
-
-
-type alias SubtractArgs =
-    { professor : Address, numberz : BigInt, aPrime : BigInt }
-
-
 addFilter : AddFilter
 addFilter =
     { mathematician = Nothing, sum = Nothing }
 
 
-subtractFilter : SubtractFilter
-subtractFilter =
-    { professor = Nothing, numberz = Nothing, aPrime = Nothing }
+encodeAddFilter : AddFilter -> Value
+encodeAddFilter { mathematician, sum } =
+    listOfMaybesToVal
+        [ ( "mathematician", Maybe.map encodeAddressList mathematician )
+        , ( "sum", Maybe.map ((List.map Encode.int) >> Encode.list) sum )
+        ]
 
 
+decodeAddArgs : Decoder AddArgs
+decodeAddArgs =
+    decode AddArgs
+        |> required "mathematician" addressDecoder
+        |> required "sum" bigIntDecoder
 
---  EVENT WATCHERS
 
-
-add_ : Address -> AddFilter -> String -> Cmd msg
-add_ contract filter name =
-    let
-        filter_ =
-            encodeAddFilter filter
-    in
-        Event.watch name
-            { abi = lightBoxAbi_
-            , address = contract
-            , filterParams = filter_
-            , eventName = "Add"
-            }
+decodeAddEventLog : Decoder (EventLog AddArgs)
+decodeAddEventLog =
+    eventLogDecoder decodeAddArgs
 
 
 
@@ -179,48 +201,35 @@ add_ contract filter name =
 --     { mathematician : Maybe (List Address)
 --     , sum : Maybe (List Int)
 --     }
-
-
-encodeAddFilter : AddFilter -> Value
-encodeAddFilter { mathematician, sum } =
-    encodeFilter
-        [ ( "mathematician", Maybe.map encodeAddressList mathematician )
-        , ( "sum", Maybe.map ((List.map Encode.int) >> Encode.list) sum )
-        ]
-
-
-
 -- encodeSubtractFilter : Subtract -> Value
 -- encodeSubtractFilter { professor, numberz, aPrime } =
---     encodeFilter
+--     listOfMaybesToVal
 --         [ ( "professor", Maybe.map Encode.string (addressMaybeMap professor) )
 --         , ( "numberz", Maybe.map (BigInt.toString >> Encode.string) numberz )
 --         , ( "aPrime", Maybe.map (BigInt.toString >> Encode.string) aPrime )
 --         ]
-
-
-decodeAddArgs : Decoder AddArgs
-decodeAddArgs =
-    decode AddArgs
-        |> required "mathematician" addressDecoder
-        |> required "sum" bigIntDecoder
-
-
-
 -- decodeSubtractArgs : Decoder AddArgs
 -- decodeSubtractArgs =
 --     decode AddArgs
 --         |> required "professor" addressDecoder
 --         |> required "numberz" bigIntDecoder
 --         |> required "aPrime" bigIntDecoder
-
-
-decodeAddEventLog : Decoder (EventLog AddArgs)
-decodeAddEventLog =
-    eventLogDecoder decodeAddArgs
-
-
-
 -- decodeSubtractEventLog : Decoder (EventLog Subtract)
 -- decodeSubtractEventLog =
 --     eventLogDecoder decodeSubtractArgs
+
+
+type alias SubtractFilter =
+    { professor : Maybe (List Address)
+    , numberz : Maybe (List BigInt)
+    , aPrime : Maybe (List BigInt)
+    }
+
+
+type alias SubtractArgs =
+    { professor : Address, numberz : BigInt, aPrime : BigInt }
+
+
+subtractFilter : SubtractFilter
+subtractFilter =
+    { professor = Nothing, numberz = Nothing, aPrime = Nothing }

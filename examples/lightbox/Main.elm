@@ -7,8 +7,8 @@ import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
 import Web3.Eth.Decoders exposing (txIdToString, addressToString)
 import Web3.Eth.Types exposing (..)
+import Web3.Eth.Contract as Contract
 import LightBox as LB
-import Web3.Eth.Event as Event
 import BigInt exposing (BigInt)
 
 
@@ -115,12 +115,12 @@ viewButton model =
 viewAddButton : Model -> Html Msg
 viewAddButton model =
     case model.contractInfo of
-        Deployed { contractAddress } ->
+        Deployed { address } ->
             div []
                 [ text "You can call LightBox.add(11,12)"
-                , div [] [ button [ onClick (AddNumbers contractAddress 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
+                , div [] [ button [ onClick (AddNumbers address 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
                 , bigBreak
-                , div [] [ button [ onClick (MutateAdd contractAddress 42) ] [ text <| "Add 42 to someNum" ] ]
+                , div [] [ button [ onClick (MutateAdd address 42) ] [ text <| "Add 42 to someNum" ] ]
                 ]
 
         _ ->
@@ -136,18 +136,18 @@ viewContractInfo contract =
         Deploying ->
             div [] [ text "Deploying contract..." ]
 
-        Deployed { contractAddress, transactionHash } ->
+        Deployed { address, txId } ->
             div []
                 [ p []
                     [ text "Contract TxId: "
-                    , a [ target "_blank", href ("https://ropsten.etherscan.io/tx/" ++ txIdToString transactionHash) ]
-                        [ text <| txIdToString transactionHash ]
+                    , a [ target "_blank", href ("https://ropsten.etherscan.io/tx/" ++ txIdToString txId) ]
+                        [ text <| txIdToString txId ]
                     ]
                 , br [] []
                 , p []
                     [ text "Contract Address: "
-                    , a [ target "_blank", href ("https://ropsten.etherscan.io/address/" ++ addressToString contractAddress) ]
-                        [ text <| addressToString contractAddress ]
+                    , a [ target "_blank", href ("https://ropsten.etherscan.io/address/" ++ addressToString address) ]
+                        [ text <| addressToString address ]
                     ]
                 ]
 
@@ -246,20 +246,20 @@ update msg model =
 
             WatchAdd ->
                 case model.contractInfo of
-                    Deployed { contractAddress } ->
-                        { model | isWatchingAdd = True } ! [ LB.add_ contractAddress LB.addFilter "bobAdds" ]
+                    Deployed { address } ->
+                        { model | isWatchingAdd = True } ! [ LB.watchAdd_ address LB.addFilter "bobAdds" ]
 
                     _ ->
                         model ! []
 
             StopWatchingAdd ->
-                { model | isWatchingAdd = False } ! [ Event.stopWatching "bobAdds" ]
+                { model | isWatchingAdd = False } ! [ Contract.stopWatching "bobAdds" ]
 
             AddEvents events ->
                 { model | eventData = events :: model.eventData } ! []
 
             Reset ->
-                { model | isWatchingAdd = False } ! [ Event.reset ]
+                { model | isWatchingAdd = False } ! [ Contract.reset ]
 
             DeployContract ->
                 { model | contractInfo = Deploying }
@@ -317,6 +317,6 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Event.sentry "bobAdds" AddEvents
-        , Event.sentry "nullTest" AddEvents
+        [ Contract.sentry "bobAdds" AddEvents
+        , Contract.sentry "nullTest" AddEvents
         ]
