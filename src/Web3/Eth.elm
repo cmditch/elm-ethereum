@@ -16,7 +16,7 @@ import Web3.Types exposing (CallType(..), Hex)
 import Web3.Eth.Types exposing (..)
 import Web3.Decoders exposing (expectInt, expectBool, expectJson, expectString, expectBigInt)
 import Web3.Eth.Decoders exposing (..)
-import Web3.Eth.Encoders exposing (txParamsEncoder, getBlockIdValue)
+import Web3.Eth.Encoders exposing (encodeTxParams, getBlockIdValue)
 import Json.Encode as Encode
 import Json.Decode as Decode
 import Task exposing (Task)
@@ -253,7 +253,7 @@ sendTransaction : TxParams -> Task Error TxId
 sendTransaction txParams =
     Web3.toTask
         { func = "eth.sendTransaction"
-        , args = Encode.list [ txParamsEncoder txParams ]
+        , args = Encode.list [ encodeTxParams txParams ]
         , expect = expectJson txIdDecoder
         , callType = Async
         }
@@ -288,7 +288,7 @@ callAtBlock : BlockId -> TxParams -> Task Error TxId
 callAtBlock blockId txParams =
     Web3.toTask
         { func = "eth.call"
-        , args = Encode.list [ txParamsEncoder txParams, getBlockIdValue blockId ]
+        , args = Encode.list [ encodeTxParams txParams, getBlockIdValue blockId ]
         , expect = expectJson txIdDecoder
         , callType = Async
         }
@@ -298,7 +298,7 @@ estimateGas : TxParams -> Task Error Int
 estimateGas txParams =
     Web3.toTask
         { func = "eth.estimateGas"
-        , args = Encode.list [ txParamsEncoder txParams ]
+        , args = Encode.list [ encodeTxParams txParams ]
         , expect = expectInt
         , callType = Async
         }

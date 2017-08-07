@@ -5,7 +5,7 @@ import Web3.Types exposing (..)
 import Web3.Eth exposing (defaultTxParams)
 import Web3.Eth.Types exposing (..)
 import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
-import Web3.Eth.Encoders exposing (txParamsEncoder, encodeFilterParams, addressMaybeMap, listOfMaybesToVal, encodeAddressList)
+import Web3.Eth.Encoders exposing (encodeTxParams, encodeFilterParams, addressMaybeMap, listOfMaybesToVal, encodeAddressList, encodeBigIntList)
 import Web3.Eth.Decoders exposing (eventLogDecoder, txIdDecoder, addressDecoder)
 import Web3.Eth.Contract as Contract
 import Json.Encode as Encode exposing (Value)
@@ -57,7 +57,7 @@ mutateAdd : Address -> Int -> Task Error TxId
 mutateAdd address n =
     Web3.toTask
         { func = Contract.call lightBoxAbi_ address "mutateAdd"
-        , args = Encode.list [ Encode.int n, txParamsEncoder defaultTxParams ]
+        , args = Encode.list [ Encode.int n, encodeTxParams defaultTxParams ]
         , expect = expectJson txIdDecoder
         , callType = Async
         }
@@ -183,40 +183,41 @@ decodeAddEventLog =
     eventLogDecoder decodeAddArgs
 
 
+subtract_ : Address -> SubtractFilter -> String -> Cmd msg
+subtract_ contract filter name =
+    let
+        filter_ =
+            encodeSubtractFilter filter
+    in
+        Contract.watch name
+            { abi = lightBoxAbi_
+            , address = contract
+            , argsFilter = Encode.object []
+            , filterParams = filter_
+            , eventName = "Subtract"
+            }
 
---
--- subtract_ : Address -> SubtractFilter -> String -> Cmd msg
--- subtract_ contract filter name =
---     let
---         filter_ =
---             encodeSubtractFilter filter
---     in
---         Event.watch name
---             { abi = lightBoxAbi_
---             , address = contract
---             , filterParams = filter_
---             , eventName = "Subtract"
---             }
--- type alias AddFilter =
---     { mathematician : Maybe (List Address)
---     , sum : Maybe (List Int)
---     }
--- encodeSubtractFilter : Subtract -> Value
--- encodeSubtractFilter { professor, numberz, aPrime } =
---     listOfMaybesToVal
---         [ ( "professor", Maybe.map Encode.string (addressMaybeMap professor) )
---         , ( "numberz", Maybe.map (BigInt.toString >> Encode.string) numberz )
---         , ( "aPrime", Maybe.map (BigInt.toString >> Encode.string) aPrime )
---         ]
--- decodeSubtractArgs : Decoder AddArgs
--- decodeSubtractArgs =
---     decode AddArgs
---         |> required "professor" addressDecoder
---         |> required "numberz" bigIntDecoder
---         |> required "aPrime" bigIntDecoder
--- decodeSubtractEventLog : Decoder (EventLog Subtract)
--- decodeSubtractEventLog =
---     eventLogDecoder decodeSubtractArgs
+
+encodeSubtractFilter : SubtractFilter -> Value
+encodeSubtractFilter { professor, numberz, aPrime } =
+    listOfMaybesToVal
+        [ ( "professor", Maybe.map encodeAddressList professor )
+        , ( "numberz", Maybe.map encodeBigIntList numberz )
+        , ( "aPrime", Maybe.map ((List.map <| BigInt.toString >> Encode.string) >> Encode.list) aPrime )
+        ]
+
+
+decodeSubtractArgs : Decoder SubtractArgs
+decodeSubtractArgs =
+    decode SubtractArgs
+        |> required "professor" addressDecoder
+        |> required "numberz" bigIntDecoder
+        |> required "aPrime" bigIntDecoder
+
+
+decodeSubtractEventLog : Decoder (EventLog SubtractArgs)
+decodeSubtractEventLog =
+    eventLogDecoder decodeSubtractArgs
 
 
 type alias SubtractFilter =

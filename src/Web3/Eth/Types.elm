@@ -156,7 +156,7 @@ type EventAction
 type alias FilterParams =
     { fromBlock : Maybe BlockId
     , toBlock : Maybe BlockId
-    , address : Maybe Address
+    , address : Maybe (List Address)
     , topics : Maybe (List (Maybe String))
     }
 
