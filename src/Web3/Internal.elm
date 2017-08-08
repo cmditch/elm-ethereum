@@ -1,7 +1,6 @@
 module Web3.Internal
     exposing
         ( Request
-        , Response
         , GetDataRequest
         , EventRequest
         , contractFuncHelper
@@ -36,11 +35,7 @@ type alias EventRequest =
     }
 
 
-type alias Response =
-    String
-
-
-expectStringResponse : (Response -> Result String a) -> Expect a
+expectStringResponse : (String -> Result String a) -> Expect a
 expectStringResponse =
     Native.Web3.expectStringResponse
 

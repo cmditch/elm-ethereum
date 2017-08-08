@@ -4,7 +4,9 @@ import Task
 import Html exposing (..)
 import Html.Attributes exposing (href, target)
 import Html.Events exposing (onClick, onInput)
+import Json.Decode as Decode
 import Web3 exposing (toTask)
+import Web3.Eth exposing (defaultFilterParams)
 import Web3.Decoders exposing (txIdToString, addressToString)
 import Web3.Types exposing (..)
 import Web3.Eth.Contract as Contract
@@ -251,8 +253,8 @@ update msg model =
                 case model.contractInfo of
                     Deployed { address } ->
                         { model | isWatchingAdd = True }
-                            ! [ LB.watchAdd_ address LB.addFilter "addLog"
-                              , LB.watchUintArray_ address LB.uintArrayFilter "uintArrayLog"
+                            ! [ LB.watch (LB.Add LB.addFilter_ defaultFilterParams) address "addLog"
+                              , LB.watch (LB.UintArray LB.uintArrayFilter_ defaultFilterParams) address "uintArrayLog"
                               ]
 
                     _ ->
@@ -342,5 +344,5 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Contract.sentry "addLog" AddEvents
-        , Contract.sentry "uintArrayLog" (LB.decodeUintArrayArgs >> UintArrayEvents)
+        , Contract.sentry "uintArrayLog" (Decode.decodeString LB.decodeUintArrayLog_ >> UintArrayEvents)
         ]
