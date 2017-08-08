@@ -1,73 +1,43 @@
-module Web3.Eth.Encoders exposing (txParamsEncoder, filterParamsEncoder, txParamsToString, getBlockIdValue)
+module Web3.Eth.Encoders
+    exposing
+        ( encodeTxParams
+        , encodeFilterParams
+        , encodeAddressList
+        , encodeBigIntList
+        , encodeListBigIntList
+        , encodeIntList
+        , getBlockIdValue
+        , addressMaybeMap
+        , listOfMaybesToVal
+        )
 
 import Web3.Eth.Types exposing (..)
-import BigInt
+import Web3.Eth.Decoders exposing (bytesToString, addressToString, hexToString)
+import BigInt exposing (BigInt)
 import Json.Encode as Encode exposing (Value, string, int, null, list, object)
 
 
-txParamsEncoder : TxParams -> Value
-txParamsEncoder { from, to, value, gas, data, gasPrice, nonce } =
-    [ ( "from", Maybe.map string from )
-    , ( "to", Maybe.map string to )
-    , ( "value", Maybe.map (BigInt.toString >> string) value )
-    , ( "gas", Maybe.map int gas )
-    , ( "data", Maybe.map string data )
-    , ( "gasPrice", Maybe.map int gasPrice )
-    , ( "nonce", Maybe.map int nonce )
-    ]
-        |> List.filter (\( k, v ) -> v /= Nothing)
-        |> List.map (\( k, v ) -> ( k, Maybe.withDefault null v ))
-        |> Encode.object
-
-
-txParamsToString : TxParams -> String
-txParamsToString { from, to, value, gas, data, gasPrice, nonce } =
-    let
-        strMap =
-            Maybe.map toString
-
-        wDef =
-            Maybe.withDefault ""
-    in
-        [ ( "{ ", Just "", "" )
-        , ( "from: '", from, "', " )
-        , ( "to: '", to, "', " )
-        , ( "value: '", Maybe.map BigInt.toString value, "', " )
-        , ( "gas: '", strMap gas, "', " )
-        , ( "data: '", data, "', " )
-        , ( "gasPrice: '", strMap gasPrice, "', " )
-        , ( "nonce: '", strMap nonce, "', " )
-        , ( "}", Just "", "" )
+encodeTxParams : TxParams -> Value
+encodeTxParams { from, to, value, gas, data, gasPrice, nonce } =
+    listOfMaybesToVal
+        [ ( "from", Maybe.map string (addressMaybeMap from) )
+        , ( "to", Maybe.map string (addressMaybeMap to) )
+        , ( "value", Maybe.map (BigInt.toString >> string) value )
+        , ( "gas", Maybe.map int gas )
+        , ( "data", Maybe.map string (bytesMaybeMap data) )
+        , ( "gasPrice", Maybe.map int gasPrice )
+        , ( "nonce", Maybe.map int nonce )
         ]
-            |> List.filter (\( k, v, d ) -> v /= Nothing)
-            |> List.map (\( k, v, d ) -> k ++ (wDef v) ++ d)
-            |> String.join ""
 
 
-filterParamsEncoder : FilterParams -> Value
-filterParamsEncoder { fromBlock, toBlock, address, topics } =
-    [ ( "fromBlock", Maybe.map getBlockIdValue fromBlock )
-    , ( "toBlock", Maybe.map getBlockIdValue toBlock )
-    , ( "address", Maybe.map string address )
-    , ( "topics", Maybe.map maybeStringListEncoder topics )
-    ]
-        |> List.filter (\( k, v ) -> v /= Nothing)
-        |> List.map (\( k, v ) -> ( k, Maybe.withDefault null v ))
-        |> Encode.object
-
-
-maybeStringListEncoder : List (Maybe String) -> Value
-maybeStringListEncoder mList =
-    let
-        toVal val =
-            case val of
-                Just str ->
-                    string str
-
-                Nothing ->
-                    null
-    in
-        List.map toVal mList |> Encode.list
+encodeFilterParams : FilterParams -> Value
+encodeFilterParams { fromBlock, toBlock, address, topics } =
+    listOfMaybesToVal
+        [ ( "fromBlock", Maybe.map getBlockIdValue fromBlock )
+        , ( "toBlock", Maybe.map getBlockIdValue toBlock )
+        , ( "address", Maybe.map encodeAddressList address )
+        , ( "topics", Maybe.map maybeStringListEncoder topics )
+        ]
 
 
 getBlockIdValue : BlockId -> Encode.Value
@@ -77,7 +47,7 @@ getBlockIdValue blockId =
             Encode.int number
 
         BlockHash hash ->
-            Encode.string hash
+            Encode.string (hexToString hash)
 
         Earliest ->
             Encode.string "earliest"
@@ -87,3 +57,63 @@ getBlockIdValue blockId =
 
         Pending ->
             Encode.string "pending"
+
+
+maybeStringListEncoder : List (Maybe String) -> Value
+maybeStringListEncoder mList =
+    let
+        toVal val =
+            case val of
+                Just str ->
+                    Encode.string str
+
+                Nothing ->
+                    Encode.null
+    in
+        List.map toVal mList |> Encode.list
+
+
+encodeAddressList : List Address -> Value
+encodeAddressList =
+    List.map (addressToString >> Encode.string)
+        >> Encode.list
+
+
+encodeBigIntList : List BigInt -> Value
+encodeBigIntList =
+    List.map (BigInt.toString >> Encode.string)
+        >> Encode.list
+
+
+encodeListBigIntList : List (List BigInt) -> Value
+encodeListBigIntList =
+    List.map encodeBigIntList
+        >> Encode.list
+
+
+encodeIntList : List Int -> Value
+encodeIntList =
+    List.map Encode.int >> Encode.list
+
+
+bytesMaybeMap : Maybe Bytes -> Maybe String
+bytesMaybeMap =
+    Maybe.map bytesToString
+
+
+addressMaybeMap : Maybe Address -> Maybe String
+addressMaybeMap =
+    Maybe.map addressToString
+
+
+intMaybeMap : Maybe Int -> Maybe String
+intMaybeMap =
+    Maybe.map toString
+
+
+listOfMaybesToVal : List ( String, Maybe Value ) -> Value
+listOfMaybesToVal object =
+    object
+        |> List.filter (\( k, v ) -> v /= Nothing)
+        |> List.map (\( k, v ) -> ( k, Maybe.withDefault Encode.null v ))
+        |> Encode.object

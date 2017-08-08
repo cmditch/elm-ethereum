@@ -8,29 +8,29 @@ import Web3.Types exposing (Hex)
 import Json.Encode exposing (Value)
 
 
-type alias TxId =
-    String
+type TxId
+    = TxId String
 
 
-type alias Bytes =
-    String
+type Bytes
+    = Bytes String
 
 
-type alias Address =
-    String
+type Address
+    = Address String
 
 
-type alias ChecksumAddress =
-    String
+type ChecksumAddress
+    = ChecksumAddress String
 
 
-type alias Abi =
-    String
+type Abi
+    = Abi String
 
 
 type alias ContractInfo =
-    { contractAddress : Address
-    , transactionHash : TxId
+    { address : Address
+    , txId : TxId
     }
 
 
@@ -148,10 +148,15 @@ type alias TxReceipt =
 -- TODO Log { type_ } field is an elm keyword... remedy?
 
 
+type EventAction
+    = Watch
+    | StopWatching
+
+
 type alias FilterParams =
     { fromBlock : Maybe BlockId
     , toBlock : Maybe BlockId
-    , address : Maybe Address
+    , address : Maybe (List Address)
     , topics : Maybe (List (Maybe String))
     }
 

@@ -4,11 +4,11 @@
 
 var _cmditch$elm_web3$Native_Web3 = function() {
 
-    var eventRegistry = {};
-
-    var config = {
+    var config =
+    {
         web3BigNumberFields: ["totalDifficulty", "difficulty", "value", "gasPrice"],
-        error: {
+        error:
+        {
             nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
             undefinedResposnse: "Web3 responded with undefined.",
             deniedTransaction: "MetaMask Tx Signature: User denied transaction signature.",
@@ -16,60 +16,83 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         }
     };
 
-/*
-  TODO  Remove the bulk of the console.log's once we go Beta -> 1.0
-        We'll have to decide which ones to leave in for 1.0, if any at all.
+    // shorthand for native APIs
+    var nativeBinding = _elm_lang$core$Native_Scheduler.nativeBinding;
+    var succeed = _elm_lang$core$Native_Scheduler.succeed;
+    var fail = _elm_lang$core$Native_Scheduler.fail;
+    var rawSpawn = _elm_lang$core$Native_Scheduler.rawSpawn;
+    var unit = {ctor: '_Tuple0'};
 
-  TODO  Perhaps return a tuple of errors, where: (simpleDescription, fullConsoleOutput)?
+/*
+    TODO  Use Web3 Error constructor functions instead of raw objects.
+
+    TODO  Remove the bulk of the console.log's once we go Beta -> 1.0
+          We'll have to decide which ones to leave in for 1.0, if any at all.
+
+    TODO  Perhaps return a tuple of errors, where: (simpleDescription, fullConsoleOutput)?
         Probably not, let's just work on hammering out all error cases
         and replying with meaningful messages in a elm-ish fashion.
 */
 
     function toTask(request) {
         console.log("To task: ", request);
-        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-            try {
-
-                var web3Callback = function(e,r) {
+        return nativeBinding(function(callback) {
+            try
+            {
+                function web3Callback(e,r)
+                {
                     var result = handleWeb3Response({
-                        response: r,
                         error: e,
+                        response: r,
                         decoder: request.expect.responseToResult
                     });
+
                     console.log("Async result: ", result)
-                    if (result.ctor === "Ok") {
-                        return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
-                    } else if (result.ctor === "Err") {
-                        console.log("Err within Async found!", result)
-                        return callback(_elm_lang$core$Native_Scheduler.fail(
-                            { ctor: 'Error', _0: result._0 }
-                        ));
+
+                    if (result.ctor === "Ok")
+                    {
+                        return callback(succeed(result._0));
+                    }
+                    else if (result.ctor === "Err")
+                    {
+                        console.log("Err within Async found!", result);
+                        return callback(fail({ ctor: 'Error', _0: result._0 }));
                     }
                 };
 
                 var func = eval("web3." + request.func);
 
-                if (request.callType.ctor === "Async") {
+                if (request.callType.ctor === "Async")
+                {
                     func.apply(null, request.args.concat( web3Callback ));
-                } else if (request.callType.ctor === "Sync") {
+                }
+                else if (request.callType.ctor === "Sync")
+                {
                     var web3Response = func.apply(null, request.args);
                     var result = handleWeb3Response({
-                        response: r,
                         error: null,
+                        response: r,
                         decoder: undefined
                     });
+
                     console.log("Sync result: ", result);
-                    if (result.ctor === "Ok") {
-                        return callback(_elm_lang$core$Native_Scheduler.succeed(result._0));
-                    } else if (result.ctor === "Err") {
-                        return callback(_elm_lang$core$Native_Scheduler.fail(
-                            { ctor: 'Error', _0: result._0 }
-                        ));
+
+                    if (result.ctor === "Ok")
+                    {
+                        return callback(succeed(result._0));
+                    }
+                    else if (result.ctor === "Err")
+                    {
+                        return callback(fail({ ctor: 'Error', _0: result._0 }));
                     }
                 };
-            } catch (e) {
-                console.log("Try/Catch error on toTask", e);
-                return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Error', _0: "Tried and caught: " + e.toString() }));
+            }
+            catch (err)
+            {
+                console.log("Try/Catch error on toTask", err);
+                return callback(fail({
+                    ctor: 'Error', _0: "Tried and caught: " + err.toString()
+                }));
             }
         });
     };
@@ -77,8 +100,10 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     function contractGetData(r) {
         console.log("contractGetData: ", r);
-        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-            try {
+        return nativeBinding(function(callback)
+        {
+            try
+            {
                 var response =
                     eval("web3.eth.contract("
                           + r.abi
@@ -88,75 +113,91 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                           + r.data
                           + "'})"
                     )
-                console.log(response)
-                return callback(_elm_lang$core$Native_Scheduler.succeed(response));
-            } catch(e) {
-                console.log("Try/Catch error on contractGetData", e);
-                return callback(_elm_lang$core$Native_Scheduler.fail(
-                    {ctor: 'Error', _0: "Contract.getData failed - " + e.toString() }
-                ));
+                console.log(response);
+                return callback(succeed({ ctor: "Bytes", _0: response }));
+            }
+            catch(err)
+            {
+                console.log("Try/Catch error on contractGetData", err);
+                return callback(fail({
+                    ctor: 'Error', _0: "Contract.getData failed - " + err.toString()
+                }));
             }
         });
     };
 
 
-    function watchEvent(e){
-        console.log("watchEvent: ", e);
-        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-            try {
-                // Clear out duplicate 'watchings', otherwise they hang around in the background.
-                if (eventRegistry[e.portName]) { eventRegistry[e.portName].stopWatching() };
+    function watchEvent(request, onMessage)
+    { console.log(request)
+        return nativeBinding(function(callback)
+        {
+            try
+		    {
+                var eventFilter = eval("web3." + request.func).apply(null, request.args);
+            }
+            catch(err)
+            {
+                return callback(fail({
+                    ctor: 'Error',
+                    _0: err.toString()
+                }));
+                console.log("Event watch error: ", err);
+            }
 
-                eventRegistry[e.portName] =
-                    eval("web3.eth.contract("
-                          + e.abi + ").at('"
-                          + e.address
-                          + "')."
-                          + e.eventName
-                          + "("
-                          + JSON.stringify(e.eventParams)
-                          + ","
-                          + JSON.stringify(e.filterParams)
-                          + ")"
-                    );
+            eventFilter.watch(function(e,r) {
+                if (e) { return console.log(e); }
+                rawSpawn(onMessage(JSON.stringify(formatLog(r))));
+                console.log(r);
+            });
+            console.log("Event watched: ", eventFilter);
+            return callback(succeed(eventFilter));
+        });
+    }
 
-                var port = eval("window.elmShim.ports." + e.portName);
-                eventRegistry[e.portName].watch(function(e,r) { console.log( formatLog(r) )}); // Temporary
-                eventRegistry[e.portName].watch(function(e,r) { port.send( formatLog(r) )});
-                console.log(eventRegistry);
-                return callback(_elm_lang$core$Native_Scheduler.succeed());
-            } catch (e) {
-                console.log("Try/Catch error on watchEvent", e);
-                return callback(_elm_lang$core$Native_Scheduler.fail(
-                    {ctor: 'Error', _0: "Event sub failed - " + e.toString() }
-                ));
+
+    function stopWatchingEvent(web3Filter)
+    {
+        return nativeBinding(function(callback)
+        {
+            try
+            {
+                console.log("Event watching stopped: ", web3Filter);
+                web3Filter.stopWatching();
+                return callback(succeed(unit));
+            }
+            catch (err)
+            {
+                console.log(err);
+                return callback(fail({
+                    ctor: 'Error',
+                    _0: err.toString()
+                }));
             }
         });
-    };
+    }
 
 
-    function reset(keepIsSyncing){
+    //  TODO Handle this in the Effects Manager
+    function reset(keepIsSyncing)
+    {
         console.log("web3.reset called");
-        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-            try {
+        return nativeBinding(function(callback)
+        {
+            try
+            {
                 eval("web3.reset(" + keepIsSyncing.toString() + ")")
                 console.log(eventRegistry);
-                return callback(_elm_lang$core$Native_Scheduler.succeed());
-            } catch (e) {
-                console.log("Try/Catch error on web3.reset", e);
-                return callback(_elm_lang$core$Native_Scheduler.fail(
-                    {ctor: 'Error', _0: "Event reset failed - " + e.toString() }
-                ));
+                return callback( succeed(unit) );
+            }
+            catch (err)
+            {
+                console.log("Try/Catch error on web3.reset", err);
+                return callback( fail({ ctor: 'Error', _0: "Event reset failed - " + err.toString() }) );
             }
         });
     };
 
 
-/*
-// Most web3 requests from Elm have an 'Expect' function or decoder attached.
-// The user should not have to worry about all the nuances of decoding web3 responses.
-// The function below allows for this trickery to occur, in combination with Web3.Internal.elm
-*/
     function expectStringResponse(responseToResult) {
         return {
             responseToResult: responseToResult
@@ -165,25 +206,36 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
 /*
+//  TODO Need to account for arrays of BigInts.
 //  Run on all web3 repsonses.
 //  (error, response, Expect/Decoder function) -> Result Err Ok
 */
-    function handleWeb3Response(r) {
+    function handleWeb3Response(r)
+    {
         console.log("handleWeb3Response: ")
-        if (r.error !== null) {
+        if (r.error !== null)
+        {
             console.log("Web3 response error: ",r);
             return {ctor: "Err", _0: r.error.message.split("\n")[0] }
-        } else if (r.response === null) {
+        }
+        else if (r.response === null)
+        {
             console.log("Web3 response was null: ", r);
             return {ctor: "Err", _0: config.error.nullResponse }
-        } else if (r.response === undefined) {
+        }
+        else if (r.response === undefined)
+        {
             console.log("Web3 response was undefined: ", r);
             return { ctor: "Err", _0: config.error.undefinedResposnse }
-        } else if (r.decoder !== undefined){
+        }
+        else if (r.decoder !== undefined)
+        {
             console.log("Web3 was async w/ decoder: ", r);
             // decoder returns a Result
             return r.decoder( formatWeb3Response(r.response) )
-        } else {
+        }
+        else
+        {
             console.log("Web3 was sync: ", r);
             return { ctor: 'Ok', _0: r.response }
         }
@@ -194,14 +246,20 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 //  Run on all async web3 repsonses.
 //  Turns BigNumber into full strings.
 */
-    function formatWeb3Response(r) {
+    function formatWeb3Response(r)
+    {
         console.log("formatWeb3Response executed (remove bigNums for async ) ");
+
         if (r.isBigNumber) { return JSON.stringify(r.toFixed()) }
-        config.web3BigNumberFields.forEach( val => {
-            if (r[val] !== undefined && r[val].isBigNumber) {
-                r[val] = r[val].toFixed();
+
+        config.web3BigNumberFields.forEach(function(val)
+        {
+            if (r[val] !== undefined && r[val].isBigNumber)
+            {
+                    r[val] = r[val].toFixed()
             }
         });
+
         return JSON.stringify(r);
     };
 
@@ -210,35 +268,51 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 //  Run on all web3 event repsonses (logs).
 //  Turns BigNumber into full strings.
 */
-    function formatLog(log) {
-        Object.keys(log.args).forEach(function(arg) {
+    function formatLogsArray(logsArray)
+    {
+        logsArray.map(function(log) { formatLog(log) } );
+        return logsArray;
+    }
+
+
+    function formatLog(log)
+    {
+        Object.keys(log.args).forEach(function(arg)
+        {
             log.args[arg] = formatIfBigNum(log.args[arg]);
         });
         return log;
     }
 
 
-    function formatIfBigNum(value) {
-        if (value.isBigNumber) {
-          return value.toFixed();
-        } else {
-          return value;
+    function formatIfBigNum(value)
+    {
+        if (value.isBigNumber)
+        {
+            return value.toFixed();
+        }
+        else if (Array.isArray(value))
+        {
+            return value.map(function(val)
+            {
+                return formatIfBigNum(val);
+            });
+        }
+        else
+        {
+            return value;
         }
     }
 
-
-    function formatLogsArray(logsArray) {
-        logsArray.map(function(log) { formatLog(log) } );
-        return logsArray;
-    }
 
 
 
     return {
         toTask: toTask,
         contractGetData: contractGetData,
-        watchEvent: watchEvent,
-        reset: reset,
+        watchEvent: F2(watchEvent),
+        stopWatchingEvent: stopWatchingEvent,
+        reset: reset, //TODO implement into Effect Manager and clear Web3Event Dict
         expectStringResponse: expectStringResponse
     };
 

@@ -24,8 +24,9 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 
 import Native.Web3
 import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
-import Web3.Decoders exposing (expectString, expectInt, expectBool)
-import Web3.Types exposing (CallType(..), Keccak256, Hex)
+import Web3.Decoders exposing (..)
+import Web3.Eth.Decoders exposing (..)
+import Web3.Types exposing (..)
 import Web3.Eth.Types exposing (..)
 import Json.Encode as Encode
 import Task exposing (Task)
@@ -66,7 +67,7 @@ sha3 val =
     toTask
         { func = "sha3"
         , args = Encode.list [ Encode.string val ]
-        , expect = expectString
+        , expect = expectJson keccakDecoder
         , callType = Sync
         }
 
@@ -86,7 +87,7 @@ sha3Encoded encodeType val =
         toTask
             { func = "sha3"
             , args = Encode.list [ Encode.string val, Encode.object [ ( "encoding", encoding ) ] ]
-            , expect = expectString
+            , expect = expectJson keccakDecoder
             , callType = Sync
             }
 
@@ -96,13 +97,13 @@ toHex val =
     toTask
         { func = "toHex"
         , args = Encode.list [ Encode.string val ]
-        , expect = expectString
+        , expect = expectJson hexDecoder
         , callType = Sync
         }
 
 
 toAscii : Hex -> Task Error String
-toAscii val =
+toAscii (Hex val) =
     toTask
         { func = "toAscii"
         , args = Encode.list [ Encode.string val ]
@@ -121,13 +122,13 @@ fromAsciiPadded padding val =
     toTask
         { func = "fromAscii"
         , args = Encode.list [ Encode.string val, Encode.int padding ]
-        , expect = expectString
+        , expect = expectJson hexDecoder
         , callType = Sync
         }
 
 
 toDecimal : Hex -> Task Error Int
-toDecimal hex =
+toDecimal (Hex hex) =
     toTask
         { func = "toDecimal"
         , args = Encode.list [ Encode.string hex ]
@@ -141,13 +142,13 @@ fromDecimal decimal =
     toTask
         { func = "fromDecimal"
         , args = Encode.list [ Encode.int decimal ]
-        , expect = expectString
+        , expect = expectJson hexDecoder
         , callType = Sync
         }
 
 
 isAddress : Address -> Task Error Bool
-isAddress address =
+isAddress (Address address) =
     toTask
         { func = "isAddress"
         , args = Encode.list [ Encode.string address ]
@@ -157,7 +158,7 @@ isAddress address =
 
 
 isChecksumAddress : ChecksumAddress -> Task Error Bool
-isChecksumAddress address =
+isChecksumAddress (ChecksumAddress address) =
     toTask
         { func = "isChecksumAddress"
         , args = Encode.list [ Encode.string address ]
@@ -167,11 +168,11 @@ isChecksumAddress address =
 
 
 toChecksumAddress : Address -> Task Error ChecksumAddress
-toChecksumAddress address =
+toChecksumAddress (Address address) =
     toTask
         { func = "toChecksumAddress"
         , args = Encode.list [ Encode.string address ]
-        , expect = expectString
+        , expect = expectJson checksumAddressDecoder
         , callType = Sync
         }
 

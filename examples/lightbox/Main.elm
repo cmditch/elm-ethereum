@@ -5,11 +5,11 @@ import Html exposing (..)
 import Html.Attributes exposing (href, target)
 import Html.Events exposing (onClick, onInput)
 import Web3 exposing (Error(..), toTask)
-import Web3.Eth exposing (defaultFilterParams)
+import Web3.Eth.Decoders exposing (txIdToString, addressToString)
 import Web3.Eth.Types exposing (..)
-import LightBox
+import Web3.Eth.Contract as Contract
+import LightBox as LB
 import BigInt exposing (BigInt)
-import Port
 
 
 main : Program Never Model Msg
@@ -30,15 +30,20 @@ type alias Model =
     , txIds : List TxId
     , error : List String
     , testData : String
-    , eventData : List (EventLog LightBox.AddArgs)
+    , eventData : List String
+    , uintLogs : List (EventLog LB.UintArrayArgs)
+    , isWatchingAdd : Bool
     }
 
 
 init : ( Model, Cmd Msg )
 init =
     { latestBlock = Nothing
-    , contractInfo = Deployed <| ContractInfo "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487" "0x742f7f7e2f564159dece37e1fc0d6454bef638bdf57ecea576baf94718863de3"
-    , coinbase = "0xe87529a6123a74320e13a6dabf3606630683c029"
+    , contractInfo =
+        Deployed <|
+            ContractInfo (Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487")
+                (TxId "0x742f7f7e2f564159dece37e1fc0d6454bef638bdf57ecea576baf94718863de3")
+    , coinbase = Address "0xe87529a6123a74320e13a6dabf3606630683c029"
     , additionAnswer =
         "123412341234123412342143125312351235123512"
             |> BigInt.fromString
@@ -48,6 +53,8 @@ init =
     , error = []
     , testData = ""
     , eventData = []
+    , uintLogs = []
+    , isWatchingAdd = False
     }
         ! [{- TODO Web3.init command needed. Program w/ flags  for wallet check and web3 connection status -}]
 
@@ -59,14 +66,10 @@ view model =
         , viewContractInfo model.contractInfo
         , bigBreak
         , viewAddButton model
-
-        -- , bigBreak
-        -- , viewBlock model.latestBlock
         , bigBreak
         , div [] [ text <| "Tx History: " ++ toString model.txIds ]
         , bigBreak
-        , button [ onClick WatchAddEvents ] [ text " Watch Add Event" ]
-        , div [] [ text <| toString model.eventData ]
+        , viewEventStuff model
         , bigBreak
         , viewError model.error
         , button [ onClick Test ] [ text "Try web3.reset()" ]
@@ -83,15 +86,43 @@ bigBreak =
         ]
 
 
+viewEventStuff : Model -> Html Msg
+viewEventStuff model =
+    div []
+        [ div [] [ text "Logs from AddEvents" ]
+        , div [] (List.map viewMessage model.eventData)
+        , bigBreak
+        , viewButton model
+        , br [] []
+        , button [ onClick Reset ] [ text "Reset all events" ]
+        ]
+
+
+viewMessage : String -> Html Msg
+viewMessage msg =
+    div []
+        [ text msg ]
+
+
+viewButton : Model -> Html Msg
+viewButton model =
+    case model.isWatchingAdd of
+        False ->
+            button [ onClick WatchAdd ] [ text "Watch For Event" ]
+
+        True ->
+            button [ onClick StopWatchingAdd ] [ text "Stop Watching the Event" ]
+
+
 viewAddButton : Model -> Html Msg
 viewAddButton model =
     case model.contractInfo of
-        Deployed { contractAddress } ->
+        Deployed { address } ->
             div []
                 [ text "You can call LightBox.add(11,12)"
-                , div [] [ button [ onClick (AddNumbers contractAddress 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
+                , div [] [ button [ onClick (AddNumbers address 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
                 , bigBreak
-                , div [] [ button [ onClick (MutateAdd contractAddress 42) ] [ text <| "Add 42 to someNum" ] ]
+                , div [] [ button [ onClick (MutateAdd address 42) ] [ text <| "Add 42 to someNum" ] ]
                 ]
 
         _ ->
@@ -107,16 +138,18 @@ viewContractInfo contract =
         Deploying ->
             div [] [ text "Deploying contract..." ]
 
-        Deployed { contractAddress, transactionHash } ->
+        Deployed { address, txId } ->
             div []
                 [ p []
                     [ text "Contract TxId: "
-                    , a [ target "_blank", href ("https://ropsten.etherscan.io/tx/" ++ transactionHash) ] [ text transactionHash ]
+                    , a [ target "_blank", href ("https://ropsten.etherscan.io/tx/" ++ txIdToString txId) ]
+                        [ text <| txIdToString txId ]
                     ]
                 , br [] []
                 , p []
                     [ text "Contract Address: "
-                    , a [ target "_blank", href ("https://ropsten.etherscan.io/address/" ++ contractAddress) ] [ text contractAddress ]
+                    , a [ target "_blank", href ("https://ropsten.etherscan.io/address/" ++ addressToString address) ]
+                        [ text <| addressToString address ]
                     ]
                 ]
 
@@ -158,7 +191,7 @@ viewAddress address =
             div [] [ text "Awaiting Address info..." ]
 
         Just address_ ->
-            div [] [ text address_ ]
+            div [] [ text <| addressToString address_ ]
 
 
 viewError : List String -> Html Msg
@@ -174,9 +207,11 @@ viewError error =
 type Msg
     = Test
     | TestResponse (Result Web3.Error ())
-    | WatchAddEvents
-    | StopAddEvents
-    | AddEvents (EventLog LightBox.AddArgs)
+    | WatchAdd
+    | StopWatchingAdd
+    | Reset
+    | AddEvents String
+    | UintArrayEvents (Result String (EventLog LB.UintArrayArgs))
     | DeployContract
     | AddNumbers Address Int Int
     | MutateAdd Address Int
@@ -184,7 +219,6 @@ type Msg
     | LightBoxResponse (Result Web3.Error ContractInfo)
     | LightBoxAddResponse (Result Web3.Error BigInt)
     | LightBoxMutateAddResponse (Result Web3.Error TxId)
-    | EventHandler (Result Web3.Error ())
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -208,31 +242,53 @@ update msg model =
             TestResponse response ->
                 case response of
                     Ok data ->
-                        { model | testData = "Twerked" } ! []
+                        { model | testData = "It'werked" } ! []
 
                     Err error ->
                         handleError model error
 
-            WatchAddEvents ->
-                model
-                    ! [ Task.attempt EventHandler <|
-                            LightBox.watchAdd
-                                defaultFilterParams
-                                LightBox.defaultAddFilter
-                                "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487"
-                                LightBox.WatchAdd
+            WatchAdd ->
+                case model.contractInfo of
+                    Deployed { address } ->
+                        { model | isWatchingAdd = True }
+                            ! [ LB.watchAdd_ address LB.addFilter "addLog"
+                              , LB.watchUintArray_ address LB.uintArrayFilter "uintArrayLog"
+                              ]
+
+                    _ ->
+                        model ! []
+
+            StopWatchingAdd ->
+                { model | isWatchingAdd = False }
+                    ! [ Contract.stopWatching "addLog"
+                      , Contract.stopWatching "uintArrayLog"
                       ]
 
             AddEvents events ->
                 { model | eventData = events :: model.eventData } ! []
 
-            StopAddEvents ->
-                model ! []
+            UintArrayEvents result ->
+                case result of
+                    Ok log ->
+                        let
+                            newLogs =
+                                log :: model.uintLogs
+
+                            stringedBigInts =
+                                List.map BigInt.toString log.args.uintArray
+                        in
+                            { model | uintLogs = newLogs, eventData = toString stringedBigInts :: model.eventData } ! []
+
+                    Err err ->
+                        { model | error = err :: model.error } ! []
+
+            Reset ->
+                { model | isWatchingAdd = False } ! [ Contract.reset ]
 
             DeployContract ->
                 { model | contractInfo = Deploying }
                     ! [ Task.attempt LightBoxResponse <|
-                            LightBox.new
+                            LB.new
                                 (BigInt.fromString "502030200")
                                 { someNum_ = BigInt.fromInt 13 }
                       ]
@@ -240,7 +296,7 @@ update msg model =
             AddNumbers address a b ->
                 model
                     ! [ Task.attempt LightBoxAddResponse
-                            (LightBox.add address a b)
+                            (LB.add address a b)
                       ]
 
             LatestResponse response ->
@@ -270,7 +326,7 @@ update msg model =
             MutateAdd address a ->
                 model
                     ! [ Task.attempt LightBoxMutateAddResponse
-                            (LightBox.mutateAdd address a)
+                            (LB.mutateAdd address a)
                       ]
 
             LightBoxMutateAddResponse response ->
@@ -281,15 +337,10 @@ update msg model =
                     Err error ->
                         handleError model error
 
-            EventHandler response ->
-                case response of
-                    Ok _ ->
-                        model ! []
-
-                    Err error ->
-                        handleError model error
-
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.batch [ Port.watchAdd (LightBox.formatAddEventLog >> AddEvents) ]
+subscriptions model =
+    Sub.batch
+        [ Contract.sentry "addLog" AddEvents
+        , Contract.sentry "uintArrayLog" (LB.decodeUintArrayArgs >> UintArrayEvents)
+        ]

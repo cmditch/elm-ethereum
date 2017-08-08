@@ -10,9 +10,9 @@ type CallType
     | Async
 
 
-type alias Hex =
-    String
+type Hex
+    = Hex String
 
 
-type alias Keccak256 =
-    String
+type Keccak256
+    = Keccak256 String
