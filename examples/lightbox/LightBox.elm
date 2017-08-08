@@ -14,10 +14,14 @@ import Web3.Decoders exposing (..)
 
 
 {-
-   Core Contract info : ABI and Bytecode
+    Let this serve as a template for how elm contract interfaces will be designed
 
-   Collisions will be possible between constructor names in someones solidity contract and values used elm
+   TODO Collisions will be possible between constructor names in someones solidity contract and values used elm
    Mitigation needed during code generation. Last 6 chars of the abi's hash appended to constructor param names?
+
+-}
+{-
+   Core Contract info : ABI and Bytecode
 -}
 
 
@@ -104,8 +108,73 @@ new value { someNum_ } =
 
 
 type Event
-    = Add
-    | Subtract
+    = Add AddFilter FilterParams
+    | Subtract SubtractFilter FilterParams
+    | UintArray UintArrayFilter FilterParams
+
+
+watch : Event -> Address -> String -> Cmd msg
+watch eventParams address name =
+    let
+        ( name_, argsFilter_, filterParams_ ) =
+            case eventParams of
+                Add argsFilter filterParams ->
+                    ( "Add"
+                    , encodeAdd_ argsFilter
+                    , encodeFilterParams filterParams
+                    )
+
+                Subtract argsFilter filterParams ->
+                    ( "Subtract"
+                    , encodeSubtract_ argsFilter
+                    , encodeFilterParams filterParams
+                    )
+
+                UintArray argsFilter filterParams ->
+                    ( "Subtract"
+                    , encodeUintArray_ argsFilter
+                    , encodeFilterParams filterParams
+                    )
+    in
+        Contract.watch name
+            { abi = lightBoxAbi_
+            , address = address
+            , argsFilter = argsFilter_
+            , filterParams = filterParams_
+            , eventName = name_
+            }
+
+
+get : Event -> Decoder (EventLog args) -> Address -> Task Error (List (EventLog args))
+get eventParams decoder address =
+    let
+        ( name_, argsFilter_, filterParams_ ) =
+            case eventParams of
+                Add argsFilter filterParams ->
+                    ( "Add"
+                    , encodeAdd_ argsFilter
+                    , encodeFilterParams filterParams
+                    )
+
+                Subtract argsFilter filterParams ->
+                    ( "Subtract"
+                    , encodeSubtract_ argsFilter
+                    , encodeFilterParams filterParams
+                    )
+
+                UintArray argsFilter filterParams ->
+                    ( "Subtract"
+                    , encodeUintArray_ argsFilter
+                    , encodeFilterParams filterParams
+                    )
+    in
+        Contract.get decoder
+            { abi = lightBoxAbi_
+            , address = address
+            , argsFilter = argsFilter_
+            , filterParams = filterParams_
+            , eventName = "Add"
+            }
 
 
 
@@ -113,39 +182,6 @@ type Event
 {-
    Add(mathematician indexed address, sum int8)
 -}
-
-
-watchAdd_ : Address -> AddFilter -> String -> Cmd msg
-watchAdd_ address argsFilter name =
-    let
-        argsFilter_ =
-            encodeAddFilter argsFilter
-    in
-        Contract.watch name
-            { abi = lightBoxAbi_
-            , address = address
-            , argsFilter = argsFilter_
-            , filterParams = Encode.object []
-            , eventName = "Add"
-            }
-
-
-getAdd_ : Address -> AddFilter -> FilterParams -> Task Error (List (EventLog AddArgs))
-getAdd_ address argsFilter filterParams =
-    let
-        argsFilter_ =
-            encodeAddFilter argsFilter
-
-        filterParams_ =
-            encodeFilterParams filterParams
-    in
-        Contract.get decodeAddEventLog
-            { abi = lightBoxAbi_
-            , address = address
-            , argsFilter = argsFilter_
-            , filterParams = filterParams_
-            , eventName = "Add"
-            }
 
 
 type alias AddArgs =
@@ -158,50 +194,35 @@ type alias AddFilter =
     }
 
 
-addFilter : AddFilter
-addFilter =
+addFilter_ : AddFilter
+addFilter_ =
     { mathematician = Nothing, sum = Nothing }
 
 
-encodeAddFilter : AddFilter -> Value
-encodeAddFilter { mathematician, sum } =
+encodeAdd_ : AddFilter -> Value
+encodeAdd_ { mathematician, sum } =
     listOfMaybesToVal
         [ ( "mathematician", Maybe.map encodeAddressList mathematician )
         , ( "sum", Maybe.map encodeIntList sum )
         ]
 
 
-decodeAddArgs : Decoder AddArgs
-decodeAddArgs =
+decodeAdd_ : Decoder AddArgs
+decodeAdd_ =
     decode AddArgs
         |> required "mathematician" addressDecoder
         |> required "sum" bigIntDecoder
 
 
-decodeAddEventLog : Decoder (EventLog AddArgs)
-decodeAddEventLog =
-    eventLogDecoder decodeAddArgs
+decodeAddLog_ : Decoder (EventLog AddArgs)
+decodeAddLog_ =
+    eventLogDecoder decodeAdd_
 
 
 
 {-
    Subtract(address indexed professor, uint numberz, int aPrime)
 -}
-
-
-watchSubtract_ : Address -> SubtractFilter -> String -> Cmd msg
-watchSubtract_ contract argsFilter name =
-    let
-        argsFilter_ =
-            encodeSubtractFilter argsFilter
-    in
-        Contract.watch name
-            { abi = lightBoxAbi_
-            , address = contract
-            , argsFilter = Encode.object []
-            , filterParams = argsFilter_
-            , eventName = "Subtract"
-            }
 
 
 type alias SubtractArgs =
@@ -220,8 +241,8 @@ subtractFilter =
     { professor = Nothing, numberz = Nothing, aPrime = Nothing }
 
 
-encodeSubtractFilter : SubtractFilter -> Value
-encodeSubtractFilter { professor, numberz, aPrime } =
+encodeSubtract_ : SubtractFilter -> Value
+encodeSubtract_ { professor, numberz, aPrime } =
     listOfMaybesToVal
         [ ( "professor", Maybe.map encodeAddressList professor )
         , ( "numberz", Maybe.map encodeBigIntList numberz )
@@ -229,38 +250,23 @@ encodeSubtractFilter { professor, numberz, aPrime } =
         ]
 
 
-decodeSubtractArgs : Decoder SubtractArgs
-decodeSubtractArgs =
+decodeSubtract_ : Decoder SubtractArgs
+decodeSubtract_ =
     decode SubtractArgs
         |> required "professor" addressDecoder
         |> required "numberz" bigIntDecoder
         |> required "aPrime" bigIntDecoder
 
 
-decodeSubtractEventLog : Decoder (EventLog SubtractArgs)
-decodeSubtractEventLog =
-    eventLogDecoder decodeSubtractArgs
+decodeSubtractLog_ : Decoder (EventLog SubtractArgs)
+decodeSubtractLog_ =
+    eventLogDecoder decodeSubtract_
 
 
 
 {-
    UintArray(uint[23] uintArray)
 -}
-
-
-watchUintArray_ : Address -> UintArrayFilter -> String -> Cmd msg
-watchUintArray_ contract argsFilter name =
-    let
-        argsFilter_ =
-            encodeUintArrayFilter argsFilter
-    in
-        Contract.watch name
-            { abi = lightBoxAbi_
-            , address = contract
-            , argsFilter = Encode.object []
-            , filterParams = argsFilter_
-            , eventName = "UintArray"
-            }
 
 
 type alias UintArrayArgs =
@@ -271,23 +277,23 @@ type alias UintArrayFilter =
     { uintArray : Maybe (List (List BigInt)) }
 
 
-uintArrayFilter : UintArrayFilter
-uintArrayFilter =
+uintArrayFilter_ : UintArrayFilter
+uintArrayFilter_ =
     { uintArray = Nothing }
 
 
-encodeUintArrayFilter : UintArrayFilter -> Value
-encodeUintArrayFilter { uintArray } =
+encodeUintArray_ : UintArrayFilter -> Value
+encodeUintArray_ { uintArray } =
     listOfMaybesToVal
         [ ( "uintArray", Maybe.map encodeListBigIntList uintArray ) ]
 
 
-uintArrayArgsDecoder : Decoder UintArrayArgs
-uintArrayArgsDecoder =
+uintArrayDecoder_ : Decoder UintArrayArgs
+uintArrayDecoder_ =
     decode UintArrayArgs
         |> required "uintArray" (Decode.list bigIntDecoder)
 
 
-decodeUintArrayArgs : String -> Result String (EventLog UintArrayArgs)
-decodeUintArrayArgs =
-    Decode.decodeString <| eventLogDecoder uintArrayArgsDecoder
+decodeUintArrayLog_ : Decoder (EventLog UintArrayArgs)
+decodeUintArrayLog_ =
+    eventLogDecoder uintArrayDecoder_

@@ -153,12 +153,6 @@ type alias ContractInfo =
 -}
 
 
-type alias EventParams argsFilter =
-    { argsFilter : argsFilter
-    , filterParams : FilterParams
-    }
-
-
 type alias FilterParams =
     { fromBlock : Maybe BlockId
     , toBlock : Maybe BlockId
