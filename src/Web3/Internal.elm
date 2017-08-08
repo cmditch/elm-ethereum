@@ -10,7 +10,6 @@ module Web3.Internal
 
 import Json.Encode as Encode exposing (Value)
 import Web3.Types exposing (..)
-import Web3.Eth.Types exposing (..)
 
 
 type alias Request a =

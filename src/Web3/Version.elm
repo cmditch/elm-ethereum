@@ -10,11 +10,11 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 
 -}
 
-import Web3 exposing (Error)
-import Web3.Types exposing (Hex, CallType(..))
-import Web3.Decoders exposing (expectString)
-import Json.Encode as Encode
 import Task exposing (Task)
+import Json.Encode as Encode
+import Web3
+import Web3.Types exposing (..)
+import Web3.Decoders exposing (expectString, expectJson, hexDecoder)
 
 
 -- VERSIONS
@@ -77,7 +77,7 @@ getEthereum =
     Web3.toTask
         { func = "version.getEthereum"
         , args = Encode.list []
-        , expect = expectString
+        , expect = expectJson hexDecoder
         , callType = Async
         }
 

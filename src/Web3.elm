@@ -1,7 +1,6 @@
 module Web3
     exposing
-        ( Error(..)
-        , Retry
+        ( Retry
         , reset
         , toTask
         , retry
@@ -22,16 +21,14 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 
 -}
 
-import Native.Web3
-import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
-import Web3.Decoders exposing (..)
-import Web3.Eth.Decoders exposing (..)
-import Web3.Types exposing (..)
-import Web3.Eth.Types exposing (..)
-import Json.Encode as Encode
-import Task exposing (Task)
-import Process
 import Time
+import Process
+import Task exposing (Task)
+import Json.Encode as Encode
+import Native.Web3
+import Web3.Types exposing (..)
+import Web3.Decoders exposing (..)
+import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
 
 
 -- WEB3
@@ -181,12 +178,6 @@ toChecksumAddress (Address address) =
 -- fromWei : EthUnit -> BigInt -> BigInt
 -- toWei : EthUnit -> BigInt -> BigInt
 -- CORE
-
-
-type Error
-    = Error String
-    | BadPayload String
-    | NoWallet
 
 
 toTask : Request a -> Task Error a

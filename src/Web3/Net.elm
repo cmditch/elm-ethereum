@@ -10,8 +10,8 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 
 -}
 
-import Web3 exposing (Error)
-import Web3.Types exposing (CallType(..))
+import Web3
+import Web3.Types exposing (CallType(..), Error(..))
 import Web3.Decoders exposing (expectInt, expectBool)
 import Json.Encode as Encode
 import Task exposing (Task)

@@ -1,4 +1,4 @@
-module Web3.Eth.Encoders
+module Web3.Encoders
     exposing
         ( encodeTxParams
         , encodeFilterParams
@@ -11,8 +11,8 @@ module Web3.Eth.Encoders
         , listOfMaybesToVal
         )
 
-import Web3.Eth.Types exposing (..)
-import Web3.Eth.Decoders exposing (bytesToString, addressToString, hexToString)
+import Web3.Types exposing (..)
+import Web3.Decoders exposing (bytesToString, addressToString, hexToString)
 import BigInt exposing (BigInt)
 import Json.Encode as Encode exposing (Value, string, int, null, list, object)
 
