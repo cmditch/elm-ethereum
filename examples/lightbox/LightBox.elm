@@ -1,28 +1,16 @@
 module LightBox exposing (..)
 
-import Web3 exposing (Error)
-import Web3.Types exposing (..)
-import Web3.Eth exposing (defaultTxParams)
-import Web3.Eth.Types exposing (..)
-import Web3.Decoders exposing (bigIntDecoder, expectJson, expectString)
-import Web3.Eth.Decoders exposing (eventLogDecoder, txIdDecoder, addressDecoder)
-import Web3.Eth.Contract as Contract
+import Task exposing (Task)
+import BigInt exposing (BigInt)
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required, optional)
-import BigInt exposing (BigInt)
-import Task exposing (Task)
-import Web3.Eth.Encoders
-    exposing
-        ( encodeTxParams
-        , encodeFilterParams
-        , addressMaybeMap
-        , listOfMaybesToVal
-        , encodeAddressList
-        , encodeBigIntList
-        , encodeIntList
-        , encodeListBigIntList
-        )
+import Web3
+import Web3.Types exposing (..)
+import Web3.Eth exposing (defaultTxParams)
+import Web3.Eth.Contract as Contract
+import Web3.Encoders exposing (..)
+import Web3.Decoders exposing (..)
 
 
 {-

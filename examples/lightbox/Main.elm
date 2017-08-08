@@ -4,9 +4,9 @@ import Task
 import Html exposing (..)
 import Html.Attributes exposing (href, target)
 import Html.Events exposing (onClick, onInput)
-import Web3 exposing (Error(..), toTask)
-import Web3.Eth.Decoders exposing (txIdToString, addressToString)
-import Web3.Eth.Types exposing (..)
+import Web3 exposing (toTask)
+import Web3.Decoders exposing (txIdToString, addressToString)
+import Web3.Types exposing (..)
 import Web3.Eth.Contract as Contract
 import LightBox as LB
 import BigInt exposing (BigInt)
@@ -23,7 +23,7 @@ main =
 
 
 type alias Model =
-    { latestBlock : Maybe Block
+    { latestBlock : Maybe (Block String)
     , contractInfo : DeployableContract
     , coinbase : Address
     , additionAnswer : Maybe BigInt
@@ -174,7 +174,7 @@ viewMaybeBigInt mBigInt =
             BigInt.toString bigInt
 
 
-viewBlock : Maybe Block -> Html Msg
+viewBlock : Maybe (Block String) -> Html Msg
 viewBlock block =
     case block of
         Nothing ->
@@ -206,7 +206,7 @@ viewError error =
 
 type Msg
     = Test
-    | TestResponse (Result Web3.Error ())
+    | TestResponse (Result Error ())
     | WatchAdd
     | StopWatchingAdd
     | Reset
@@ -215,10 +215,10 @@ type Msg
     | DeployContract
     | AddNumbers Address Int Int
     | MutateAdd Address Int
-    | LatestResponse (Result Web3.Error Block)
-    | LightBoxResponse (Result Web3.Error ContractInfo)
-    | LightBoxAddResponse (Result Web3.Error BigInt)
-    | LightBoxMutateAddResponse (Result Web3.Error TxId)
+    | LatestResponse (Result Error (Block String))
+    | LightBoxResponse (Result Error ContractInfo)
+    | LightBoxAddResponse (Result Error BigInt)
+    | LightBoxMutateAddResponse (Result Error TxId)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -226,13 +226,13 @@ update msg model =
     let
         handleError model_ error =
             case error of
-                Web3.Error e ->
+                Error e ->
                     { model_ | error = e :: model_.error } ! []
 
-                Web3.BadPayload e ->
+                BadPayload e ->
                     { model_ | error = ("decoding error: " ++ e) :: model_.error } ! []
 
-                Web3.NoWallet ->
+                NoWallet ->
                     { model_ | error = ("No Wallet Detected") :: model_.error } ! []
     in
         case msg of

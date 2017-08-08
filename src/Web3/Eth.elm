@@ -11,12 +11,11 @@ module Web3.Eth
 {-| Web3.Eth
 -}
 
-import Web3 exposing (Error)
-import Web3.Types exposing (CallType(..), Hex)
-import Web3.Eth.Types exposing (..)
+import Web3
+import Web3.Types exposing (..)
 import Web3.Decoders exposing (expectInt, expectBool, expectJson, expectString, expectBigInt)
-import Web3.Eth.Decoders exposing (..)
-import Web3.Eth.Encoders exposing (encodeTxParams, getBlockIdValue)
+import Web3.Decoders exposing (..)
+import Web3.Encoders exposing (encodeTxParams, getBlockIdValue)
 import Json.Encode as Encode
 import Json.Decode as Decode
 import Task exposing (Task)
@@ -150,7 +149,7 @@ getCodeAtBlock blockId (Address address) =
         }
 
 
-getBlock : BlockId -> Task Error Block
+getBlock : BlockId -> Task Error (Block String)
 getBlock blockId =
     Web3.toTask
         { func = "eth.getBlock"
@@ -164,7 +163,7 @@ getBlock blockId =
 -- TODO Change name of BlockTxObjs type?
 
 
-getBlockTxObjs : BlockId -> Task Error BlockTxObjs
+getBlockTxObjs : BlockId -> Task Error (Block TxObj)
 getBlockTxObjs blockId =
     Web3.toTask
         { func = "eth.getBlock"
@@ -184,7 +183,7 @@ getBlockTransactionCount blockId =
         }
 
 
-getUncle : BlockId -> Int -> Task Error Block
+getUncle : BlockId -> Int -> Task Error (Block String)
 getUncle blockId index =
     Web3.toTask
         { func = "eth.getUncle"
@@ -194,7 +193,7 @@ getUncle blockId index =
         }
 
 
-getUncleTxObjs : BlockId -> Int -> Task Error BlockTxObjs
+getUncleTxObjs : BlockId -> Int -> Task Error (Block TxObj)
 getUncleTxObjs blockId index =
     Web3.toTask
         { func = "eth.getUncle"

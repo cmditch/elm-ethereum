@@ -12,13 +12,10 @@ module Web3.Eth.Contract
 
 -- import Web3.Internal exposing (Request)
 
-import Web3 exposing (Error, Retry)
+import Web3 exposing (Retry)
 import Web3.Internal exposing (EventRequest, GetDataRequest, contractFuncHelper)
 import Web3.Types exposing (..)
-import Web3.Eth.Types exposing (..)
-import Web3.Decoders exposing (expectString, expectJson)
-import Web3.Eth.Decoders exposing (contractInfoDecoder)
-import Web3.Eth.Types exposing (Address, Abi, ContractInfo, Bytes, TxId)
+import Web3.Decoders exposing (expectString, expectJson, contractInfoDecoder)
 import Web3.EM exposing (eventSentry, watchEvent, stopWatchingEvent)
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
