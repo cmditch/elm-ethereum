@@ -71,8 +71,8 @@ mutateAdd address n =
 -}
 
 
-new : Maybe BigInt -> Constructor -> Task Error ContractInfo
-new value { someNum_ } =
+new_ : Maybe BigInt -> Constructor -> Task Error ContractInfo
+new_ value { someNum_ } =
     let
         constructorParams =
             [ Encode.string <| BigInt.toString someNum_ ]
@@ -113,8 +113,8 @@ type Event
     | UintArray UintArrayFilter FilterParams
 
 
-watch : Event -> Address -> String -> Cmd msg
-watch eventParams address name =
+watch_ : Event -> Address -> String -> Cmd msg
+watch_ eventParams address name =
     let
         ( name_, argsFilter_, filterParams_ ) =
             case eventParams of
@@ -145,8 +145,12 @@ watch eventParams address name =
             }
 
 
-get : Event -> Decoder (EventLog args) -> Address -> Task Error (List (EventLog args))
-get eventParams decoder address =
+get_ :
+    Decoder log
+    -> Event
+    -> Address
+    -> Task Error (List log)
+get_ decoder eventParams address =
     let
         ( name_, argsFilter_, filterParams_ ) =
             case eventParams of
@@ -175,6 +179,21 @@ get eventParams decoder address =
             , filterParams = filterParams_
             , eventName = "Add"
             }
+
+
+stopWatching_ : String -> Cmd msg
+stopWatching_ =
+    Contract.stopWatching
+
+
+sentry_ : String -> (String -> msg) -> Sub msg
+sentry_ =
+    Contract.sentry
+
+
+reset_ : Cmd msg
+reset_ =
+    Contract.reset
 
 
 
@@ -236,8 +255,8 @@ type alias SubtractFilter =
     }
 
 
-subtractFilter : SubtractFilter
-subtractFilter =
+subtractFilter_ : SubtractFilter
+subtractFilter_ =
     { professor = Nothing, numberz = Nothing, aPrime = Nothing }
 
 
@@ -246,7 +265,7 @@ encodeSubtract_ { professor, numberz, aPrime } =
     listOfMaybesToVal
         [ ( "professor", Maybe.map encodeAddressList professor )
         , ( "numberz", Maybe.map encodeBigIntList numberz )
-        , ( "aPrime", Maybe.map ((List.map <| BigInt.toString >> Encode.string) >> Encode.list) aPrime )
+        , ( "aPrime", Maybe.map encodeBigIntList aPrime )
         ]
 
 

@@ -5,13 +5,13 @@ import Html exposing (..)
 import Html.Attributes exposing (href, target)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode as Decode
+import BigInt exposing (BigInt)
 import Web3 exposing (toTask)
 import Web3.Eth exposing (defaultFilterParams)
 import Web3.Decoders exposing (txIdToString, addressToString)
 import Web3.Types exposing (..)
 import Web3.Eth.Contract as Contract
 import LightBox as LB
-import BigInt exposing (BigInt)
 
 
 main : Program Never Model Msg
@@ -262,8 +262,8 @@ update msg model =
 
             StopWatchingAdd ->
                 { model | isWatchingAdd = False }
-                    ! [ Contract.stopWatching "addLog"
-                      , Contract.stopWatching "uintArrayLog"
+                    ! [ LB.stopWatching "addLog"
+                      , LB.stopWatching "uintArrayLog"
                       ]
 
             AddEvents events ->
