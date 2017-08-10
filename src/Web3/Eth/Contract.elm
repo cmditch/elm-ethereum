@@ -42,7 +42,7 @@ stopWatching name =
 
 get : Decoder log -> EventRequest -> Task Error (List log)
 get argDecoder { abi, address, argsFilter, filterParams, eventName } =
-    Web3.toTask
+    Web3.getEvent
         { func = contractFuncHelper abi address eventName
         , args = Encode.list [ argsFilter, filterParams ]
         , expect = expectJson (Decode.list argDecoder)

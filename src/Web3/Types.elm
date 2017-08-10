@@ -56,7 +56,7 @@ type Abi
 
 type BlockId
     = BlockNum Int
-    | BlockHash Hex
+    | BlockHash String
     | Latest
     | Earliest
     | Pending
@@ -162,26 +162,28 @@ type alias FilterParams =
 
 
 type alias EventLog a =
-    { address : String
+    { address : Address
     , args : a
-    , blockHash : Maybe String
+    , blockHash :
+        Maybe String
+        -- TODO Possible to make BlockId?
     , blockNumber : Maybe Int
     , event : String
     , logIndex : Maybe Int
-    , transactionHash : String
+    , transactionHash : TxId
     , transactionIndex : Int
     }
 
 
 type alias Log =
     -- TODO Log { type_ } field is an elm keyword... remedy?
-    { address : String
+    { address : Address
     , blockHash : Maybe String
     , blockNumber : Maybe Int
     , data : String
     , logIndex : Maybe Int
     , topics : List String
-    , transactionHash : String
+    , transactionHash : TxId
     , transactionIndex : Int
     , transactionLogIndex : String
     , type_ : String

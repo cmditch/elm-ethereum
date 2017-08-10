@@ -2,6 +2,7 @@ module Web3.Eth
     exposing
         ( getBlockNumber
         , getBlock
+        , coinbase
         , estimateGas
         , sendTransaction
         , defaultTxParams

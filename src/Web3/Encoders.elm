@@ -43,11 +43,11 @@ encodeFilterParams { fromBlock, toBlock, address, topics } =
 getBlockIdValue : BlockId -> Encode.Value
 getBlockIdValue blockId =
     case blockId of
-        BlockNum number ->
-            Encode.int number
+        BlockNum num ->
+            Encode.int num
 
         BlockHash hash ->
-            Encode.string (hexToString hash)
+            Encode.string hash
 
         Earliest ->
             Encode.string "earliest"

@@ -45,10 +45,10 @@ lightBoxBytecode_ =
 -}
 
 
-add : Address -> Int -> Int -> Task Error BigInt
-add address a b =
+add_ : Address -> Int -> Int -> Task Error BigInt
+add_ address a b =
     Web3.toTask
-        { func = Contract.call lightBoxAbi_ address "add"
+        { func = Contract.call lightBoxAbi_ address "add_"
         , args = Encode.list [ Encode.int a, Encode.int b ]
         , expect = expectJson bigIntDecoder
         , callType = Async
@@ -88,7 +88,7 @@ new_ value { someNum_ } =
 
         buildTransaction : Task Error Bytes -> Task Error Int -> Task Error TxParams
         buildTransaction =
-            Task.map2 (\data gasCost -> { defaultTxParams | data = Just data, gas = Just gasCost, value = value })
+            Task.map2 (\data gasCost -> { defaultTxParams | data = Just data, gas = Just gasCost, value = value, from = Just (Address "0xe87529a6123a74320e13a6dabf3606630683c029") })
     in
         buildTransaction getData estimateGas
             |> Task.andThen Web3.Eth.sendTransaction
