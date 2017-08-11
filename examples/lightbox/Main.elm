@@ -60,7 +60,7 @@ init =
     , addLogs = []
     , isWatchingAdd = False
     }
-        ! [ Task.attempt SetCoinbase Web3.Eth.coinbase ]
+        ! [ Task.attempt SetCoinbase <| Web3.Eth.setDefaultAccount (Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487") ]
 
 
 view : Model -> Html Msg

@@ -91,19 +91,52 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-    function contractGetData(r) {
-        console.log("contractGetData: ", r);
+    function setOrGet(request) {
+        console.log("setOrGet: ", request);
+        return nativeBinding(function(callback)
+        {
+            try
+            {   // TODO Dangerous without Err catching on decoding result...
+                switch (request.callType.ctor) {
+                    case "Setter":
+                        var response = eval("web3." + request.func + " = '" + request.args + "'");
+                        console.log("Setter eval: ", response)
+                        var result = request.expect.responseToResult(JSON.stringify(response));
+                        console.log("Setter decode: ", result)
+                        return callback(succeed( result._0 ));
+                    case "Getter":
+                        var response = eval("web3." + request.func);
+                        console.log("Getter eval: ", response)
+                        var result = request.expect.responseToResult(JSON.stringify(response));
+                        console.log("Getter decode: ", result)
+                        return callback(succeed( result._0 ));
+                }
+
+            }
+            catch(err)
+            {
+                console.log("Try/Catch error on setter", err);
+                return callback(fail({
+                    ctor: 'Error', _0: "Web3 setter failed: " + err.toString()
+                }));
+            }
+
+        });
+    }
+
+    function contractGetData(request) {
+        console.log("contractGetData: ", request);
         return nativeBinding(function(callback)
         {
             try
             {
                 var response =
                     eval("web3.eth.contract("
-                        + r.abi
+                        + request.abi
                         + ").getData("
-                        + r.constructorParams.join()
+                        + request.constructorParams.join()
                         + ", {data: '"
-                        + r.data
+                        + request.data
                         + "'})"
                     )
                 console.log(response);
@@ -350,6 +383,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     return {
         toTask: toTask,
+        setOrGet: setOrGet,
         contractGetData: contractGetData,
         watchEvent: F2(watchEvent),
         stopWatchingEvent: stopWatchingEvent,

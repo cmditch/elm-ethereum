@@ -1,6 +1,8 @@
 module Web3.Eth
     exposing
-        ( getBlockNumber
+        ( setDefaultAccount
+        , getDefaultAccount
+        , getBlockNumber
         , getBlock
         , coinbase
         , estimateGas
@@ -21,6 +23,26 @@ import Json.Encode as Encode
 import Json.Decode as Decode
 import Task exposing (Task)
 import BigInt exposing (BigInt)
+
+
+setDefaultAccount : Address -> Task Error Address
+setDefaultAccount (Address address) =
+    Web3.setOrGet
+        { func = "eth.defaultAccount"
+        , args = Encode.string address
+        , expect = expectJson addressDecoder
+        , callType = Setter
+        }
+
+
+getDefaultAccount : Task Error Address
+getDefaultAccount =
+    Web3.setOrGet
+        { func = "eth.defaultAccount"
+        , args = Encode.null
+        , expect = expectJson addressDecoder
+        , callType = Getter
+        }
 
 
 getSyncing : Task Error (Maybe SyncStatus)
