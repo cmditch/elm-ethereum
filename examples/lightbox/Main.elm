@@ -5,6 +5,7 @@ import Html exposing (..)
 import Html.Attributes exposing (href, target)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode as Decode
+import Process
 import BigInt exposing (BigInt)
 import Web3 exposing (toTask)
 import Web3.Eth exposing (defaultFilterParams)
@@ -12,6 +13,14 @@ import Web3.Decoders exposing (txIdToString, addressToString)
 import Web3.Types exposing (..)
 import Web3.Eth.Contract as Contract
 import LightBox as LB exposing (addFilter_)
+
+
+(:>) task =
+    Task.andThen (\_ -> task)
+
+
+(&>) =
+    Task.andThen
 
 
 main : Program Never Model Msg
@@ -47,11 +56,7 @@ init =
             ContractInfo (Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487")
                 (TxId "0x742f7f7e2f564159dece37e1fc0d6454bef638bdf57ecea576baf94718863de3")
     , coinbase = Nothing
-    , additionAnswer =
-        "123412341234123412342143125312351235123512"
-            |> BigInt.fromString
-            >> Maybe.withDefault (BigInt.fromInt -1)
-            |> Just
+    , additionAnswer = Nothing
     , txIds = []
     , error = []
     , testData = ""
@@ -60,7 +65,10 @@ init =
     , addLogs = []
     , isWatchingAdd = False
     }
-        ! [ Task.attempt SetCoinbase <| Web3.Eth.setDefaultAccount (Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487") ]
+        ! [ Web3.Eth.setDefaultAccount (Address "asdasdasdasdasdads")
+                |> Web3.retry { attempts = 10, sleep = 1 }
+                |> Task.attempt SetCoinbase
+          ]
 
 
 view : Model -> Html Msg

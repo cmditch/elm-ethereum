@@ -97,21 +97,28 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         {
             try
             {   // TODO Dangerous without Err catching on decoding result...
+                var response;
+
                 switch (request.callType.ctor) {
                     case "Setter":
-                        var response = eval("web3." + request.func + " = '" + request.args + "'");
-                        console.log("Setter eval: ", response)
-                        var result = request.expect.responseToResult(JSON.stringify(response));
-                        console.log("Setter decode: ", result)
-                        return callback(succeed( result._0 ));
+                        response = eval("web3." + request.func + " = '" + request.args + "'");
                     case "Getter":
-                        var response = eval("web3." + request.func);
-                        console.log("Getter eval: ", response)
-                        var result = request.expect.responseToResult(JSON.stringify(response));
-                        console.log("Getter decode: ", result)
-                        return callback(succeed( result._0 ));
+                        response = eval("web3." + request.func);
                 }
 
+                if (response !== undefined)
+                {
+                    return callback(succeed(
+                        request.expect.responseToResult(JSON.stringify(response))._0
+                    ));
+                }
+                else
+                {
+                    return callback(fail({
+                        ctor: 'Error', _0: request.func + " setter failed - undefined response."
+                    }));
+                }
+                console.log("Getter decode: ", result)
             }
             catch(err)
             {
