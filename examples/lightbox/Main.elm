@@ -53,8 +53,8 @@ init =
     { latestBlock = Nothing
     , contractInfo =
         Deployed <|
-            ContractInfo (Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487")
-                (TxId "0x742f7f7e2f564159dece37e1fc0d6454bef638bdf57ecea576baf94718863de3")
+            ContractInfo (Address "0xa10b5565C1f5d9Ca24c990104Ea28171727ab3A6")
+                (TxId "0xe00974189a05a33921ce0e578fcff486fd3a754b017ae7a8bc82cfdf4fb51dea")
     , coinbase = Nothing
     , additionAnswer = Nothing
     , txIds = []
