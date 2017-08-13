@@ -4,7 +4,7 @@ module Main exposing (..)
 ---------------------
 
 
-type alias Block =
+type alias MainNet_Block =
     { author : String
     , difficulty : String
     , extraData : String
@@ -76,9 +76,7 @@ type alias MainNet_Log =
     , blockNumber : Int
     , logIndex : Int
     , transactionHash : String
-    , transactionIndex :
-        Int
-        -- Different than MainNet_GetLog
+    , transactionIndex : Int
     , topics : List String
     , data : String
     , removed : Bool
@@ -92,9 +90,7 @@ type alias MainNet_EventLog =
     , logIndex : Int
     , transactionHash : String
     , transactionIndex : Int
-    , transactionLogIndex :
-        String
-        -- Difference from MainNet_Log_inTxReceipt
+    , transactionLogIndex : String
     , type_ : String
     , event : String
     , args : SomethingArgs
@@ -104,6 +100,10 @@ type alias MainNet_EventLog =
 
 -- MetaMask + Ropsten (3)
 ---------------------
+{- MainNet Diff
+   - author
+   - sealFields
+-}
 
 
 type alias Ropsten_Block =
@@ -130,8 +130,18 @@ type alias Ropsten_Block =
     }
 
 
+
+{- MainNet Diff
+   - condition
+   - creates
+   - networkId
+   - publicKey
+   - raw
+   - standardV
+-}
+
+
 type alias Ropsten_TxObj =
-    -- Contract was created on this
     { blockHash : String
     , blockNumber : Int
     , from : String
@@ -140,13 +150,17 @@ type alias Ropsten_TxObj =
     , hash : String
     , input : String
     , nonce : Int
-    , to : Maybe ComplexType
-    , transactionIndex : Int
-    , value : String
-    , v : String
     , r : String
     , s : String
+    , to : Maybe String
+    , transactionIndex : Int
+    , v : String
+    , value : String
     }
+
+
+
+-- No Diff from MainNet
 
 
 type alias Ropsten_TxReceipt =
@@ -156,7 +170,7 @@ type alias Ropsten_TxReceipt =
     , cumulativeGasUsed : Int
     , from : String
     , gasUsed : Int
-    , logs : List ComplexType
+    , logs : List Ropsten_Log
     , logsBloom : String
     , root : String
     , to : String
@@ -165,26 +179,38 @@ type alias Ropsten_TxReceipt =
     }
 
 
+
+-- No Diff from MainNet
+
+
 type alias Ropsten_Log =
     { address : String
-    , topics : List String
-    , data : String
+    , blockHash : String
     , blockNumber : Int
+    , logIndex : Int
     , transactionHash : String
     , transactionIndex : Int
-    , blockHash : String
-    , logIndex : Int
+    , topics : List String
+    , data : String
     , removed : Bool
     }
 
 
+
+{- MainNet Diff
+   - transactionLogIndex
+   - type_
+   + removed
+-}
+
+
 type alias Ropsten_EventLog =
     { address : String
+    , blockHash : String
     , blockNumber : Int
+    , logIndex : Int
     , transactionHash : String
     , transactionIndex : Int
-    , blockHash : String
-    , logIndex : Int
     , removed : Bool
     , event : String
     , args : SomethingArgs
@@ -192,8 +218,14 @@ type alias Ropsten_EventLog =
 
 
 
--- MetaMask + Kovan (3)
+-- MetaMask + Kovan (??)
 ---------------------
+{- MainNet Diff
+   - mixHash
+   - nonce
+   + signature
+   + step
+-}
 
 
 type alias Kovan_Block =
@@ -222,6 +254,10 @@ type alias Kovan_Block =
     }
 
 
+
+-- No Diff from MainNet
+
+
 type alias Kovan_TxObj =
     { blockHash : String
     , blockNumber : Int
@@ -246,30 +282,168 @@ type alias Kovan_TxObj =
     }
 
 
+
+{- MainNet Diff
+   - from
+   - to
+-}
+
+
 type alias Kovan_TxReceipt =
     { blockHash : String
     , blockNumber : Int
-    , contractAddress : Maybe ComplexType
+    , contractAddress : Maybe String
     , cumulativeGasUsed : Int
     , gasUsed : Int
-    , logs : List ComplexType
+    , logs : List Kovan_Log
     , logsBloom : String
-    , root : Maybe ComplexType
+    , root : Maybe String
     , transactionHash : String
     , transactionIndex : Int
     }
+
+
+
+{- MainNet Diff
+   RECHECK THIS
+-}
+
 
 type alias Kovan_Log =
     { address : String
     , blockHash : String
     , blockNumber : Int
-    , data : String
     , logIndex : Int
     , topics : List String
     , transactionHash : String
     , transactionIndex : Int
     , transactionLogIndex : String
-    , type : String
+    , data : String
+    , type_ : String
     }
 
-    
+
+type alias Kovan_EventLog =
+    Nothing
+
+
+
+-- MetaMask + TestRPC (N)
+---------------------
+{- MainNet Diff
+   - author
+   - mixHash
+   - sealFields
+-}
+
+
+type alias TestRPC_Block =
+    { difficulty : String
+    , extraData : String
+    , gasLimit : Int
+    , gasUsed : Int
+    , hash : String
+    , logsBloom : String
+    , miner : String
+    , nonce : String
+    , number : Int
+    , parentHash : String
+    , receiptRoot : String
+    , sha3Uncles : String
+    , size : Int
+    , stateRoot : String
+    , timestamp : Int
+    , totalDifficulty : String
+    , transactions : List String
+    , transactionsRoot : String
+    , uncles : List String
+    }
+
+
+
+{- MainNet Diff
+   - condition
+   - creates
+   - sealFields
+   - networkId
+   - publicKey
+   - r
+   - raw
+   - s
+   - standardV
+   - v
+-}
+
+
+type alias TestRPC_TxObj =
+    { blockHash : String
+    , blockNumber : Int
+    , from : String
+    , gas : Int
+    , gasPrice : String
+    , input : String
+    , hash : String
+    , nonce : Int
+    , to : Maybe String
+    , transactionIndex : Int
+    , value : String
+    }
+
+
+
+{- MainNet Diff
+   - from
+   - logsBloom
+   - root
+   - to
+-}
+
+
+type alias TestRPC_TxReceipt =
+    { blockHash : String
+    , blockNumber : Int
+    , contractAddress : Maybe String
+    , cumulativeGasUsed : Int
+    , gasUsed : Int
+    , logs : List TestRPC_Log
+    , transactionHash : String
+    , transactionIndex : Int
+    }
+
+
+
+{- MainNet Diff
+   - removed
+-}
+
+
+type alias TestRPC_Log =
+    { address : String
+    , blockHash : String
+    , blockNumber : Int
+    , logIndex : Int
+    , transactionHash : String
+    , transactionIndex : Int
+    , topics : List String
+    , data : String
+    , type_ : String
+    }
+
+
+
+{- MainNet Diff
+   - transactionLogIndex
+-}
+
+
+type alias TestRPC_EventLog =
+    { address : String
+    , blockHash : String
+    , blockNumber : Int
+    , logIndex : Int
+    , transactionHash : String
+    , transactionIndex : Int
+    , type_ : String
+    , event : String
+    , args : List Maybe
+    }
