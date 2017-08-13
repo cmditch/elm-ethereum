@@ -19,6 +19,7 @@ import Web3.Types exposing (..)
 import Web3.Decoders exposing (expectInt, expectBool, expectJson, expectString, expectBigInt)
 import Web3.Decoders exposing (..)
 import Web3.Encoders exposing (encodeTxParams, getBlockIdValue)
+import Web3.EM
 import Json.Encode as Encode
 import Json.Decode as Decode
 import Task exposing (Task)
@@ -53,6 +54,16 @@ getSyncing =
         , expect = expectJson (Decode.maybe syncStatusDecoder)
         , callType = Async
         }
+
+
+watchMinedBlocks : String -> Cmd msg
+watchMinedBlocks name =
+    Web3.EM.watchFilter name "latest"
+
+
+watchIncomingTxs : String -> Cmd msg
+watchIncomingTxs name =
+    Web3.EM.watchFilter name "pending"
 
 
 

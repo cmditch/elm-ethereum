@@ -4,6 +4,8 @@ effect module Web3.EM
         ( eventSentry
         , watchEvent
         , stopWatchingEvent
+        , watchFilter
+        , stopWatchingFilter
         , reset
         )
 
@@ -37,6 +39,8 @@ eventSentry eventId toMsg =
 type MyCmd msg
     = WatchEvent String EventRequest
     | StopWatchingEvent String
+    | WatchFilter String String
+    | StopWatchingFilter String
     | Reset
 
 
@@ -48,6 +52,12 @@ cmdMap _ cmd =
 
         StopWatchingEvent name ->
             StopWatchingEvent name
+
+        WatchFilter name arg ->
+            WatchFilter name arg
+
+        StopWatchingFilter name ->
+            StopWatchingFilter name
 
         Reset ->
             Reset
@@ -61,6 +71,16 @@ watchEvent name request =
 stopWatchingEvent : String -> Cmd msg
 stopWatchingEvent name =
     command <| StopWatchingEvent name
+
+
+watchFilter : String -> String -> Cmd msg
+watchFilter name arg =
+    command <| WatchFilter name arg
+
+
+stopWatchingFilter : String -> Cmd msg
+stopWatchingFilter name =
+    command <| StopWatchingFilter name
 
 
 reset : Cmd msg
@@ -143,6 +163,26 @@ sendMessagesHelp router cmds eventDict =
                 Nothing ->
                     sendMessagesHelp router rest eventDict
 
+        (WatchFilter name arg) :: rest ->
+            case Dict.get name eventDict of
+                Just _ ->
+                    sendMessagesHelp router rest eventDict
+
+                Nothing ->
+                    initFilter router name arg
+                        |> Task.andThen (\web3Event -> Task.succeed <| Dict.insert name web3Event eventDict)
+                        |> Task.andThen (\newEventDict -> sendMessagesHelp router rest newEventDict)
+
+        (StopWatchingFilter name) :: rest ->
+            case Dict.get name eventDict of
+                Just web3Event ->
+                    initStopWatching web3Event
+                        &> Task.succeed (Dict.remove name eventDict)
+                        |> Task.andThen (\newEventDict -> sendMessagesHelp router rest newEventDict)
+
+                Nothing ->
+                    sendMessagesHelp router rest eventDict
+
         -- TODO Performing reset manually on only events in the Web3Event dict, without using web3.reset().
         --      Need to evaluate this in light of what reset actually does.
         Reset :: rest ->
@@ -162,7 +202,19 @@ initWatch router name { abi, address, argsFilter, filterParams, eventName } =
             Encode.list [ argsFilter, filterParams ]
     in
         Native.Web3.watchEvent
-            { func = func, args = args }
+            { func = func, args = args, isContractEvent = Encode.bool True }
+            -- This is the callback which talks to Event.onSelfMsg, in Web3.js it's within watch() as onMessage(stringifiedWeb3Log)
+            (\log -> Platform.sendToSelf router (RecieveLog name log))
+
+
+initFilter : Platform.Router msg Msg -> String -> String -> Task Never Web3Event
+initFilter router name arg =
+    let
+        func =
+            "eth.filter('" ++ arg ++ "')"
+    in
+        Native.Web3.watchEvent
+            { func = func, isContractEvent = Encode.bool False }
             -- This is the callback which talks to Event.onSelfMsg, in Web3.js it's within watch() as onMessage(stringifiedWeb3Log)
             (\log -> Platform.sendToSelf router (RecieveLog name log))
 

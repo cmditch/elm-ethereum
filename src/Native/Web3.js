@@ -161,12 +161,16 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function watchEvent(request, onMessage)
-    { console.log(request)
+    {
+        console.log(request)
         return nativeBinding(function(callback)
         {
+            var eventFilter;
             try
 		    {
-                var eventFilter = eval("web3." + request.func).apply(null, request.args);
+                request.isContractEvent === true
+                ? eventFilter = eval("web3." + request.func).apply(null, request.args)
+                : eventFilter = eval("web3." + request.func)
             }
             catch(err)
             {
@@ -179,7 +183,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
             eventFilter.watch(function(e,r) {
                 if (e) { return console.log(e); }
-                rawSpawn(onMessage(JSON.stringify(formatLog(r))));
+
+                request.isContractEvent === true
+                ? rawSpawn(onMessage(JSON.stringify(formatLog(r))))
+                : rawSpawn(onMessage(JSON.stringify(r)))
+
                 console.log(r);
             });
             console.log("Event watched: ", eventFilter);
@@ -188,14 +196,14 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     }
 
 
-    function stopWatchingEvent(request)
+    function stopWatchingEvent(eventFilter)
     {
         return nativeBinding(function(callback)
         {
             try
             {
-                console.log("Event watching stopped: ", web3Filter);
-                web3Filter.stopWatching();
+                console.log("Event watching stopped: ", eventFilter);
+                eventFilter.stopWatching();
                 return callback(succeed(unit));
             }
             catch (err)
