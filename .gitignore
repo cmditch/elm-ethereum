@@ -3,3 +3,4 @@ elm.js
 npm-debug.log
 .DS_Store
 temp/
+examples/lightbox/web3.js

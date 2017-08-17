@@ -5,13 +5,22 @@ import Html exposing (..)
 import Html.Attributes exposing (href, target)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode as Decode
+import Process
+import BigInt exposing (BigInt)
 import Web3 exposing (toTask)
 import Web3.Eth exposing (defaultFilterParams)
 import Web3.Decoders exposing (txIdToString, addressToString)
 import Web3.Types exposing (..)
 import Web3.Eth.Contract as Contract
-import LightBox as LB
-import BigInt exposing (BigInt)
+import LightBox as LB exposing (addFilter_)
+
+
+(:>) task =
+    Task.andThen (\_ -> task)
+
+
+(&>) =
+    Task.andThen
 
 
 main : Program Never Model Msg
@@ -27,13 +36,14 @@ main =
 type alias Model =
     { latestBlock : Maybe (Block String)
     , contractInfo : DeployableContract
-    , coinbase : Address
+    , coinbase : Maybe Address
     , additionAnswer : Maybe BigInt
     , txIds : List TxId
     , error : List String
     , testData : String
     , eventData : List String
     , uintLogs : List (EventLog LB.UintArrayArgs)
+    , addLogs : List (EventLog LB.AddArgs)
     , isWatchingAdd : Bool
     }
 
@@ -43,22 +53,22 @@ init =
     { latestBlock = Nothing
     , contractInfo =
         Deployed <|
-            ContractInfo (Address "0xeb8f5983d099b0be3f78367bf5efccb5df9e3487")
-                (TxId "0x742f7f7e2f564159dece37e1fc0d6454bef638bdf57ecea576baf94718863de3")
-    , coinbase = Address "0xe87529a6123a74320e13a6dabf3606630683c029"
-    , additionAnswer =
-        "123412341234123412342143125312351235123512"
-            |> BigInt.fromString
-            >> Maybe.withDefault (BigInt.fromInt -1)
-            |> Just
+            ContractInfo (Address "0xa10b5565C1f5d9Ca24c990104Ea28171727ab3A6")
+                (TxId "0xe00974189a05a33921ce0e578fcff486fd3a754b017ae7a8bc82cfdf4fb51dea")
+    , coinbase = Nothing
+    , additionAnswer = Nothing
     , txIds = []
     , error = []
     , testData = ""
     , eventData = []
     , uintLogs = []
+    , addLogs = []
     , isWatchingAdd = False
     }
-        ! [{- TODO Web3.init command needed. Program w/ flags  for wallet check and web3 connection status -}]
+        ! [ Web3.Eth.setDefaultAccount (Address "asdasdasdasdasdads")
+                |> Web3.retry { attempts = 10, sleep = 1 }
+                |> Task.attempt SetCoinbase
+          ]
 
 
 view : Model -> Html Msg
@@ -124,7 +134,9 @@ viewAddButton model =
                 [ text "You can call LightBox.add(11,12)"
                 , div [] [ button [ onClick (AddNumbers address 11 12) ] [ text <| viewMaybeBigInt model.additionAnswer ] ]
                 , bigBreak
-                , div [] [ button [ onClick (MutateAdd address 42) ] [ text <| "Add 42 to someNum" ] ]
+                , div [] [ button [ onClick (MutateAdd address 42) ] [ text "Add 42 to someNum" ] ]
+                , bigBreak
+                , div [] [ button [ onClick GetAdd ] [ text "Get some logs" ] ]
                 ]
 
         _ ->
@@ -207,8 +219,11 @@ viewError error =
 
 
 type Msg
-    = Test
+    = SetCoinbase (Result Error Address)
+    | Test
     | TestResponse (Result Error ())
+    | GetAdd
+    | RecieveGetAdd (Result Error (List (EventLog LB.AddArgs)))
     | WatchAdd
     | StopWatchingAdd
     | Reset
@@ -238,6 +253,14 @@ update msg model =
                     { model_ | error = ("No Wallet Detected") :: model_.error } ! []
     in
         case msg of
+            SetCoinbase address ->
+                case address of
+                    Err err ->
+                        handleError model err
+
+                    Ok address_ ->
+                        { model | coinbase = Just address_ } ! []
+
             Test ->
                 model ! [ Task.attempt TestResponse (Web3.reset False) ]
 
@@ -249,12 +272,35 @@ update msg model =
                     Err error ->
                         handleError model error
 
+            GetAdd ->
+                case model.contractInfo of
+                    Deployed { address } ->
+                        model
+                            ! [ Task.attempt RecieveGetAdd <|
+                                    LB.get_ LB.decodeAddLog_
+                                        (LB.Add addFilter_
+                                            { defaultFilterParams | fromBlock = Just (BlockNum 1), toBlock = Just Latest }
+                                        )
+                                        address
+                              ]
+
+                    _ ->
+                        model ! []
+
+            RecieveGetAdd result ->
+                case result of
+                    Err err ->
+                        handleError model err
+
+                    Ok logs ->
+                        { model | addLogs = logs ++ model.addLogs } ! []
+
             WatchAdd ->
                 case model.contractInfo of
                     Deployed { address } ->
                         { model | isWatchingAdd = True }
-                            ! [ LB.watch (LB.Add LB.addFilter_ defaultFilterParams) address "addLog"
-                              , LB.watch (LB.UintArray LB.uintArrayFilter_ defaultFilterParams) address "uintArrayLog"
+                            ! [ LB.watch_ (LB.Add { addFilter_ | sum = Just [ 55 ] } defaultFilterParams) address "addLog"
+                              , LB.watch_ (LB.UintArray LB.uintArrayFilter_ defaultFilterParams) address "uintArrayLog"
                               ]
 
                     _ ->
@@ -262,8 +308,8 @@ update msg model =
 
             StopWatchingAdd ->
                 { model | isWatchingAdd = False }
-                    ! [ Contract.stopWatching "addLog"
-                      , Contract.stopWatching "uintArrayLog"
+                    ! [ LB.stopWatching_ "addLog"
+                      , LB.stopWatching_ "uintArrayLog"
                       ]
 
             AddEvents events ->
@@ -290,7 +336,7 @@ update msg model =
             DeployContract ->
                 { model | contractInfo = Deploying }
                     ! [ Task.attempt LightBoxResponse <|
-                            LB.new
+                            LB.new_
                                 (BigInt.fromString "502030200")
                                 { someNum_ = BigInt.fromInt 13 }
                       ]
@@ -298,7 +344,7 @@ update msg model =
             AddNumbers address a b ->
                 model
                     ! [ Task.attempt LightBoxAddResponse
-                            (LB.add address a b)
+                            (LB.add_ address a b)
                       ]
 
             LatestResponse response ->

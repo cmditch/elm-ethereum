@@ -1,7 +1,10 @@
 module Web3.Eth
     exposing
-        ( getBlockNumber
+        ( setDefaultAccount
+        , getDefaultAccount
+        , getBlockNumber
         , getBlock
+        , coinbase
         , estimateGas
         , sendTransaction
         , defaultTxParams
@@ -16,10 +19,31 @@ import Web3.Types exposing (..)
 import Web3.Decoders exposing (expectInt, expectBool, expectJson, expectString, expectBigInt)
 import Web3.Decoders exposing (..)
 import Web3.Encoders exposing (encodeTxParams, getBlockIdValue)
+import Web3.EM
 import Json.Encode as Encode
 import Json.Decode as Decode
 import Task exposing (Task)
 import BigInt exposing (BigInt)
+
+
+setDefaultAccount : Address -> Task Error Address
+setDefaultAccount (Address address) =
+    Web3.setOrGet
+        { func = "eth.defaultAccount"
+        , args = Encode.list [ Encode.string address ]
+        , expect = expectJson addressDecoder
+        , callType = Setter
+        }
+
+
+getDefaultAccount : Task Error Address
+getDefaultAccount =
+    Web3.setOrGet
+        { func = "eth.defaultAccount"
+        , args = Encode.list []
+        , expect = expectJson addressDecoder
+        , callType = Getter
+        }
 
 
 getSyncing : Task Error (Maybe SyncStatus)
@@ -30,6 +54,16 @@ getSyncing =
         , expect = expectJson (Decode.maybe syncStatusDecoder)
         , callType = Async
         }
+
+
+watchMinedBlocks : String -> Cmd msg
+watchMinedBlocks name =
+    Web3.EM.watchFilter name "latest"
+
+
+watchIncomingTxs : String -> Cmd msg
+watchIncomingTxs name =
+    Web3.EM.watchFilter name "pending"
 
 
 

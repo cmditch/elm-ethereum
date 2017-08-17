@@ -128,13 +128,13 @@ txReceiptDecoder =
 logDecoder : Decoder Log
 logDecoder =
     decode Log
-        |> required "address" string
+        |> required "address" addressDecoder
         |> required "blockHash" (nullable string)
         |> required "blockNumber" (nullable int)
         |> required "data" string
         |> required "logIndex" (nullable int)
         |> required "topics" (list string)
-        |> required "transactionHash" string
+        |> required "transactionHash" txIdDecoder
         |> required "transactionIndex" int
         |> required "transactionLogIndex" string
         |> required "type_" string
@@ -143,14 +143,14 @@ logDecoder =
 eventLogDecoder : Decoder a -> Decoder (EventLog a)
 eventLogDecoder argsDecoder =
     decode EventLog
-        |> required "address" Decode.string
+        |> required "address" addressDecoder
         |> required "args" argsDecoder
-        |> required "blockHash" (Decode.nullable Decode.string)
-        |> required "blockNumber" (Decode.nullable Decode.int)
-        |> optional "event" Decode.string "Error"
-        |> required "logIndex" (Decode.nullable Decode.int)
-        |> required "transactionHash" Decode.string
-        |> required "transactionIndex" Decode.int
+        |> required "blockHash" (nullable string)
+        |> required "blockNumber" (nullable int)
+        |> optional "event" string "Error"
+        |> required "logIndex" (nullable int)
+        |> required "transactionHash" txIdDecoder
+        |> required "transactionIndex" int
 
 
 addressDecoder : Decoder Address

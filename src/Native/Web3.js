@@ -49,15 +49,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
                     console.log("Async result: ", result)
 
-                    if (result.ctor === "Ok")
+                    switch (result.ctor)
                     {
-                        return callback(succeed(result._0));
-                    }
-                    else if (result.ctor === "Err")
-                    {
-                        console.log("Err within Async found!", result);
-                        return callback(fail({ ctor: 'Error', _0: result._0 }));
-                    }
+                        case "Ok": return callback(succeed(result._0));
+                        case "Err": return callback(fail({ ctor: 'Error', _0: result._0 }));
+                    };
                 };
 
                 var func = eval("web3." + request.func);
@@ -77,14 +73,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
                     console.log("Sync result: ", result);
 
-                    if (result.ctor === "Ok")
+                    switch (result.ctor)
                     {
-                        return callback(succeed(result._0));
-                    }
-                    else if (result.ctor === "Err")
-                    {
-                        return callback(fail({ ctor: 'Error', _0: result._0 }));
-                    }
+                        case "Ok": return callback(succeed(result._0));
+                        case "Err": return callback(fail({ ctor: 'Error', _0: result._0 }));
+                    };
                 };
             }
             catch (err)
@@ -98,20 +91,60 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-    function contractGetData(r) {
-        console.log("contractGetData: ", r);
+    function setOrGet(request) {
+        console.log("setOrGet: ", request);
+        return nativeBinding(function(callback)
+        {
+            try
+            {   // TODO Dangerous without Err catching on decoding result...
+                var response;
+
+                switch (request.callType.ctor) {
+                    case "Setter":
+                        response = eval("web3." + request.func + " = '" + request.args + "'");
+                    case "Getter":
+                        response = eval("web3." + request.func);
+                }
+
+                if (response !== undefined)
+                {
+                    return callback(succeed(
+                        request.expect.responseToResult(JSON.stringify(response))._0
+                    ));
+                }
+                else
+                {
+                    return callback(fail({
+                        ctor: 'Error', _0: request.func + " setter failed - undefined response."
+                    }));
+                }
+                console.log("Getter decode: ", result)
+            }
+            catch(err)
+            {
+                console.log("Try/Catch error on setter", err);
+                return callback(fail({
+                    ctor: 'Error', _0: "Web3 setter failed: " + err.toString()
+                }));
+            }
+
+        });
+    }
+
+    function contractGetData(request) {
+        console.log("contractGetData: ", request);
         return nativeBinding(function(callback)
         {
             try
             {
                 var response =
                     eval("web3.eth.contract("
-                          + r.abi
-                          + ").getData("
-                          + r.constructorParams.join()
-                          + ", {data: '"
-                          + r.data
-                          + "'})"
+                        + request.abi
+                        + ").getData("
+                        + request.constructorParams.join()
+                        + ", {data: '"
+                        + request.data
+                        + "'})"
                     )
                 console.log(response);
                 return callback(succeed({ ctor: "Bytes", _0: response }));
@@ -128,12 +161,16 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function watchEvent(request, onMessage)
-    { console.log(request)
+    {
+        console.log(request)
         return nativeBinding(function(callback)
         {
+            var eventFilter;
             try
 		    {
-                var eventFilter = eval("web3." + request.func).apply(null, request.args);
+                request.isContractEvent === true
+                ? eventFilter = eval("web3." + request.func).apply(null, request.args)
+                : eventFilter = eval("web3." + request.func)
             }
             catch(err)
             {
@@ -146,7 +183,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
             eventFilter.watch(function(e,r) {
                 if (e) { return console.log(e); }
-                rawSpawn(onMessage(JSON.stringify(formatLog(r))));
+
+                request.isContractEvent === true
+                ? rawSpawn(onMessage(JSON.stringify(formatLog(r))))
+                : rawSpawn(onMessage(JSON.stringify(r)))
+
                 console.log(r);
             });
             console.log("Event watched: ", eventFilter);
@@ -155,17 +196,65 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     }
 
 
-    function stopWatchingEvent(web3Filter)
+    function stopWatchingEvent(eventFilter)
     {
         return nativeBinding(function(callback)
         {
             try
             {
-                console.log("Event watching stopped: ", web3Filter);
-                web3Filter.stopWatching();
+                console.log("Event watching stopped: ", eventFilter);
+                eventFilter.stopWatching();
                 return callback(succeed(unit));
             }
             catch (err)
+            {
+                console.log(err);
+                return callback(fail({
+                    ctor: 'Error',
+                    _0: err.toString()
+                }));
+            }
+        });
+    }
+
+
+    function getEvent(request)
+    {
+        return nativeBinding(function(callback)
+        {
+            try
+            {
+                function web3Callback(e,r)
+                {
+                    var result = handleWeb3Response({
+                        error: e,
+                        response: formatLogsArray(r),
+                        wasGetEvent: true,
+                        decoder: request.expect.responseToResult
+                    });
+
+                    console.log("getEvent result: ", result)
+
+                    switch (result.ctor)
+                    {
+                        case "Ok": return callback(succeed(result._0));
+                        case "Err": return callback(fail({ ctor: 'Error', _0: result._0 }));
+                    };
+                };
+
+                var eventParams = request.args.map(function(arg) {
+                    return JSON.stringify(arg)
+                });
+
+                eval(
+                    "web3."
+                    + request.func
+                    + "("
+                    + eventParams.join(",")
+                    + ")"
+                ).get(web3Callback);
+            }
+            catch(err)
             {
                 console.log(err);
                 return callback(fail({
@@ -228,6 +317,10 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             console.log("Web3 response was undefined: ", r);
             return { ctor: "Err", _0: config.error.undefinedResposnse }
         }
+        else if (r.wasGetEvent)
+        {
+            return r.decoder( JSON.stringify(r.response) )
+        }
         else if (r.decoder !== undefined)
         {
             console.log("Web3 was async w/ decoder: ", r);
@@ -248,8 +341,6 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 */
     function formatWeb3Response(r)
     {
-        console.log("formatWeb3Response executed (remove bigNums for async ) ");
-
         if (r.isBigNumber) { return JSON.stringify(r.toFixed()) }
 
         config.web3BigNumberFields.forEach(function(val)
@@ -305,13 +396,13 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     }
 
 
-
-
     return {
         toTask: toTask,
+        setOrGet: setOrGet,
         contractGetData: contractGetData,
         watchEvent: F2(watchEvent),
         stopWatchingEvent: stopWatchingEvent,
+        getEvent: getEvent,
         reset: reset, //TODO implement into Effect Manager and clear Web3Event Dict
         expectStringResponse: expectStringResponse
     };

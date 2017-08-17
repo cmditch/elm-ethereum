@@ -40,9 +40,9 @@ stopWatching name =
     Web3.EM.stopWatchingEvent name
 
 
-get : Decoder (EventLog args) -> EventRequest -> Task Error (List (EventLog args))
+get : Decoder log -> EventRequest -> Task Error (List log)
 get argDecoder { abi, address, argsFilter, filterParams, eventName } =
-    Web3.toTask
+    Web3.getEvent
         { func = contractFuncHelper abi address eventName
         , args = Encode.list [ argsFilter, filterParams ]
         , expect = expectJson (Decode.list argDecoder)
@@ -58,11 +58,6 @@ sentry eventId toMsg =
 reset : Cmd msg
 reset =
     Web3.EM.reset
-
-
-
--- get : EventRequest -> FilterParams -> Task Error log
--- get eventRequest filterParams =
 
 
 getData : Abi -> Bytes -> List Value -> Task Error Bytes

@@ -3,6 +3,8 @@ module Web3
         ( Retry
         , reset
         , toTask
+        , setOrGet
+        , getEvent
         , retry
         )
 
@@ -175,14 +177,31 @@ toChecksumAddress (Address address) =
 
 
 
--- fromWei : EthUnit -> BigInt -> BigInt
--- toWei : EthUnit -> BigInt -> BigInt
+{-
+   TODO
+   fromWei : EthUnit -> BigInt -> String
+
+   toWei : EthUnit -> String -> Maybe BigInt
+
+   bigIntToWei : EthUnit -> BigInt -> BigInt
+
+-}
 -- CORE
 
 
 toTask : Request a -> Task Error a
-toTask request =
-    Native.Web3.toTask request
+toTask =
+    Native.Web3.toTask
+
+
+setOrGet : Request a -> Task Error a
+setOrGet request =
+    Native.Web3.setOrGet request
+
+
+getEvent : Request a -> Task Error a
+getEvent =
+    Native.Web3.getEvent
 
 
 
