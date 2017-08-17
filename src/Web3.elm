@@ -177,8 +177,15 @@ toChecksumAddress (Address address) =
 
 
 
--- fromWei : EthUnit -> BigInt -> BigInt
--- toWei : EthUnit -> BigInt -> BigInt
+{-
+   TODO
+   fromWei : EthUnit -> BigInt -> String
+
+   toWei : EthUnit -> String -> Maybe BigInt
+
+   bigIntToWei : EthUnit -> BigInt -> BigInt
+
+-}
 -- CORE
 
 

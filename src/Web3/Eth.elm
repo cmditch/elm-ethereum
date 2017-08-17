@@ -30,7 +30,7 @@ setDefaultAccount : Address -> Task Error Address
 setDefaultAccount (Address address) =
     Web3.setOrGet
         { func = "eth.defaultAccount"
-        , args = Encode.string address
+        , args = Encode.list [ Encode.string address ]
         , expect = expectJson addressDecoder
         , callType = Setter
         }
@@ -40,7 +40,7 @@ getDefaultAccount : Task Error Address
 getDefaultAccount =
     Web3.setOrGet
         { func = "eth.defaultAccount"
-        , args = Encode.null
+        , args = Encode.list []
         , expect = expectJson addressDecoder
         , callType = Getter
         }
