@@ -134,7 +134,7 @@ onEffects router cmds subs state =
             buildSubsDict subs Dict.empty
     in
         sendMessages
-            |> Task.andThen (\web3EventDict -> Task.succeed <| State newSubs web3EventDict)
+            |> Task.andThen (\web3EventDict -> State newSubs web3EventDict |> Task.succeed)
 
 
 sendMessagesHelp : Platform.Router msg Msg -> List (MyCmd msg) -> Web3EventDict -> Task Never Web3EventDict
