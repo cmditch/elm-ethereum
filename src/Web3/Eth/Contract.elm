@@ -46,7 +46,6 @@ get argDecoder { abi, address, argsFilter, filterParams, eventName } =
         { func = contractFuncHelper abi address eventName
         , args = Encode.list [ argsFilter, filterParams ]
         , expect = expectJson (Decode.list argDecoder)
-        , callType = Async
         }
 
 
@@ -76,6 +75,5 @@ pollContract retryParams (TxId txId) =
         { func = "eth.getTransactionReceipt"
         , args = Encode.list [ Encode.string txId ]
         , expect = expectJson contractInfoDecoder
-        , callType = Async
         }
         |> Web3.retry retryParams

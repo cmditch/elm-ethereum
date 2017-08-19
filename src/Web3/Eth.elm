@@ -28,21 +28,19 @@ import BigInt exposing (BigInt)
 
 setDefaultAccount : Address -> Task Error Address
 setDefaultAccount (Address address) =
-    Web3.setOrGet
+    Web3.setOrGet Setter
         { func = "eth.defaultAccount"
         , args = Encode.list [ Encode.string address ]
         , expect = expectJson addressDecoder
-        , callType = Setter
         }
 
 
 getDefaultAccount : Task Error Address
 getDefaultAccount =
-    Web3.setOrGet
+    Web3.setOrGet Getter
         { func = "eth.defaultAccount"
         , args = Encode.list []
         , expect = expectJson addressDecoder
-        , callType = Getter
         }
 
 
@@ -52,7 +50,6 @@ getSyncing =
         { func = "eth.getSyncing"
         , args = Encode.list []
         , expect = expectJson (Decode.maybe syncStatusDecoder)
-        , callType = Async
         }
 
 
@@ -79,7 +76,6 @@ getCoinbase =
         { func = "eth.getCoinbase"
         , args = Encode.list []
         , expect = expectJson addressDecoder
-        , callType = Async
         }
 
 
@@ -94,7 +90,6 @@ getMining =
         { func = "eth.getMining"
         , args = Encode.list []
         , expect = expectBool
-        , callType = Async
         }
 
 
@@ -104,7 +99,6 @@ getHashrate =
         { func = "eth.getHashrate"
         , args = Encode.list []
         , expect = expectInt
-        , callType = Async
         }
 
 
@@ -114,7 +108,6 @@ getGasPrice =
         { func = "eth.getGasPrice"
         , args = Encode.list []
         , expect = expectBigInt
-        , callType = Async
         }
 
 
@@ -124,7 +117,6 @@ getAccounts =
         { func = "eth.getAccounts"
         , args = Encode.list []
         , expect = expectJson (Decode.list addressDecoder)
-        , callType = Async
         }
 
 
@@ -139,7 +131,6 @@ getBlockNumber =
         { func = "eth.getBlockNumber"
         , args = Encode.list []
         , expect = expectInt
-        , callType = Async
         }
 
 
@@ -149,7 +140,6 @@ getBalance (Address address) =
         { func = "eth.getBalance"
         , args = Encode.list [ Encode.string address ]
         , expect = expectBigInt
-        , callType = Async
         }
 
 
@@ -164,7 +154,6 @@ getStorageAtBlock blockId (Address address) position =
         { func = "eth.getStorageAt"
         , args = Encode.list [ Encode.string address, Encode.int position, getBlockIdValue blockId ]
         , expect = expectJson hexDecoder
-        , callType = Async
         }
 
 
@@ -179,7 +168,6 @@ getCodeAtBlock blockId (Address address) =
         { func = "eth.getStorageAt"
         , args = Encode.list [ Encode.string address, getBlockIdValue blockId ]
         , expect = expectJson bytesDecoder
-        , callType = Async
         }
 
 
@@ -189,7 +177,6 @@ getBlock blockId =
         { func = "eth.getBlock"
         , args = Encode.list [ getBlockIdValue blockId, Encode.bool False ]
         , expect = expectJson blockDecoder
-        , callType = Async
         }
 
 
@@ -203,7 +190,6 @@ getBlockTxObjs blockId =
         { func = "eth.getBlock"
         , args = Encode.list [ getBlockIdValue blockId, Encode.bool True ]
         , expect = expectJson blockTxObjDecoder
-        , callType = Async
         }
 
 
@@ -213,7 +199,6 @@ getBlockTransactionCount blockId =
         { func = "eth.getBlockTransactionCount"
         , args = Encode.list [ getBlockIdValue blockId ]
         , expect = expectInt
-        , callType = Async
         }
 
 
@@ -223,7 +208,6 @@ getUncle blockId index =
         { func = "eth.getUncle"
         , args = Encode.list [ getBlockIdValue blockId, Encode.int index, Encode.bool False ]
         , expect = expectJson blockDecoder
-        , callType = Async
         }
 
 
@@ -233,7 +217,6 @@ getUncleTxObjs blockId index =
         { func = "eth.getUncle"
         , args = Encode.list [ getBlockIdValue blockId, Encode.int index, Encode.bool True ]
         , expect = expectJson blockTxObjDecoder
-        , callType = Async
         }
 
 
@@ -243,7 +226,6 @@ getTransaction (TxId txId) =
         { func = "eth.getTransaction"
         , args = Encode.list [ Encode.string txId ]
         , expect = expectJson txObjDecoder
-        , callType = Async
         }
 
 
@@ -253,7 +235,6 @@ getTransactionFromBlock blockId index =
         { func = "eth.getTransactionFromBlock"
         , args = Encode.list [ getBlockIdValue blockId, Encode.int index ]
         , expect = expectJson txObjDecoder
-        , callType = Async
         }
 
 
@@ -263,7 +244,6 @@ getTransactionReceipt (TxId txId) =
         { func = "eth.getTransactionReceipt"
         , args = Encode.list [ Encode.string txId ]
         , expect = expectJson txReceiptDecoder
-        , callType = Async
         }
 
 
@@ -278,7 +258,6 @@ getTransactionCountAtBlock blockId (Address address) =
         { func = "eth.getTransactionCount"
         , args = Encode.list [ Encode.string address, getBlockIdValue blockId ]
         , expect = expectInt
-        , callType = Async
         }
 
 
@@ -288,7 +267,6 @@ sendTransaction txParams =
         { func = "eth.sendTransaction"
         , args = Encode.list [ encodeTxParams txParams ]
         , expect = expectJson txIdDecoder
-        , callType = Async
         }
 
 
@@ -298,7 +276,6 @@ sendRawTransaction (Bytes signedData) =
         { func = "eth.sendRawTransaction"
         , args = Encode.list [ Encode.string signedData ]
         , expect = expectJson txIdDecoder
-        , callType = Async
         }
 
 
@@ -308,7 +285,6 @@ sign (Address address) (Bytes bytes) =
         { func = "eth.sign"
         , args = Encode.list [ Encode.string address, Encode.string bytes ]
         , expect = expectJson bytesDecoder
-        , callType = Async
         }
 
 
@@ -323,7 +299,6 @@ callAtBlock blockId txParams =
         { func = "eth.call"
         , args = Encode.list [ encodeTxParams txParams, getBlockIdValue blockId ]
         , expect = expectJson txIdDecoder
-        , callType = Async
         }
 
 
@@ -333,7 +308,6 @@ estimateGas txParams =
         { func = "eth.estimateGas"
         , args = Encode.list [ encodeTxParams txParams ]
         , expect = expectInt
-        , callType = Async
         }
 
 

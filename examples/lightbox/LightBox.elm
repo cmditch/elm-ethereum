@@ -51,7 +51,6 @@ add_ address a b =
         { func = Contract.call lightBoxAbi_ address "add_"
         , args = Encode.list [ Encode.int a, Encode.int b ]
         , expect = expectJson bigIntDecoder
-        , callType = Async
         }
 
 
@@ -61,7 +60,6 @@ mutateAdd address n =
         { func = Contract.call lightBoxAbi_ address "mutateAdd"
         , args = Encode.list [ Encode.int n, encodeTxParams defaultTxParams ]
         , expect = expectJson txIdDecoder
-        , callType = Async
         }
 
 

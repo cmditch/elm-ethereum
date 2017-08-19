@@ -214,7 +214,5 @@ type Expect a
 
 
 type CallType
-    = Sync
-    | Async
-    | Setter
+    = Setter
     | Getter

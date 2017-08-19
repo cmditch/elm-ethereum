@@ -28,10 +28,6 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     TODO  Remove the bulk of the console.log's once we go Beta -> 1.0
           We'll have to decide which ones to leave in for 1.0, if any at all.
-
-    TODO  Perhaps return a tuple of errors, where: (simpleDescription, fullConsoleOutput)?
-        Probably not, let's just work on hammering out all error cases
-        and replying with meaningful messages in a elm-ish fashion.
 */
 
     function toTask(request) {
@@ -47,7 +43,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                         decoder: request.expect.responseToResult
                     });
 
-                    console.log("Async result: ", result)
+                    console.log("toTask result: ", result)
 
                     switch (result.ctor)
                     {
@@ -56,42 +52,44 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     };
                 };
 
-                var func = eval("web3." + request.func);
+                eval("web3." + request.func).apply(null, request.args.concat( web3Callback ));
 
-                if (request.callType.ctor === "Async")
-                {
-                    func.apply(null, request.args.concat( web3Callback ));
-                }
-                else if (request.callType.ctor === "Sync")
-                {
-                    var web3Response = func.apply(null, request.args);
-                    var result = handleWeb3Response({
-                        error: null,
-                        response: r,
-                        decoder: undefined
-                    });
-
-                    console.log("Sync result: ", result);
-
-                    switch (result.ctor)
-                    {
-                        case "Ok": return callback(succeed(result._0));
-                        case "Err": return callback(fail({ ctor: 'Error', _0: result._0 }));
-                    };
-                };
             }
             catch (err)
             {
                 console.log("Try/Catch error on toTask", err);
                 return callback(fail({
-                    ctor: 'Error', _0: "Tried and caught: " + err.toString()
+                    ctor: 'Error', _0: err.toString()
                 }));
             }
         });
     };
 
 
-    function setOrGet(request) {
+    function toResult(request) {
+        try
+        {
+            var web3Response = eval("web3." + request.func).apply(null, request.args);
+            var result = handleWeb3Response({
+                error: null,
+                response: web3Response,
+                decoder: request.expect.responseToResult
+            });
+            switch (result.ctor)
+            {
+                case "Ok": return result;
+                case "Err": return _elm_lang$core$Result$Err({ ctor: 'Error', _0: result._0  });
+            };
+        }
+        catch(err)
+        {
+            console.log("Try/Catch error on toResult", err);
+            return _elm_lang$core$Result$Err({ ctor: 'Error', _0: err.toString() });
+        }
+    }
+
+
+    function setOrGet(callType, request) {
         console.log("setOrGet: ", request);
         return nativeBinding(function(callback)
         {
@@ -99,7 +97,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             {   // TODO Dangerous without Err catching on decoding result...
                 var response;
 
-                switch (request.callType.ctor) {
+                switch (callType.ctor) {
                     case "Setter":
                         response = eval("web3." + request.func + " = '" + request.args + "'");
                     case "Getter":
@@ -323,7 +321,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         }
         else if (r.decoder !== undefined)
         {
-            console.log("Web3 was async w/ decoder: ", r);
+            console.log("Web3 w/ decoder: ", r);
             // decoder returns a Result
             return r.decoder( formatWeb3Response(r.response) )
         }
@@ -398,7 +396,8 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     return {
         toTask: toTask,
-        setOrGet: setOrGet,
+        toResult: toResult,
+        setOrGet: F2(setOrGet),
         contractGetData: contractGetData,
         watchEvent: F2(watchEvent),
         stopWatchingEvent: stopWatchingEvent,

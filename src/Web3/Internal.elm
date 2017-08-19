@@ -15,7 +15,6 @@ type alias Request a =
     { func : String
     , args : Encode.Value
     , expect : Expect a
-    , callType : CallType
     }
 
 

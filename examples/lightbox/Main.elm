@@ -254,7 +254,7 @@ update msg model =
     in
         case msg of
             SetCoinbase address ->
-                case address of
+                case Result.andThen Web3.toChecksumAddress address of
                     Err err ->
                         handleError model err
 

@@ -31,7 +31,6 @@ getListening =
         { func = "net.getListening"
         , args = Encode.list []
         , expect = expectBool
-        , callType = Async
         }
 
 
@@ -46,5 +45,4 @@ getPeerCount =
         { func = "net.getPeerCount"
         , args = Encode.list []
         , expect = expectInt
-        , callType = Async
         }

@@ -2,7 +2,9 @@ module Web3
     exposing
         ( Retry
         , reset
+        , toChecksumAddress
         , toTask
+        , toResult
         , setOrGet
         , getEvent
         , retry
@@ -47,7 +49,6 @@ isConnected =
         { func = "isConnected"
         , args = Encode.list []
         , expect = expectBool
-        , callType = Async
         }
 
 
@@ -61,13 +62,12 @@ reset keepIsSyncing =
     Native.Web3.reset (Encode.bool keepIsSyncing)
 
 
-sha3 : String -> Task Error Keccak256
+sha3 : String -> Result Error Keccak256
 sha3 val =
-    toTask
+    toResult
         { func = "sha3"
         , args = Encode.list [ Encode.string val ]
         , expect = expectJson keccakDecoder
-        , callType = Sync
         }
 
 
@@ -75,7 +75,7 @@ type Sha3Encoding
     = HexEncoded
 
 
-sha3Encoded : Sha3Encoding -> String -> Task Error Keccak256
+sha3Encoded : Sha3Encoding -> String -> Result Error Keccak256
 sha3Encoded encodeType val =
     let
         encoding =
@@ -83,96 +83,87 @@ sha3Encoded encodeType val =
                 HexEncoded ->
                     Encode.string "hex"
     in
-        toTask
+        toResult
             { func = "sha3"
             , args = Encode.list [ Encode.string val, Encode.object [ ( "encoding", encoding ) ] ]
             , expect = expectJson keccakDecoder
-            , callType = Sync
             }
 
 
-toHex : String -> Task Error Hex
+toHex : String -> Result Error Hex
 toHex val =
-    toTask
+    toResult
         { func = "toHex"
         , args = Encode.list [ Encode.string val ]
         , expect = expectJson hexDecoder
-        , callType = Sync
         }
 
 
-toAscii : Hex -> Task Error String
+toAscii : Hex -> Result Error String
 toAscii (Hex val) =
-    toTask
+    toResult
         { func = "toAscii"
         , args = Encode.list [ Encode.string val ]
         , expect = expectString
-        , callType = Sync
         }
 
 
-fromAscii : String -> Task Error Hex
+fromAscii : String -> Result Error Hex
 fromAscii val =
     fromAsciiPadded 0 val
 
 
-fromAsciiPadded : Int -> String -> Task Error Hex
+fromAsciiPadded : Int -> String -> Result Error Hex
 fromAsciiPadded padding val =
-    toTask
+    toResult
         { func = "fromAscii"
         , args = Encode.list [ Encode.string val, Encode.int padding ]
         , expect = expectJson hexDecoder
-        , callType = Sync
         }
 
 
-toDecimal : Hex -> Task Error Int
+toDecimal : Hex -> Result Error Int
 toDecimal (Hex hex) =
-    toTask
+    toResult
         { func = "toDecimal"
         , args = Encode.list [ Encode.string hex ]
         , expect = expectInt
-        , callType = Sync
         }
 
 
-fromDecimal : Int -> Task Error Hex
+fromDecimal : Int -> Result Error Hex
 fromDecimal decimal =
-    toTask
+    toResult
         { func = "fromDecimal"
         , args = Encode.list [ Encode.int decimal ]
         , expect = expectJson hexDecoder
-        , callType = Sync
         }
 
 
-isAddress : Address -> Task Error Bool
+isAddress : Address -> Result Error Bool
 isAddress (Address address) =
-    toTask
+    toResult
         { func = "isAddress"
         , args = Encode.list [ Encode.string address ]
         , expect = expectBool
-        , callType = Sync
         }
 
 
-isChecksumAddress : ChecksumAddress -> Task Error Bool
-isChecksumAddress (ChecksumAddress address) =
-    toTask
+isChecksumAddress : Address -> Result Error Bool
+isChecksumAddress (Address address) =
+    toResult
         { func = "isChecksumAddress"
         , args = Encode.list [ Encode.string address ]
         , expect = expectBool
-        , callType = Sync
         }
 
 
-toChecksumAddress : Address -> Task Error ChecksumAddress
+toChecksumAddress : Address -> Result Error Address
 toChecksumAddress (Address address) =
-    toTask
+    toResult
         { func = "toChecksumAddress"
         , args = Encode.list [ Encode.string address ]
-        , expect = expectJson checksumAddressDecoder
-        , callType = Sync
+        , expect = expectJson addressDecoder
         }
 
 
@@ -194,9 +185,14 @@ toTask =
     Native.Web3.toTask
 
 
-setOrGet : Request a -> Task Error a
-setOrGet request =
-    Native.Web3.setOrGet request
+toResult : Request a -> Result Error a
+toResult =
+    Native.Web3.toResult
+
+
+setOrGet : CallType -> Request a -> Task Error a
+setOrGet callType request =
+    Native.Web3.setOrGet callType request
 
 
 getEvent : Request a -> Task Error a

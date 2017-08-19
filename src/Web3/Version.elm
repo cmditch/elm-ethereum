@@ -25,13 +25,12 @@ import Web3.Decoders exposing (expectString, expectJson, hexDecoder)
     Web3.Version.api == Ok "0.19.0"
 
 -}
-api : Task Error String
+api : Result Error String
 api =
-    Web3.toTask
+    Web3.toResult
         { func = "version.api"
         , args = Encode.list []
         , expect = expectString
-        , callType = Sync
         }
 
 
@@ -46,7 +45,6 @@ getNode =
         { func = "version.getNode"
         , args = Encode.list []
         , expect = expectString
-        , callType = Async
         }
 
 
@@ -61,7 +59,6 @@ getNetwork =
         { func = "version.getNetwork"
         , args = Encode.list []
         , expect = expectString
-        , callType = Async
         }
 
 
@@ -78,7 +75,6 @@ getEthereum =
         { func = "version.getEthereum"
         , args = Encode.list []
         , expect = expectJson hexDecoder
-        , callType = Async
         }
 
 
