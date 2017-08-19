@@ -2,6 +2,7 @@ module Web3
     exposing
         ( Retry
         , reset
+        , isAddress
         , toChecksumAddress
         , toTask
         , toResult

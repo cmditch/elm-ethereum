@@ -67,6 +67,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function toResult(request) {
+        console.log("toResult: ", request);
         try
         {
             var web3Response = eval("web3." + request.func).apply(null, request.args);

@@ -65,7 +65,7 @@ init =
     , addLogs = []
     , isWatchingAdd = False
     }
-        ! [ Web3.Eth.setDefaultAccount (Address "asdasdasdasdasdads")
+        ! [ Web3.Eth.setDefaultAccount (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7")
                 |> Web3.retry { attempts = 10, sleep = 1 }
                 |> Task.attempt SetCoinbase
           ]
@@ -253,13 +253,21 @@ update msg model =
                     { model_ | error = ("No Wallet Detected") :: model_.error } ! []
     in
         case msg of
-            SetCoinbase address ->
-                case Result.andThen Web3.toChecksumAddress address of
-                    Err err ->
-                        handleError model err
+            SetCoinbase resultAddress ->
+                let
+                    resultAddress_ =
+                        if resultAddress |> Result.andThen Web3.isAddress |> Result.withDefault False then
+                            resultAddress
+                                |> Result.andThen Web3.toChecksumAddress
+                        else
+                            Err (Error "Not a valid address.")
+                in
+                    case resultAddress_ of
+                        Err err ->
+                            handleError model err
 
-                    Ok address_ ->
-                        { model | coinbase = Just address_ } ! []
+                        Ok address_ ->
+                            { model | coinbase = Just address_ } ! []
 
             Test ->
                 model ! [ Task.attempt TestResponse (Web3.reset False) ]
