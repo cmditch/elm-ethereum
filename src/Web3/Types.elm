@@ -59,12 +59,12 @@ type BlockId
 
 
 type alias Block a =
-    { author : Address
+    { author : Maybe Address
     , difficulty : BigInt
     , extraData : String
     , gasLimit : Int
     , gasUsed : Int
-    , hash : String
+    , hash : BlockId
     , logsBloom : String
     , miner : String
     , mixHash : String
@@ -91,15 +91,15 @@ type alias Block a =
 
 
 type alias TxObj =
-    { blockHash : Hex
+    { blockHash : BlockId
     , blockNumber : Int
     , creates : Maybe Address
     , from : Address
     , gas : Int
     , gasPrice : BigInt
-    , hash : String
+    , hash : TxId
     , input : Bytes
-    , networkId : Int
+    , networkId : Maybe Int
     , nonce : Int
     , publicKey : Hex
     , r : Hex
@@ -115,9 +115,9 @@ type alias TxObj =
 
 
 type alias TxReceipt =
-    { transactionHash : String
+    { transactionHash : TxId
     , transactionIndex : Int
-    , blockHash : String
+    , blockHash : BlockId
     , blockNumber : Int
     , gasUsed : Int
     , cumulativeGasUsed : Int

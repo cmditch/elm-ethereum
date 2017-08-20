@@ -3,7 +3,6 @@ module Web3.Eth
         ( setDefaultAccount
         , getDefaultAccount
         , getSyncing
-        , getBlock
         , coinbase
         , getHashrate
         , getGasPrice
@@ -12,6 +11,12 @@ module Web3.Eth
         , getBlockNumber
         , getBalance
         , getStorageAt
+        , getCode
+        , getBlock
+        , getBlockTransactionCount
+        , getUncle
+        , getBlockUncleCount
+        , getTransaction
         , estimateGas
         , sendTransaction
         , defaultTxParams
@@ -141,12 +146,12 @@ accounts =
     getAccounts
 
 
-getBlockNumber : Task Error Int
+getBlockNumber : Task Error BlockId
 getBlockNumber =
     Web3.toTask
         { func = "eth.getBlockNumber"
         , args = Encode.list []
-        , expect = expectInt
+        , expect = expectJson blockNumDecoder
         , callType = Async
         }
 
@@ -191,18 +196,14 @@ getCodeAtBlock blockId (Address address) =
         }
 
 
-getBlock : BlockId -> Task Error (Block String)
+getBlock : BlockId -> Task Error (Block TxId)
 getBlock blockId =
     Web3.toTask
         { func = "eth.getBlock"
         , args = Encode.list [ getBlockIdValue blockId, Encode.bool False ]
-        , expect = expectJson blockDecoder
+        , expect = expectJson blockTxIdDecoder
         , callType = Async
         }
-
-
-
--- TODO Change name of BlockTxObjs type?
 
 
 getBlockTxObjs : BlockId -> Task Error (Block TxObj)
@@ -225,12 +226,22 @@ getBlockTransactionCount blockId =
         }
 
 
-getUncle : BlockId -> Int -> Task Error (Block String)
+getBlockUncleCount : BlockId -> Task Error Int
+getBlockUncleCount blockId =
+    Web3.toTask
+        { func = "eth.getBlockUncleCount"
+        , args = Encode.list [ getBlockIdValue blockId ]
+        , expect = expectInt
+        , callType = Async
+        }
+
+
+getUncle : BlockId -> Int -> Task Error (Block TxId)
 getUncle blockId index =
     Web3.toTask
         { func = "eth.getUncle"
         , args = Encode.list [ getBlockIdValue blockId, Encode.int index, Encode.bool False ]
-        , expect = expectJson blockDecoder
+        , expect = expectJson blockTxIdDecoder
         , callType = Async
         }
 

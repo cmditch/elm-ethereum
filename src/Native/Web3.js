@@ -44,10 +44,12 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     var result = handleWeb3Response({
                         error: e,
                         response: r,
-                        decoder: request.expect.responseToResult
+                        decoder: request.expect.responseToResult,
+                        // funcName for debugging
+                        funcName: request.func
                     });
 
-                    console.log("Async result: ", result)
+                    console.log(request.func + " ASYNC result: ", result);
 
                     switch (result.ctor)
                     {
@@ -68,10 +70,12 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     var result = handleWeb3Response({
                         error: null,
                         response: web3Response,
-                        decoder: request.expect.responseToResult
+                        decoder: request.expect.responseToResult,
+                        // funcName for debugging
+                        funcName: request.func
                     });
 
-                    console.log("Sync result: ", result);
+                    console.log(request.func + " SYNC result: ", result);
 
                     switch (result.ctor)
                     {

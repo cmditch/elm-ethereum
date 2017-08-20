@@ -39,6 +39,21 @@ unicornAddress =
     (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7")
 
 
+testBlockNum : BlockId
+testBlockNum =
+    BlockNum 4182808
+
+
+testBlockHash : BlockId
+testBlockHash =
+    BlockHash "0x000997b870b069a5b1857de507103521860590ca747cf16e46ee38ac456d204e"
+
+
+unicornTxId : TxId
+unicornTxId =
+    TxId "0x0bb84e278f50d334022a2c239c90f3c186867b0888e989189ac3c19b27c70372"
+
+
 testCommands : List (Cmd Msg)
 testCommands =
     taskChains
@@ -71,6 +86,12 @@ testCommands =
            , Task.attempt (EthGetBlockNumber "web3.eth.getBlockNumber") (Web3.Eth.getBlockNumber)
            , Task.attempt (EthGetBalance "web3.eth.getBalance") (Web3.Eth.getBalance unicornAddress)
            , Task.attempt (EthGetStorageAt "web3.eth.getStorageAt") (Web3.Eth.getStorageAt unicornAddress 1)
+           , Task.attempt (EthGetCode "web3.eth.getCode") (Web3.Eth.getCode unicornAddress)
+           , Task.attempt (EthGetBlock "web3.eth.getBlock") (Web3.Eth.getBlock testBlockNum)
+           , Task.attempt (EthGetBlockTransactionCount "web3.eth.getBlockTransactionCount") (Web3.Eth.getBlockTransactionCount testBlockNum)
+           , Task.attempt (EthGetUncle "web3.eth.getUncle") (Web3.Eth.getUncle testBlockNum 0)
+           , Task.attempt (EthGetBlockUncleCount "web3.eth.getBlockUncleCount") (Web3.Eth.getBlockUncleCount testBlockNum)
+           , Task.attempt (EthGetTransaction "web3.eth.getTransaction") (Web3.Eth.getTransaction unicornTxId)
            ]
 
 
@@ -195,9 +216,16 @@ type Msg
     | EthGetGasPrice String (Result Error BigInt)
     | EthGetAccounts String (Result Error (List Address))
     | EthGetMining String (Result Error Bool)
-    | EthGetBlockNumber String (Result Error Int)
+    | EthGetBlockNumber String (Result Error BlockId)
     | EthGetBalance String (Result Error BigInt)
     | EthGetStorageAt String (Result Error Hex)
+    | EthGetCode String (Result Error Bytes)
+    | EthGetBlock String (Result Error (Block TxId))
+    | EthGetBlockTransactionCount String (Result Error Int)
+    | EthGetUncle String (Result Error (Block TxId))
+    | EthGetBlockUncleCount String (Result Error Int)
+    | EthGetTransaction String (Result Error TxObj)
+      -- Fun funcs
     | TaskChainStorageToAscii String (Result Error String)
 
 
@@ -298,6 +326,24 @@ update msg model =
 
             EthGetStorageAt funcName result ->
                 updateModel 25 funcName result ! []
+
+            EthGetCode funcName result ->
+                updateModel 26 funcName result ! []
+
+            EthGetBlock funcName result ->
+                updateModel 27 funcName result ! []
+
+            EthGetBlockTransactionCount funcName result ->
+                updateModel 28 funcName result ! []
+
+            EthGetUncle funcName result ->
+                updateModel 29 funcName result ! []
+
+            EthGetBlockUncleCount funcName result ->
+                updateModel 30 funcName result ! []
+
+            EthGetTransaction funcName result ->
+                updateModel 31 funcName result ! []
 
             TaskChainStorageToAscii funcName result ->
                 updateModel 100 funcName result ! []
