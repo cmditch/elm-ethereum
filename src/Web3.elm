@@ -1,6 +1,16 @@
 module Web3
     exposing
-        ( Retry
+        ( isConnected
+        , sha3
+        , toHex
+        , toAscii
+        , fromAscii
+        , toDecimal
+        , fromDecimal
+        , isAddress
+        , isChecksumAddress
+        , toChecksumAddress
+        , Retry
         , reset
         , toTask
         , setOrGet
@@ -44,10 +54,10 @@ import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
 isConnected : Task Error Bool
 isConnected =
     toTask
-        { func = "isConnected"
+        { func = "currentProvider.isConnected"
         , args = Encode.list []
         , expect = expectBool
-        , callType = Async
+        , callType = Sync
         }
 
 
@@ -156,8 +166,8 @@ isAddress (Address address) =
         }
 
 
-isChecksumAddress : ChecksumAddress -> Task Error Bool
-isChecksumAddress (ChecksumAddress address) =
+isChecksumAddress : Address -> Task Error Bool
+isChecksumAddress (Address address) =
     toTask
         { func = "isChecksumAddress"
         , args = Encode.list [ Encode.string address ]
@@ -166,12 +176,12 @@ isChecksumAddress (ChecksumAddress address) =
         }
 
 
-toChecksumAddress : Address -> Task Error ChecksumAddress
+toChecksumAddress : Address -> Task Error Address
 toChecksumAddress (Address address) =
     toTask
         { func = "toChecksumAddress"
         , args = Encode.list [ Encode.string address ]
-        , expect = expectJson checksumAddressDecoder
+        , expect = expectJson addressDecoder
         , callType = Sync
         }
 

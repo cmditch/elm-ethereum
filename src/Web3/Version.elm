@@ -27,11 +27,11 @@ import Web3.Decoders exposing (expectString, expectJson, hexDecoder)
 -}
 api : Task Error String
 api =
-    Web3.toTask
+    Web3.setOrGet
         { func = "version.api"
         , args = Encode.list []
         , expect = expectString
-        , callType = Sync
+        , callType = Getter
         }
 
 
@@ -72,12 +72,12 @@ getNetwork =
     -- 63
 
 -}
-getEthereum : Task Error Hex
+getEthereum : Task Error String
 getEthereum =
     Web3.toTask
         { func = "version.getEthereum"
         , args = Encode.list []
-        , expect = expectJson hexDecoder
+        , expect = expectString
         , callType = Async
         }
 

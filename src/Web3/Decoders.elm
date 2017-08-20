@@ -8,11 +8,11 @@ module Web3.Decoders
         , addressDecoder
         , keccakDecoder
         , txIdDecoder
-        , checksumAddressDecoder
         , bytesDecoder
         , hexDecoder
         , toAsciiDecoder
         , syncStatusDecoder
+        , maybeSyncStatusDecoder
         , contractInfoDecoder
         , eventLogDecoder
         , bytesToString
@@ -159,11 +159,6 @@ addressDecoder =
     specialTypeDecoder Address
 
 
-checksumAddressDecoder : Decoder ChecksumAddress
-checksumAddressDecoder =
-    specialTypeDecoder ChecksumAddress
-
-
 keccakDecoder : Decoder Keccak256
 keccakDecoder =
     specialTypeDecoder Keccak256
@@ -213,6 +208,14 @@ syncStatusDecoder =
         |> required "startingBlock" int
         |> required "currentBlock" int
         |> required "highestBlock" int
+
+
+maybeSyncStatusDecoder : Decoder (Maybe SyncStatus)
+maybeSyncStatusDecoder =
+    Decode.oneOf
+        [ Decode.map Just syncStatusDecoder
+        , Decode.map (\a -> Nothing) Decode.bool
+        ]
 
 
 addressToString : Address -> String

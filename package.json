@@ -5,6 +5,7 @@
   "scripts": {
     "rpc": "testrpc -s 1 -b 4 -i 42",
     "web": "python -m SimpleHTTPServer 8000",
+    "test": "elm-live test/Main.elm --output=test/elm.js --debug",
     "lightbox-build": "elm-make examples/lightbox/Main.elm --output examples/lightbox/elm.js --yes --debug",
     "testbox-build": "elm-make examples/testbox/Main.elm --output examples/testbox/elm.js --yes --debug",
     "lightbox-live": "elm-live examples/lightbox/Main.elm --output=examples/lightbox/elm.js --open --port=1234 --dir=examples/lightbox",

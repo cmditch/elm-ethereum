@@ -9,7 +9,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         web3BigNumberFields: ["totalDifficulty", "difficulty", "value", "gasPrice"],
         error:
         {
-            nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
+            nullResponse: "Web3 responded with null. Unlock wallet if using MetaMask. Otherwise, check your parameters. Non-existent address, or unmined block perhaps?",
             undefinedResposnse: "Web3 responded with undefined.",
             deniedTransaction: "MetaMask Tx Signature: User denied transaction signature.",
             unknown: "Unknwown till further testing is performed."
@@ -35,7 +35,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 */
 
     function toTask(request) {
-        console.log("To task: ", request);
+        console.log("toTask: ", request);
         return nativeBinding(function(callback) {
             try
             {

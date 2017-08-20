@@ -40,10 +40,6 @@ type Keccak256
     = Keccak256 String
 
 
-type ChecksumAddress
-    = ChecksumAddress String
-
-
 type Abi
     = Abi String
 

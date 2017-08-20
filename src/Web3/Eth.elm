@@ -2,9 +2,16 @@ module Web3.Eth
     exposing
         ( setDefaultAccount
         , getDefaultAccount
-        , getBlockNumber
+        , getSyncing
         , getBlock
         , coinbase
+        , getHashrate
+        , getGasPrice
+        , getAccounts
+        , getMining
+        , getBlockNumber
+        , getBalance
+        , getStorageAt
         , estimateGas
         , sendTransaction
         , defaultTxParams
@@ -16,7 +23,6 @@ module Web3.Eth
 
 import Web3
 import Web3.Types exposing (..)
-import Web3.Decoders exposing (expectInt, expectBool, expectJson, expectString, expectBigInt)
 import Web3.Decoders exposing (..)
 import Web3.Encoders exposing (encodeTxParams, getBlockIdValue)
 import Web3.EM
@@ -51,7 +57,7 @@ getSyncing =
     Web3.toTask
         { func = "eth.getSyncing"
         , args = Encode.list []
-        , expect = expectJson (Decode.maybe syncStatusDecoder)
+        , expect = expectJson maybeSyncStatusDecoder
         , callType = Async
         }
 
@@ -67,10 +73,12 @@ watchIncomingTxs name =
 
 
 
--- Tricky one to implement, maybe ports only?
--- isSyncing : Task Error (Maybe SyncStatus)
--- isSyncing =
--- https://github.com/ethereum/wiki/wiki/JavaScript-API#web3ethissyncing
+{-
+   Implement within Effect Manager.
+   NOTE Doesn't seem to work within MetaMask!
+   isSyncing : Task Error (Maybe SyncStatus)
+
+-}
 
 
 getCoinbase : Task Error Address
