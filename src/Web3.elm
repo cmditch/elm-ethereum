@@ -106,7 +106,7 @@ toAscii (Hex val) =
     toTask
         { func = "toAscii"
         , args = Encode.list [ Encode.string val ]
-        , expect = expectString
+        , expect = expectJson toAsciiDecoder
         , callType = Sync
         }
 

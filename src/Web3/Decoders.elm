@@ -11,6 +11,7 @@ module Web3.Decoders
         , checksumAddressDecoder
         , bytesDecoder
         , hexDecoder
+        , toAsciiDecoder
         , syncStatusDecoder
         , contractInfoDecoder
         , eventLogDecoder
@@ -181,6 +182,17 @@ bytesDecoder =
 hexDecoder : Decoder Hex
 hexDecoder =
     specialTypeDecoder Hex
+
+
+toAsciiDecoder : Decoder String
+toAsciiDecoder =
+    let
+        removeNulls =
+            String.split "\x00"
+                >> String.join ""
+                >> Decode.succeed
+    in
+        string |> Decode.andThen removeNulls
 
 
 specialTypeDecoder : (String -> a) -> Decoder a

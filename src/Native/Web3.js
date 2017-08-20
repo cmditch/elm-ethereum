@@ -67,8 +67,8 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     var web3Response = func.apply(null, request.args);
                     var result = handleWeb3Response({
                         error: null,
-                        response: r,
-                        decoder: undefined
+                        response: web3Response,
+                        decoder: request.expect.responseToResult
                     });
 
                     console.log("Sync result: ", result);
