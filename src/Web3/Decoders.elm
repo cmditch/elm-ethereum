@@ -14,7 +14,6 @@ module Web3.Decoders
         , blockNumDecoder
         , toAsciiDecoder
         , syncStatusDecoder
-        , maybeSyncStatusDecoder
         , contractInfoDecoder
         , eventLogDecoder
         , bytesToString
@@ -39,7 +38,7 @@ import Web3.Internal exposing (expectStringResponse)
 blockDecoder : Decoder a -> Decoder (Block a)
 blockDecoder decoder =
     decode Block
-        |> required "author" (nullable addressDecoder)
+        |> optional "author" (nullable addressDecoder) Nothing
         |> required "difficulty" bigIntDecoder
         |> required "extraData" string
         |> required "gasLimit" int
@@ -203,14 +202,6 @@ syncStatusDecoder =
         |> required "startingBlock" int
         |> required "currentBlock" int
         |> required "highestBlock" int
-
-
-maybeSyncStatusDecoder : Decoder (Maybe SyncStatus)
-maybeSyncStatusDecoder =
-    Decode.oneOf
-        [ Decode.map Just syncStatusDecoder
-        , Decode.map (\a -> Nothing) Decode.bool
-        ]
 
 
 addressToString : Address -> String

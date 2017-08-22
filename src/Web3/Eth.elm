@@ -13,6 +13,7 @@ module Web3.Eth
         , getStorageAt
         , getCode
         , getBlock
+        , getBlockTxObjs
         , getBlockTransactionCount
         , getUncle
         , getBlockUncleCount
@@ -62,7 +63,7 @@ getSyncing =
     Web3.toTask
         { func = "eth.getSyncing"
         , args = Encode.list []
-        , expect = expectJson maybeSyncStatusDecoder
+        , expect = expectJson (Decode.maybe syncStatusDecoder)
         , callType = Async
         }
 
@@ -236,12 +237,12 @@ getBlockUncleCount blockId =
         }
 
 
-getUncle : BlockId -> Int -> Task Error (Block TxId)
+getUncle : BlockId -> Int -> Task Error (Maybe (Block TxId))
 getUncle blockId index =
     Web3.toTask
         { func = "eth.getUncle"
         , args = Encode.list [ getBlockIdValue blockId, Encode.int index, Encode.bool False ]
-        , expect = expectJson blockTxIdDecoder
+        , expect = expectJson (Decode.maybe blockTxIdDecoder)
         , callType = Async
         }
 

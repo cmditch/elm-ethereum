@@ -84,6 +84,14 @@ type alias Block a =
     }
 
 
+type alias BlockTxObjs =
+    Block TxObj
+
+
+type alias BlockTxIds =
+    Block TxId
+
+
 
 {-
    TRANSACTIONS
@@ -162,7 +170,8 @@ type alias EventLog a =
     , args : a
     , blockHash :
         Maybe String
-        -- TODO Possible to make BlockId?
+
+    -- TODO Possible to make BlockId?
     , blockNumber : Maybe Int
     , event : String
     , logIndex : Maybe Int

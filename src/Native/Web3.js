@@ -311,16 +311,16 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             console.log("Web3 response error: ",r);
             return {ctor: "Err", _0: r.error.message.split("\n")[0] }
         }
-        else if (r.response === null)
-        {
-            console.log("Web3 response was null: ", r);
-            return {ctor: "Err", _0: config.error.nullResponse }
-        }
-        else if (r.response === undefined)
-        {
-            console.log("Web3 response was undefined: ", r);
-            return { ctor: "Err", _0: config.error.undefinedResposnse }
-        }
+        // else if (r.response === null)
+        // {
+        //     console.log("Web3 response was null: ", r);
+        //     return {ctor: "Err", _0: config.error.nullResponse }
+        // }
+        // else if (r.response === undefined)
+        // {
+        //     console.log("Web3 response was undefined: ", r);
+        //     return { ctor: "Err", _0: config.error.undefinedResposnse }
+        // }
         else if (r.wasGetEvent)
         {
             return r.decoder( JSON.stringify(r.response) )
@@ -345,7 +345,8 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 */
     function formatWeb3Response(r)
     {
-        if (r.isBigNumber) { return JSON.stringify(r.toFixed()) }
+        if (r === null || r == undefined) { return r };
+        if (r.isBigNumber) { return JSON.stringify(r.toFixed()) };
 
         config.web3BigNumberFields.forEach(function(val)
         {
