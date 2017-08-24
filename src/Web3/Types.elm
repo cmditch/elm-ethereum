@@ -40,10 +40,6 @@ type Keccak256
     = Keccak256 String
 
 
-type ChecksumAddress
-    = ChecksumAddress String
-
-
 type Abi
     = Abi String
 
@@ -63,12 +59,12 @@ type BlockId
 
 
 type alias Block a =
-    { author : Address
+    { author : Maybe Address
     , difficulty : BigInt
     , extraData : String
     , gasLimit : Int
     , gasUsed : Int
-    , hash : String
+    , hash : BlockId
     , logsBloom : String
     , miner : String
     , mixHash : String
@@ -88,6 +84,14 @@ type alias Block a =
     }
 
 
+type alias BlockTxObjs =
+    Block TxObj
+
+
+type alias BlockTxIds =
+    Block TxId
+
+
 
 {-
    TRANSACTIONS
@@ -95,15 +99,15 @@ type alias Block a =
 
 
 type alias TxObj =
-    { blockHash : Hex
+    { blockHash : BlockId
     , blockNumber : Int
     , creates : Maybe Address
     , from : Address
     , gas : Int
     , gasPrice : BigInt
-    , hash : String
+    , hash : TxId
     , input : Bytes
-    , networkId : Int
+    , networkId : Maybe Int
     , nonce : Int
     , publicKey : Hex
     , r : Hex
@@ -119,9 +123,9 @@ type alias TxObj =
 
 
 type alias TxReceipt =
-    { transactionHash : String
+    { transactionHash : TxId
     , transactionIndex : Int
-    , blockHash : String
+    , blockHash : BlockId
     , blockNumber : Int
     , gasUsed : Int
     , cumulativeGasUsed : Int
@@ -166,7 +170,8 @@ type alias EventLog a =
     , args : a
     , blockHash :
         Maybe String
-        -- TODO Possible to make BlockId?
+
+    -- TODO Possible to make BlockId?
     , blockNumber : Maybe Int
     , event : String
     , logIndex : Maybe Int

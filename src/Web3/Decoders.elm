@@ -1,6 +1,7 @@
 module Web3.Decoders
     exposing
         ( blockDecoder
+        , blockTxIdDecoder
         , blockTxObjDecoder
         , txObjDecoder
         , txReceiptDecoder
@@ -8,9 +9,9 @@ module Web3.Decoders
         , addressDecoder
         , keccakDecoder
         , txIdDecoder
-        , checksumAddressDecoder
         , bytesDecoder
         , hexDecoder
+        , blockNumDecoder
         , toAsciiDecoder
         , syncStatusDecoder
         , contractInfoDecoder
@@ -34,15 +35,15 @@ import Web3.Types exposing (..)
 import Web3.Internal exposing (expectStringResponse)
 
 
-blockDecoder : Decoder (Block String)
-blockDecoder =
+blockDecoder : Decoder a -> Decoder (Block a)
+blockDecoder decoder =
     decode Block
-        |> optional "author" addressDecoder (Address "addressError")
+        |> optional "author" (nullable addressDecoder) Nothing
         |> required "difficulty" bigIntDecoder
         |> required "extraData" string
         |> required "gasLimit" int
         |> required "gasUsed" int
-        |> required "hash" string
+        |> required "hash" blockHashDecoder
         |> required "logsBloom" string
         |> required "miner" string
         |> required "mixHash" string
@@ -56,50 +57,33 @@ blockDecoder =
         |> required "stateRoot" string
         |> required "timestamp" int
         |> required "totalDifficulty" bigIntDecoder
-        |> required "transactions" (list string)
+        |> optional "transactions" (list decoder) []
         |> required "transactionsRoot" string
         |> required "uncles" (list string)
+
+
+blockTxIdDecoder : Decoder (Block TxId)
+blockTxIdDecoder =
+    blockDecoder txIdDecoder
 
 
 blockTxObjDecoder : Decoder (Block TxObj)
 blockTxObjDecoder =
-    decode Block
-        |> optional "author" addressDecoder (Address "addressError")
-        |> required "difficulty" bigIntDecoder
-        |> required "extraData" string
-        |> required "gasLimit" int
-        |> required "gasUsed" int
-        |> required "hash" string
-        |> required "logsBloom" string
-        |> required "miner" string
-        |> required "mixHash" string
-        |> required "nonce" string
-        |> required "number" int
-        |> required "parentHash" string
-        |> required "receiptsRoot" string
-        |> optional "sealFields" (list string) []
-        |> required "sha3Uncles" string
-        |> required "size" int
-        |> required "stateRoot" string
-        |> required "timestamp" int
-        |> required "totalDifficulty" bigIntDecoder
-        |> required "transactions" (list txObjDecoder)
-        |> required "transactionsRoot" string
-        |> required "uncles" (list string)
+    blockDecoder txObjDecoder
 
 
 txObjDecoder : Decoder TxObj
 txObjDecoder =
     decode TxObj
-        |> required "blockHash" hexDecoder
+        |> required "blockHash" blockHashDecoder
         |> required "blockNumber" int
         |> required "creates" (nullable addressDecoder)
         |> required "from" addressDecoder
         |> required "gas" int
         |> required "gasPrice" bigIntDecoder
-        |> required "hash" string
+        |> required "hash" txIdDecoder
         |> required "input" bytesDecoder
-        |> required "networkId" int
+        |> required "networkId" (nullable int)
         |> required "nonce" int
         |> required "publicKey" hexDecoder
         |> required "r" hexDecoder
@@ -107,7 +91,7 @@ txObjDecoder =
         |> required "s" hexDecoder
         |> required "standardV" hexDecoder
         |> required "to" (nullable addressDecoder)
-        |> required "logs" (list logDecoder)
+        |> optional "logs" (list logDecoder) []
         |> required "transactionIndex" int
         |> required "v" hexDecoder
         |> required "value" bigIntDecoder
@@ -116,9 +100,9 @@ txObjDecoder =
 txReceiptDecoder : Decoder TxReceipt
 txReceiptDecoder =
     decode TxReceipt
-        |> required "transactionHash" string
+        |> required "transactionHash" txIdDecoder
         |> required "transactionIndex" int
-        |> required "blockHash" string
+        |> required "blockHash" blockHashDecoder
         |> required "blockNumber" int
         |> required "gasUsed" int
         |> required "cumulativeGasUsed" int
@@ -159,11 +143,6 @@ addressDecoder =
     specialTypeDecoder Address
 
 
-checksumAddressDecoder : Decoder ChecksumAddress
-checksumAddressDecoder =
-    specialTypeDecoder ChecksumAddress
-
-
 keccakDecoder : Decoder Keccak256
 keccakDecoder =
     specialTypeDecoder Keccak256
@@ -182,6 +161,16 @@ bytesDecoder =
 hexDecoder : Decoder Hex
 hexDecoder =
     specialTypeDecoder Hex
+
+
+blockNumDecoder : Decoder BlockId
+blockNumDecoder =
+    int |> Decode.andThen (BlockNum >> Decode.succeed)
+
+
+blockHashDecoder : Decoder BlockId
+blockHashDecoder =
+    string |> Decode.andThen (BlockHash >> Decode.succeed)
 
 
 toAsciiDecoder : Decoder String

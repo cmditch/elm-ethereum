@@ -8,7 +8,8 @@
         "./src",
         "./sandbox",
         "./examples/lightbox",
-        "./examples/testbox"
+        "./examples/testbox",
+        "./test"
     ],
     "exposed-modules": [],
     "native-modules": true,

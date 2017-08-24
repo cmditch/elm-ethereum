@@ -2,9 +2,22 @@ module Web3.Eth
     exposing
         ( setDefaultAccount
         , getDefaultAccount
-        , getBlockNumber
-        , getBlock
+        , getSyncing
         , coinbase
+        , getHashrate
+        , getGasPrice
+        , getAccounts
+        , getMining
+        , getBlockNumber
+        , getBalance
+        , getStorageAt
+        , getCode
+        , getBlock
+        , getBlockTxObjs
+        , getBlockTransactionCount
+        , getUncle
+        , getBlockUncleCount
+        , getTransaction
         , estimateGas
         , sendTransaction
         , defaultTxParams
@@ -16,7 +29,6 @@ module Web3.Eth
 
 import Web3
 import Web3.Types exposing (..)
-import Web3.Decoders exposing (expectInt, expectBool, expectJson, expectString, expectBigInt)
 import Web3.Decoders exposing (..)
 import Web3.Encoders exposing (encodeTxParams, getBlockIdValue)
 import Web3.EM
@@ -67,10 +79,12 @@ watchIncomingTxs name =
 
 
 
--- Tricky one to implement, maybe ports only?
--- isSyncing : Task Error (Maybe SyncStatus)
--- isSyncing =
--- https://github.com/ethereum/wiki/wiki/JavaScript-API#web3ethissyncing
+{-
+   Implement within Effect Manager.
+   NOTE Doesn't seem to work within MetaMask!
+   isSyncing : Task Error (Maybe SyncStatus)
+
+-}
 
 
 getCoinbase : Task Error Address
@@ -133,12 +147,12 @@ accounts =
     getAccounts
 
 
-getBlockNumber : Task Error Int
+getBlockNumber : Task Error BlockId
 getBlockNumber =
     Web3.toTask
         { func = "eth.getBlockNumber"
         , args = Encode.list []
-        , expect = expectInt
+        , expect = expectJson blockNumDecoder
         , callType = Async
         }
 
@@ -183,18 +197,14 @@ getCodeAtBlock blockId (Address address) =
         }
 
 
-getBlock : BlockId -> Task Error (Block String)
+getBlock : BlockId -> Task Error (Block TxId)
 getBlock blockId =
     Web3.toTask
         { func = "eth.getBlock"
         , args = Encode.list [ getBlockIdValue blockId, Encode.bool False ]
-        , expect = expectJson blockDecoder
+        , expect = expectJson blockTxIdDecoder
         , callType = Async
         }
-
-
-
--- TODO Change name of BlockTxObjs type?
 
 
 getBlockTxObjs : BlockId -> Task Error (Block TxObj)
@@ -217,12 +227,22 @@ getBlockTransactionCount blockId =
         }
 
 
-getUncle : BlockId -> Int -> Task Error (Block String)
+getBlockUncleCount : BlockId -> Task Error Int
+getBlockUncleCount blockId =
+    Web3.toTask
+        { func = "eth.getBlockUncleCount"
+        , args = Encode.list [ getBlockIdValue blockId ]
+        , expect = expectInt
+        , callType = Async
+        }
+
+
+getUncle : BlockId -> Int -> Task Error (Maybe (Block TxId))
 getUncle blockId index =
     Web3.toTask
         { func = "eth.getUncle"
         , args = Encode.list [ getBlockIdValue blockId, Encode.int index, Encode.bool False ]
-        , expect = expectJson blockDecoder
+        , expect = expectJson (Decode.maybe blockTxIdDecoder)
         , callType = Async
         }
 

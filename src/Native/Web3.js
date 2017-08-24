@@ -9,7 +9,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         web3BigNumberFields: ["totalDifficulty", "difficulty", "value", "gasPrice"],
         error:
         {
-            nullResponse: "Web3 responded with null. Check your parameters. Non-existent address, or unmined block perhaps?",
+            nullResponse: "Web3 responded with null. Unlock wallet if using MetaMask. Otherwise, check your parameters. Non-existent address, or unmined block perhaps?",
             undefinedResposnse: "Web3 responded with undefined.",
             deniedTransaction: "MetaMask Tx Signature: User denied transaction signature.",
             unknown: "Unknwown till further testing is performed."
@@ -35,7 +35,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 */
 
     function toTask(request) {
-        console.log("To task: ", request);
+        console.log("toTask: ", request);
         return nativeBinding(function(callback) {
             try
             {
@@ -44,10 +44,12 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     var result = handleWeb3Response({
                         error: e,
                         response: r,
-                        decoder: request.expect.responseToResult
+                        decoder: request.expect.responseToResult,
+                        // funcName for debugging
+                        funcName: request.func
                     });
 
-                    console.log("Async result: ", result)
+                    console.log(request.func + " ASYNC result: ", result);
 
                     switch (result.ctor)
                     {
@@ -68,10 +70,12 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     var result = handleWeb3Response({
                         error: null,
                         response: web3Response,
-                        decoder: request.expect.responseToResult
+                        decoder: request.expect.responseToResult,
+                        // funcName for debugging
+                        funcName: request.func
                     });
 
-                    console.log("Sync result: ", result);
+                    console.log(request.func + " SYNC result: ", result);
 
                     switch (result.ctor)
                     {
@@ -307,16 +311,16 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             console.log("Web3 response error: ",r);
             return {ctor: "Err", _0: r.error.message.split("\n")[0] }
         }
-        else if (r.response === null)
-        {
-            console.log("Web3 response was null: ", r);
-            return {ctor: "Err", _0: config.error.nullResponse }
-        }
-        else if (r.response === undefined)
-        {
-            console.log("Web3 response was undefined: ", r);
-            return { ctor: "Err", _0: config.error.undefinedResposnse }
-        }
+        // else if (r.response === null)
+        // {
+        //     console.log("Web3 response was null: ", r);
+        //     return {ctor: "Err", _0: config.error.nullResponse }
+        // }
+        // else if (r.response === undefined)
+        // {
+        //     console.log("Web3 response was undefined: ", r);
+        //     return { ctor: "Err", _0: config.error.undefinedResposnse }
+        // }
         else if (r.wasGetEvent)
         {
             return r.decoder( JSON.stringify(r.response) )
@@ -341,7 +345,8 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 */
     function formatWeb3Response(r)
     {
-        if (r.isBigNumber) { return JSON.stringify(r.toFixed()) }
+        if (r === null || r == undefined) { return r };
+        if (r.isBigNumber) { return JSON.stringify(r.toFixed()) };
 
         config.web3BigNumberFields.forEach(function(val)
         {
