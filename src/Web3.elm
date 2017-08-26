@@ -35,7 +35,7 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 
 -}
 
-import BigInt exposing (BigInt, mul, fromInt, fromString, divmod)
+import BigInt exposing (BigInt)
 import Time
 import Process
 import Task exposing (Task)
@@ -241,82 +241,6 @@ fromWei unit amount =
                 ++ (String.right decimalIndex amountStr)
     in
         result |> Regex.replace Regex.All (Regex.regex "(0*(?=0.|\\d+))|(\\.?0*?)$") (\_ -> "")
-
-
-getValueOfUnit : EthUnit -> BigInt
-getValueOfUnit unit =
-    case unit of
-        Wei ->
-            (fromInt 1)
-
-        Kwei ->
-            (fromInt 1000)
-
-        Ada ->
-            (fromInt 1000)
-
-        Femtoether ->
-            (fromInt 1000)
-
-        Mwei ->
-            (fromInt 1000000)
-
-        Babbage ->
-            (fromInt 1000000)
-
-        Picoether ->
-            (fromInt 1000000)
-
-        Gwei ->
-            (fromInt 1000000000)
-
-        Shannon ->
-            (fromInt 1000000000)
-
-        Nanoether ->
-            (fromInt 1000000000)
-
-        Nano ->
-            (fromInt 1000000000)
-
-        Szabo ->
-            (fromInt 1000000000000)
-
-        Microether ->
-            (fromInt 1000000000000)
-
-        Micro ->
-            (fromInt 1000000000000)
-
-        Finney ->
-            (fromInt 1000000000000000)
-
-        Milliether ->
-            (fromInt 1000000000000000)
-
-        Milli ->
-            (fromInt 1000000000000000)
-
-        Ether ->
-            (fromInt 1000000000000000000)
-
-        Kether ->
-            mul (fromInt 1000000000000000000) (fromInt 1000)
-
-        Grand ->
-            mul (fromInt 1000000000000000000) (fromInt 1000)
-
-        Einstein ->
-            mul (fromInt 1000000000000000000) (fromInt 1000)
-
-        Mether ->
-            mul (fromInt 1000000000000000000) (fromInt 1000000)
-
-        Gether ->
-            mul (fromInt 1000000000000000000) (fromInt 1000000000)
-
-        Tether ->
-            mul (fromInt 1000000000000000000) (fromInt 1000000000000)
 
 
 decimalShift : EthUnit -> Int
