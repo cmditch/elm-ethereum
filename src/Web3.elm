@@ -212,24 +212,25 @@ toWei unit amount =
         Err "Malformed number string passed to `toWei` function."
 
 
-fromWei : EthUnit -> BigInt -> Float
+fromWei : EthUnit -> BigInt -> String
 fromWei unit amount =
     let
-        unitDegree =
-            getValueOfUnit unit
+        decimalIndex =
+            decimalShift unit
 
-        bigIntToFloat value =
-            toFloat <| Result.withDefault 0 <| String.toInt <| BigInt.toString value
+        -- There are under 10^27 wei in existance (so we safe for the next couple of malenium of mining).
+        amountStr =
+            BigInt.toString amount |> String.padLeft 27 '0'
 
-        ( characteristic, remainder ) =
-            divmod amount unitDegree
-                |> Maybe.map (\( a, b ) -> ( bigIntToFloat a, bigIntToFloat b ))
-                |> Maybe.withDefault ( 0, 0 )
+        amountLen =
+            String.length amountStr
 
-        mantissa =
-            remainder / bigIntToFloat unitDegree
+        result =
+            (String.left (27 - decimalIndex) amountStr)
+                ++ "."
+                ++ (String.right decimalIndex amountStr)
     in
-        characteristic + mantissa
+        result |> Regex.replace Regex.All (Regex.regex "(0*(?=0.|\\d+))|(\\.?0*?)$") (\_ -> "")
 
 
 getValueOfUnit : EthUnit -> BigInt
