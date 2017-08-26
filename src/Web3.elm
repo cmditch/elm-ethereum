@@ -34,6 +34,7 @@ import Native.Web3
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
 import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
+import Regex
 
 
 -- WEB3
@@ -179,12 +180,44 @@ toChecksumAddress (Address address) =
         }
 
 
-toWei : EthDenomination -> BigInt -> BigInt
+floatRegex =
+    Regex.regex "^\\d*\\.?\\d+$"
+
+
+toWei : EthUnit -> String -> Result String BigInt
 toWei unit amount =
-    mul amount (getValueOfUnit unit)
+    -- check to make sure input string is formatted correctly, should never error in here.
+    if Regex.contains floatRegex amount then
+        let
+            decimalPoints =
+                decimalShift unit
+
+            formatMantissa mantissa =
+                String.slice 0 decimalPoints mantissa
+                    |> String.padRight decimalPoints '0'
+
+            finalResult =
+                case (String.split "." amount) of
+                    [ a, b ] ->
+                        Debug.log "listdebug both:" (a ++ (formatMantissa b))
+
+                    [ a ] ->
+                        Debug.log "listdebug second:" (a ++ (formatMantissa "0"))
+
+                    _ ->
+                        "ImpossibleError"
+        in
+            case (BigInt.fromString finalResult) of
+                Just result ->
+                    Ok result
+
+                Nothing ->
+                    Err "There was an error calculating the result. However, the fault is not yours; please report this bug on github."
+    else
+        Err "Malformed number string passed to `toWei` function."
 
 
-fromWei : EthDenomination -> BigInt -> Float
+fromWei : EthUnit -> BigInt -> Float
 fromWei unit amount =
     let
         unitDegree =
@@ -204,7 +237,7 @@ fromWei unit amount =
         characteristic + mantissa
 
 
-getValueOfUnit : EthDenomination -> BigInt
+getValueOfUnit : EthUnit -> BigInt
 getValueOfUnit unit =
     case unit of
         Wei ->
@@ -278,6 +311,82 @@ getValueOfUnit unit =
 
         Tether ->
             mul (fromInt 1000000000000000000) (fromInt 1000000000000)
+
+
+decimalShift : EthUnit -> Int
+decimalShift unit =
+    case unit of
+        Wei ->
+            0
+
+        Kwei ->
+            3
+
+        Ada ->
+            3
+
+        Femtoether ->
+            3
+
+        Mwei ->
+            6
+
+        Babbage ->
+            6
+
+        Picoether ->
+            6
+
+        Gwei ->
+            9
+
+        Shannon ->
+            9
+
+        Nanoether ->
+            9
+
+        Nano ->
+            9
+
+        Szabo ->
+            12
+
+        Microether ->
+            12
+
+        Micro ->
+            12
+
+        Finney ->
+            15
+
+        Milliether ->
+            15
+
+        Milli ->
+            15
+
+        Ether ->
+            18
+
+        Kether ->
+            21
+
+        Grand ->
+            21
+
+        Einstein ->
+            21
+
+        Mether ->
+            24
+
+        Gether ->
+            27
+
+        Tether ->
+            30
 
 
 toTask : Request a -> Task Error a

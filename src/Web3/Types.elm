@@ -166,7 +166,8 @@ type alias EventLog a =
     , args : a
     , blockHash :
         Maybe String
-        -- TODO Possible to make BlockId?
+
+    -- TODO Possible to make BlockId?
     , blockNumber : Maybe Int
     , event : String
     , logIndex : Maybe Int
@@ -222,7 +223,7 @@ type CallType
 
 {-| Available ethereum denominations.
 -}
-type EthDenomination
+type EthUnit
     = Wei --        1
     | Kwei --       1000
     | Ada --        1000
