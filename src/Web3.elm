@@ -232,15 +232,15 @@ fromWei unit amount =
         amountStr =
             BigInt.toString amount |> String.padLeft 27 '0'
 
-        amountLen =
-            String.length amountStr
-
         result =
             (String.left (27 - decimalIndex) amountStr)
                 ++ "."
                 ++ (String.right decimalIndex amountStr)
     in
-        result |> Regex.replace Regex.All (Regex.regex "(0*(?=0.|\\d+))|(\\.?0*?)$") (\_ -> "")
+        result
+            |> Regex.replace Regex.All
+                (Regex.regex "(^0*(?=0\\.|[1-9]))|(\\.?0*$)")
+                (\i -> "")
 
 
 decimalShift : EthUnit -> Int
