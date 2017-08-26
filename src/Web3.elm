@@ -16,6 +16,8 @@ module Web3
         , setOrGet
         , getEvent
         , retry
+        , fromWei
+        , toWei
         )
 
 {-| Version allows one to check the various library, protocol, & network versions one is interacting with. [Web3
@@ -33,6 +35,7 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 
 -}
 
+import BigInt exposing (BigInt, mul, fromInt, fromString, divmod)
 import Time
 import Process
 import Task exposing (Task)
@@ -41,6 +44,7 @@ import Native.Web3
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
 import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
+import Regex
 
 
 -- WEB3
@@ -186,17 +190,209 @@ toChecksumAddress (Address address) =
         }
 
 
+toWei : EthUnit -> String -> Result String BigInt
+toWei unit amount =
+    -- check to make sure input string is formatted correctly, should never error in here.
+    if Regex.contains (Regex.regex "^\\d*\\.?\\d+$") amount then
+        let
+            decimalPoints =
+                decimalShift unit
 
-{-
-   TODO
-   fromWei : EthUnit -> BigInt -> String
+            formatMantissa =
+                String.slice 0 decimalPoints >> String.padRight decimalPoints '0'
 
-   toWei : EthUnit -> String -> Maybe BigInt
+            finalResult =
+                case (String.split "." amount) of
+                    [ a, b ] ->
+                        a ++ (formatMantissa b)
 
-   bigIntToWei : EthUnit -> BigInt -> BigInt
+                    [ a ] ->
+                        a ++ (formatMantissa "")
 
--}
--- CORE
+                    _ ->
+                        "ImpossibleError"
+        in
+            case (BigInt.fromString finalResult) of
+                Just result ->
+                    Ok result
+
+                Nothing ->
+                    Err "There was an error calculating the result. However, the fault is not yours; please report this bug on github."
+    else
+        Err "Malformed number string passed to `toWei` function."
+
+
+fromWei : EthUnit -> BigInt -> String
+fromWei unit amount =
+    let
+        decimalIndex =
+            decimalShift unit
+
+        -- There are under 10^27 wei in existance (so we safe for the next couple of malenium of mining).
+        amountStr =
+            BigInt.toString amount |> String.padLeft 27 '0'
+
+        amountLen =
+            String.length amountStr
+
+        result =
+            (String.left (27 - decimalIndex) amountStr)
+                ++ "."
+                ++ (String.right decimalIndex amountStr)
+    in
+        result |> Regex.replace Regex.All (Regex.regex "(0*(?=0.|\\d+))|(\\.?0*?)$") (\_ -> "")
+
+
+getValueOfUnit : EthUnit -> BigInt
+getValueOfUnit unit =
+    case unit of
+        Wei ->
+            (fromInt 1)
+
+        Kwei ->
+            (fromInt 1000)
+
+        Ada ->
+            (fromInt 1000)
+
+        Femtoether ->
+            (fromInt 1000)
+
+        Mwei ->
+            (fromInt 1000000)
+
+        Babbage ->
+            (fromInt 1000000)
+
+        Picoether ->
+            (fromInt 1000000)
+
+        Gwei ->
+            (fromInt 1000000000)
+
+        Shannon ->
+            (fromInt 1000000000)
+
+        Nanoether ->
+            (fromInt 1000000000)
+
+        Nano ->
+            (fromInt 1000000000)
+
+        Szabo ->
+            (fromInt 1000000000000)
+
+        Microether ->
+            (fromInt 1000000000000)
+
+        Micro ->
+            (fromInt 1000000000000)
+
+        Finney ->
+            (fromInt 1000000000000000)
+
+        Milliether ->
+            (fromInt 1000000000000000)
+
+        Milli ->
+            (fromInt 1000000000000000)
+
+        Ether ->
+            (fromInt 1000000000000000000)
+
+        Kether ->
+            mul (fromInt 1000000000000000000) (fromInt 1000)
+
+        Grand ->
+            mul (fromInt 1000000000000000000) (fromInt 1000)
+
+        Einstein ->
+            mul (fromInt 1000000000000000000) (fromInt 1000)
+
+        Mether ->
+            mul (fromInt 1000000000000000000) (fromInt 1000000)
+
+        Gether ->
+            mul (fromInt 1000000000000000000) (fromInt 1000000000)
+
+        Tether ->
+            mul (fromInt 1000000000000000000) (fromInt 1000000000000)
+
+
+decimalShift : EthUnit -> Int
+decimalShift unit =
+    case unit of
+        Wei ->
+            0
+
+        Kwei ->
+            3
+
+        Ada ->
+            3
+
+        Femtoether ->
+            3
+
+        Mwei ->
+            6
+
+        Babbage ->
+            6
+
+        Picoether ->
+            6
+
+        Gwei ->
+            9
+
+        Shannon ->
+            9
+
+        Nanoether ->
+            9
+
+        Nano ->
+            9
+
+        Szabo ->
+            12
+
+        Microether ->
+            12
+
+        Micro ->
+            12
+
+        Finney ->
+            15
+
+        Milliether ->
+            15
+
+        Milli ->
+            15
+
+        Ether ->
+            18
+
+        Kether ->
+            21
+
+        Grand ->
+            21
+
+        Einstein ->
+            21
+
+        Mether ->
+            24
+
+        Gether ->
+            27
+
+        Tether ->
+            30
 
 
 toTask : Request a -> Task Error a
