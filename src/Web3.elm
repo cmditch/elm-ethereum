@@ -180,29 +180,24 @@ toChecksumAddress (Address address) =
         }
 
 
-floatRegex =
-    Regex.regex "^\\d*\\.?\\d+$"
-
-
 toWei : EthUnit -> String -> Result String BigInt
 toWei unit amount =
     -- check to make sure input string is formatted correctly, should never error in here.
-    if Regex.contains floatRegex amount then
+    if Regex.contains (Regex.regex "^\\d*\\.?\\d+$") amount then
         let
             decimalPoints =
                 decimalShift unit
 
-            formatMantissa mantissa =
-                String.slice 0 decimalPoints mantissa
-                    |> String.padRight decimalPoints '0'
+            formatMantissa =
+                String.slice 0 decimalPoints >> String.padRight decimalPoints '0'
 
             finalResult =
                 case (String.split "." amount) of
                     [ a, b ] ->
-                        Debug.log "listdebug both:" (a ++ (formatMantissa b))
+                        a ++ (formatMantissa b)
 
                     [ a ] ->
-                        Debug.log "listdebug second:" (a ++ (formatMantissa "0"))
+                        a ++ (formatMantissa "")
 
                     _ ->
                         "ImpossibleError"
