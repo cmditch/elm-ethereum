@@ -193,6 +193,12 @@ fromWei unit amount =
                 (\i -> "")
 
 
+bigIntToWei : EthUnit -> BigInt -> BigInt
+bigIntToWei unit amount =
+    toWei unit (toString amount)
+        |> Result.withDefault (BigInt.fromInt 0)
+
+
 
 --Private
 
