@@ -1,3 +1,7 @@
+-- THESE ARE ALL OLD FROM web3.js 0.20.1
+-- NEED TO CHECK THESE FOR web3.js 1.0
+
+
 module Main exposing (..)
 
 -- MetaMask + MainNet (1)

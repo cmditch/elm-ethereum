@@ -4,7 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Dict
-import Task
+import Task exposing (Task)
 import BigInt exposing (BigInt)
 import Web3
 import Web3.Types exposing (..)
@@ -29,9 +29,12 @@ init =
     , network = Nothing
     , error = Nothing
     }
-        ! [ Task.attempt EstablishNetworkId
-                (Web3.retry { sleep = 1, attempts = 30 } Web3.Version.getNetwork)
-          ]
+        ! [ Task.attempt EstablishNetworkId (retry Web3.Version.getNetwork) ]
+
+
+retry : Task Error a -> Task Error a
+retry =
+    Web3.retry { sleep = 1, attempts = 3 }
 
 
 type alias Model =
