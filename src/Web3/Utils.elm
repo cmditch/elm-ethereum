@@ -167,7 +167,7 @@ toWei unit amount =
                     Ok result
 
                 Nothing ->
-                    Err "There was an error calculating the result. However, the fault is not yours; please report this bug on github."
+                    Err "There was an error calculating toWei result. However, the fault is not yours; please report this bug on github."
     else
         Err "Malformed number string passed to `toWei` function."
 
@@ -195,8 +195,9 @@ fromWei unit amount =
 
 bigIntToWei : EthUnit -> BigInt -> BigInt
 bigIntToWei unit amount =
-    toWei unit (toString amount)
-        |> Result.withDefault (BigInt.fromInt 0)
+    List.repeat (decimalShift unit) (BigInt.fromInt 10)
+        |> List.foldl BigInt.mul (BigInt.fromInt 1)
+        |> BigInt.mul amount
 
 
 
