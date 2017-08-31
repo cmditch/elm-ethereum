@@ -8,9 +8,8 @@ import Task exposing (Task)
 import BigInt exposing (BigInt)
 import Web3
 import Web3.Types exposing (..)
-import Web3.Version
-import Web3.Net
 import Web3.Eth
+import Web3.Utils
 
 
 main : Program Never Model Msg
@@ -29,7 +28,7 @@ init =
     , network = Nothing
     , error = Nothing
     }
-        ! [ Task.attempt EstablishNetworkId (retry Web3.Version.getNetwork) ]
+        ! [ Task.attempt EstablishNetworkId (retry Web3.Eth.getId) ]
 
 
 retry : Task Error a -> Task Error a
@@ -102,26 +101,19 @@ testCommands network =
     in
         taskChains config
             ++ [ -- web3.version
-                 Task.attempt (VersionApi "web3.version.api") Web3.Version.api
-               , Task.attempt (VersionGetNode "web3.version.getNode") Web3.Version.getNode
-               , Task.attempt (VersionGetNetwork "web3.version.getNetwork") Web3.Version.getNetwork
-               , Task.attempt (VersionGetEthereum "web3.version.getEthereum") Web3.Version.getEthereum
+                 Task.attempt (VersionGetNetwork "web3.eth.net.getId") Web3.Eth.getId
 
                -- web3
                , Task.attempt (IsConnected "web3.isConnected") Web3.isConnected
-               , Task.attempt (Sha3 "web3.sha3") (Web3.sha3 "History is not a burden on the memory but an illumination of the soul.")
-               , Task.attempt (ToHex "web3.toHex") (Web3.toHex "The danger is not that a particular class is unfit to govern. Every class is unfit to govern.")
-               , Task.attempt (ToAscii "web3.toAscii") (Web3.toAscii (Hex "0x4f6e20736f6d6520677265617420616e6420676c6f72696f7573206461792074686520706c61696e20666f6c6b73206f6620746865206c616e642077696c6c207265616368207468656972206865617274277320646573697265206174206c6173742c20616e642074686520576869746520486f7573652077696c6c2062652061646f726e6564206279206120646f776e7269676874206d6f726f6e2e202d20482e4c2e204d656e636b656e"))
-               , Task.attempt (FromAscii "web3.fromAscii") (Web3.fromAscii "'I'm not a driven businessman, but a driven artist. I never think about money. Beautiful things make money.'")
-               , Task.attempt (ToDecimal "web3.toDecimal") (Web3.toDecimal (Hex "0x67932"))
-               , Task.attempt (FromDecimal "web3.fromDecimal") (Web3.fromDecimal 424242)
-               , Task.attempt (IsAddress "web3.isAddress") (Web3.isAddress config.account)
-               , Task.attempt (IsChecksumAddress "web3.isChecksumAddress") (Web3.isChecksumAddress config.account)
-               , Task.attempt (ToChecksumAddress "web3.toChecksumAddress") (Web3.toChecksumAddress config.account)
-
-               -- web3.net
-               , Task.attempt (NetGetListening "web3.net.getListening") (Web3.Net.getListening)
-               , Task.attempt (NetPeerCount "web3.net.getPeerCount") (Web3.Net.getPeerCount)
+               , Task.attempt (Sha3 "web3.sha3") (Web3.Utils.sha3 "History is not a burden on the memory but an illumination of the soul.")
+               , Task.attempt (ToHex "web3.toHex") (Web3.Utils.toHex "The danger is not that a particular class is unfit to govern. Every class is unfit to govern.")
+               , Task.attempt (ToAscii "web3.toAscii") (Web3.Utils.toAscii (Hex "0x4f6e20736f6d6520677265617420616e6420676c6f72696f7573206461792074686520706c61696e20666f6c6b73206f6620746865206c616e642077696c6c207265616368207468656972206865617274277320646573697265206174206c6173742c20616e642074686520576869746520486f7573652077696c6c2062652061646f726e6564206279206120646f776e7269676874206d6f726f6e2e202d20482e4c2e204d656e636b656e"))
+               , Task.attempt (FromAscii "web3.fromAscii") (Web3.Utils.fromAscii "'I'm not a driven businessman, but a driven artist. I never think about money. Beautiful things make money.'")
+               , Task.attempt (ToDecimal "web3.toDecimal") (Web3.Utils.toDecimal (Hex "0x67932"))
+               , Task.attempt (FromDecimal "web3.fromDecimal") (Web3.Utils.fromDecimal 424242)
+               , Task.attempt (IsAddress "web3.isAddress") (Web3.Utils.isAddress config.account)
+               , Task.attempt (IsChecksumAddress "web3.isChecksumAddress") (Web3.Utils.isChecksumAddress config.account)
+               , Task.attempt (ToChecksumAddress "web3.toChecksumAddress") (Web3.Utils.toChecksumAddress config.account)
 
                -- web3.eth
                , Task.attempt (EthGetSyncing "web3.eth.getSyncing") (Web3.Eth.getSyncing)
@@ -146,7 +138,7 @@ testCommands network =
 taskChains : Config -> List (Cmd Msg)
 taskChains config =
     [ Task.attempt (TaskChainStorageToAscii "getStorageAt -> toAscii")
-        (Web3.Eth.getStorageAt config.contract 1 |> Task.andThen Web3.toAscii)
+        (Web3.Eth.getStorageAt config.contract 1 |> Task.andThen Web3.Utils.toAscii)
     ]
 
 
@@ -229,12 +221,9 @@ viewCoverage model =
 
 
 type Msg
-    = EstablishNetworkId (Result Error String)
+    = EstablishNetworkId (Result Error Int)
     | StartTest
-    | VersionApi String (Result Error String)
-    | VersionGetNode String (Result Error String)
-    | VersionGetNetwork String (Result Error String)
-    | VersionGetEthereum String (Result Error String)
+    | VersionGetNetwork String (Result Error Int)
     | IsConnected String (Result Error Bool)
       -- web3.setProvider
       -- web3.currentProvider
@@ -310,16 +299,7 @@ update msg model =
                     Nothing ->
                         model ! []
 
-            VersionApi funcName result ->
-                updateModel 1 funcName result ! []
-
-            VersionGetNode funcName result ->
-                updateModel 2 funcName result ! []
-
             VersionGetNetwork funcName result ->
-                updateModel 3 funcName result ! []
-
-            VersionGetEthereum funcName result ->
                 updateModel 4 funcName result ! []
 
             IsConnected funcName result ->
@@ -420,13 +400,13 @@ subscriptions model =
 --  Helpers
 
 
-getNetwork : String -> EthNetwork
+getNetwork : Int -> EthNetwork
 getNetwork id =
     case id of
-        "1" ->
+        1 ->
             MainNet
 
-        "2" ->
+        2 ->
             Ropsten
 
         _ ->

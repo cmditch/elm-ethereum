@@ -228,27 +228,27 @@ type CallType
 {-| Available ethereum denominations.
 -}
 type EthUnit
-    = Wei --        1
-    | Kwei --       1000
-    | Ada --        1000
-    | Femtoether -- 1000
-    | Mwei --       1000000
-    | Babbage --    1000000
-    | Picoether --  1000000
-    | Gwei --       1000000000
-    | Shannon --    1000000000
-    | Nanoether --  1000000000
-    | Nano --       1000000000
-    | Szabo --      1000000000000
-    | Microether -- 1000000000000
-    | Micro --      1000000000000
-    | Finney --     1000000000000000
-    | Milliether -- 1000000000000000
-    | Milli --      1000000000000000
-    | Ether --      1000000000000000000
-    | Kether --     1000000000000000000000
-    | Grand --      1000000000000000000000
-    | Einstein --   1000000000000000000000
-    | Mether --     1000000000000000000000000
-    | Gether --     1000000000000000000000000000
-    | Tether --     1000000000000000000000000000000
+    = Wei --        Base Unit
+    | Kwei --       10 ^ 3
+    | Ada --        10 ^ 3
+    | Femtoether -- 10 ^ 3
+    | Mwei --       10 ^ 6
+    | Babbage --    10 ^ 6
+    | Picoether --  10 ^ 6
+    | Gwei --       10 ^ 9
+    | Shannon --    10 ^ 9
+    | Nanoether --  10 ^ 9
+    | Nano --       10 ^ 9
+    | Szabo --      10 ^ 12
+    | Microether -- 10 ^ 12
+    | Micro --      10 ^ 12
+    | Finney --     10 ^ 15
+    | Milliether -- 10 ^ 15
+    | Milli --      10 ^ 15
+    | Ether --      10 ^ 18
+    | Kether --     10 ^ 21
+    | Grand --      10 ^ 21
+    | Einstein --   10 ^ 21
+    | Mether --     10 ^ 24
+    | Gether --     10 ^ 27
+    | Tether --     10 ^ 30

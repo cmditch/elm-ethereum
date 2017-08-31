@@ -20,6 +20,7 @@ module Web3.Eth
         , getTransaction
         , estimateGas
         , sendTransaction
+        , getId
         , defaultTxParams
         , defaultFilterParams
         )
@@ -357,6 +358,40 @@ estimateGas txParams =
         }
 
 
+{-| web3.eth.net Functions
+-}
+getId : Task Error Int
+getId =
+    Web3.toTask
+        { func = "eth.net.getId"
+        , args = Encode.list []
+        , expect = expectInt
+        , callType = Async
+        }
+
+
+isListening : Task Error Bool
+isListening =
+    Web3.toTask
+        { func = "eth.net.isListening"
+        , args = Encode.list []
+        , expect = expectBool
+        , callType = Async
+        }
+
+
+getPeerCount : Task Error Int
+getPeerCount =
+    Web3.toTask
+        { func = "eth.net.getPeerCount"
+        , args = Encode.list []
+        , expect = expectInt
+        , callType = Async
+        }
+
+
+{-| Default Parameter Helpers
+-}
 defaultTxParams : TxParams
 defaultTxParams =
     { from = Nothing

@@ -37,18 +37,28 @@ import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
 -- WEB3
 
 
+version : Task Error String
+version =
+    setOrGet
+        { func = "version"
+        , args = Encode.list []
+        , expect = expectString
+        , callType = Getter
+        }
+
+
 {-| Check to see if a connection to a node exists
 
-    Web3.isConnected  == Ok True
+    Web3.isConnected  == True
 
 -}
 isConnected : Task Error Bool
 isConnected =
     toTask
-        { func = "currentProvider.isConnected"
+        { func = "currentProvider.connected"
         , args = Encode.list []
         , expect = expectBool
-        , callType = Sync
+        , callType = Getter
         }
 
 
@@ -68,8 +78,8 @@ toTask =
 
 
 setOrGet : Request a -> Task Error a
-setOrGet request =
-    Native.Web3.setOrGet request
+setOrGet =
+    Native.Web3.setOrGet
 
 
 getEvent : Request a -> Task Error a

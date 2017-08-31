@@ -7,7 +7,8 @@ abi = [{"constant":true,"inputs":[],"name":"mintingFinished","outputs":[{"name":
 // elm app shim for passing contract back through ports in native code
 window.addEventListener('load', function() {
   window.web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io/metamask:8545"));
-  contract = new web3.eth.Contract(abi, address);
-  getEvents = function() {contract.getPastEvents('Transfer', {fromBlock: 4214061, toBlock: 'latest'}, log);}
-  getEvents();
+  // Disabling for now
+  // contract = new web3.eth.Contract(abi, address);
+  // getEvents = function() {contract.getPastEvents('Transfer', {fromBlock: 4214061, toBlock: 'latest'}, log);}
+  // getEvents();
 });

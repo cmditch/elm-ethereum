@@ -1,4 +1,4 @@
-module Web3.Util
+module Web3.Utils
     exposing
         ( sha3
         , toHex
