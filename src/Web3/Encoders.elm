@@ -9,11 +9,11 @@ module Web3.Encoders
         , getBlockIdValue
         , addressMaybeMap
         , listOfMaybesToVal
-        , encodeByteArray
+        , encodeBytes
         )
 
 import Web3.Types exposing (..)
-import Web3.Decoders exposing (bytesToString, addressToString, hexToString)
+import Web3.Decoders exposing (addressToString, hexToString)
 import BigInt exposing (BigInt)
 import Json.Encode as Encode exposing (Value, string, int, null, list, object)
 
@@ -25,7 +25,7 @@ encodeTxParams { from, to, value, gas, data, gasPrice, nonce } =
         , ( "to", Maybe.map string (addressMaybeMap to) )
         , ( "value", Maybe.map (BigInt.toString >> string) value )
         , ( "gas", Maybe.map int gas )
-        , ( "data", Maybe.map string (bytesMaybeMap data) )
+        , ( "data", Maybe.map string (hexMaybeMap data) )
         , ( "gasPrice", Maybe.map int gasPrice )
         , ( "nonce", Maybe.map int nonce )
         ]
@@ -97,9 +97,9 @@ encodeIntList =
     List.map Encode.int >> Encode.list
 
 
-bytesMaybeMap : Maybe Bytes -> Maybe String
-bytesMaybeMap =
-    Maybe.map bytesToString
+hexMaybeMap : Maybe Hex -> Maybe String
+hexMaybeMap =
+    Maybe.map hexToString
 
 
 addressMaybeMap : Maybe Address -> Maybe String
@@ -120,6 +120,6 @@ listOfMaybesToVal object =
         |> Encode.object
 
 
-encodeByteArray : ByteArray -> Value
-encodeByteArray (ByteArray byteArray) =
+encodeBytes : Bytes -> Value
+encodeBytes (Bytes byteArray) =
     Encode.list <| List.map Encode.int byteArray

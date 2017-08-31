@@ -29,11 +29,7 @@ type TxId
 
 
 type Bytes
-    = Bytes String
-
-
-type ByteArray
-    = ByteArray (List Int)
+    = Bytes (List Int)
 
 
 type Hex
@@ -139,7 +135,7 @@ type alias TxParams =
     , to : Maybe Address
     , value : Maybe BigInt
     , gas : Maybe Int
-    , data : Maybe Bytes
+    , data : Maybe Hex
     , gasPrice : Maybe Int
     , nonce : Maybe Int
     }

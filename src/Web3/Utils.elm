@@ -16,7 +16,7 @@ import Task exposing (Task)
 import Json.Encode as Encode
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
-import Web3.Encoders exposing (encodeByteArray)
+import Web3.Encoders exposing (encodeBytes)
 import Regex
 import Web3 exposing (toTask)
 
@@ -57,10 +57,16 @@ sha3 val =
            }
 
 -}
-{- isHex : String -> Task Error Bool
-   TODO Is this really needed?
-   If the only way to get Hex is through helper conversion functions.
--}
+
+
+isHex : String -> Task Error Bool
+isHex val =
+    toTask
+        { func = "utils.isHex"
+        , args = Encode.list [ Encode.string val ]
+        , expect = expectBool
+        , callType = Sync
+        }
 
 
 isAddress : Address -> Task Error Bool
@@ -143,6 +149,16 @@ hexToUtf8 (Hex val) =
         }
 
 
+utf8ToHex : String -> Task Error Hex
+utf8ToHex val =
+    toTask
+        { func = "utils.utf8ToHex"
+        , args = Encode.list [ Encode.string val ]
+        , expect = expectJson hexDecoder
+        , callType = Sync
+        }
+
+
 hexToAscii : Hex -> Task Error String
 hexToAscii (Hex val) =
     toTask
@@ -151,16 +167,6 @@ hexToAscii (Hex val) =
 
         -- TODO See if toAsciiDecoder is still needed
         , expect = expectJson toAsciiDecoder
-        , callType = Sync
-        }
-
-
-utf8ToHex : String -> Task Error Hex
-utf8ToHex val =
-    toTask
-        { func = "utils.utf8ToHex"
-        , args = Encode.list [ Encode.string val ]
-        , expect = expectJson hexDecoder
         , callType = Sync
         }
 
@@ -175,21 +181,21 @@ asciiToHex val =
         }
 
 
-hexToBytes : Hex -> Task Error ByteArray
+hexToBytes : Hex -> Task Error Bytes
 hexToBytes (Hex hex) =
     toTask
         { func = "utils.hexToBytes"
         , args = Encode.list [ Encode.string hex ]
-        , expect = expectJson byteArrayDecoder
+        , expect = expectJson bytesDecoder
         , callType = Sync
         }
 
 
-bytesToHex : ByteArray -> Task Error Hex
+bytesToHex : Bytes -> Task Error Hex
 bytesToHex byteArray =
     toTask
         { func = "utils.bytesToHex"
-        , args = Encode.list [ encodeByteArray byteArray ]
+        , args = Encode.list [ encodeBytes byteArray ]
         , expect = expectJson hexDecoder
         , callType = Sync
         }
@@ -270,11 +276,11 @@ leftPadHexCustom char amount (Hex hex) =
         deconstruct hexString =
             ( String.left 2 hexString, String.dropLeft 2 hexString )
 
-        reConstruct ( zeroX, data ) =
+        padAndReconstruct ( zeroX, data ) =
             zeroX ++ String.padLeft amount char data
     in
         deconstruct hex
-            |> reConstruct
+            |> padAndReconstruct
             |> Hex
 
 
@@ -291,11 +297,6 @@ rightPadHexCustom char amount (Hex hex) =
 
 
 --Private
-
-
-deconsructHex : Hex -> ( String, String )
-deconsructHex (Hex hex) =
-    ( String.left 2 hex, String.dropLeft 2 hex )
 
 
 decimalShift : EthUnit -> Int

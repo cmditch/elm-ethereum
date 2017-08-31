@@ -10,14 +10,12 @@ module Web3.Decoders
         , txIdDecoder
         , bytesDecoder
         , hexDecoder
-        , byteArrayDecoder
         , blockNumDecoder
         , bigIntDecoder
         , toAsciiDecoder
         , syncStatusDecoder
         , contractInfoDecoder
         , eventLogDecoder
-        , bytesToString
         , hexToString
         , addressToString
         , txIdToString
@@ -150,17 +148,12 @@ txIdDecoder =
 
 bytesDecoder : Decoder Bytes
 bytesDecoder =
-    specialTypeDecoder Bytes
+    list int |> Decode.andThen (Bytes >> Decode.succeed)
 
 
 hexDecoder : Decoder Hex
 hexDecoder =
     specialTypeDecoder Hex
-
-
-byteArrayDecoder : Decoder ByteArray
-byteArrayDecoder =
-    list int |> Decode.andThen (ByteArray >> Decode.succeed)
 
 
 blockNumDecoder : Decoder BlockId
@@ -226,11 +219,6 @@ addressToString (Address address) =
 txIdToString : TxId -> String
 txIdToString (TxId txId) =
     txId
-
-
-bytesToString : Bytes -> String
-bytesToString (Bytes bytes) =
-    bytes
 
 
 hexToString : Hex -> String
