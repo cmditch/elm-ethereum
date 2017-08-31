@@ -11,7 +11,9 @@ module Web3.Decoders
         , txIdDecoder
         , bytesDecoder
         , hexDecoder
+        , byteArrayDecoder
         , blockNumDecoder
+        , bigIntDecoder
         , toAsciiDecoder
         , syncStatusDecoder
         , contractInfoDecoder
@@ -25,7 +27,6 @@ module Web3.Decoders
         , expectBool
         , expectJson
         , expectBigInt
-        , bigIntDecoder
         )
 
 import BigInt exposing (BigInt)
@@ -143,9 +144,9 @@ addressDecoder =
     specialTypeDecoder Address
 
 
-keccakDecoder : Decoder Keccak256
+keccakDecoder : Decoder Sha3
 keccakDecoder =
-    specialTypeDecoder Keccak256
+    specialTypeDecoder Sha3
 
 
 txIdDecoder : Decoder TxId
@@ -163,6 +164,11 @@ hexDecoder =
     specialTypeDecoder Hex
 
 
+byteArrayDecoder : Decoder ByteArray
+byteArrayDecoder =
+    list int |> Decode.andThen (ByteArray >> Decode.succeed)
+
+
 blockNumDecoder : Decoder BlockId
 blockNumDecoder =
     int |> Decode.andThen (BlockNum >> Decode.succeed)
@@ -171,6 +177,20 @@ blockNumDecoder =
 blockHashDecoder : Decoder BlockId
 blockHashDecoder =
     string |> Decode.andThen (BlockHash >> Decode.succeed)
+
+
+bigIntDecoder : Decoder BigInt
+bigIntDecoder =
+    let
+        convert stringyBigInt =
+            case stringyBigInt |> BigInt.fromString of
+                Just bigint ->
+                    Decode.succeed bigint
+
+                Nothing ->
+                    Decode.fail "Error decoding BigInt"
+    in
+        string |> Decode.andThen convert
 
 
 toAsciiDecoder : Decoder String
@@ -247,17 +267,3 @@ expectJson decoder =
 expectBigInt : Expect BigInt
 expectBigInt =
     expectStringResponse (\r -> Decode.decodeString bigIntDecoder r)
-
-
-bigIntDecoder : Decoder BigInt
-bigIntDecoder =
-    let
-        convert stringyBigInt =
-            case stringyBigInt |> BigInt.fromString of
-                Just bigint ->
-                    Decode.succeed bigint
-
-                Nothing ->
-                    Decode.fail "Error decoding BigInt"
-    in
-        string |> Decode.andThen convert

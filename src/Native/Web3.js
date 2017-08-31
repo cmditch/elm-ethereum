@@ -298,11 +298,6 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-/*
-//  TODO Need to account for arrays of BigInts.
-//  Run on all web3 repsonses.
-//  (error, response, Expect/Decoder function) -> Result Err Ok
-*/
     function handleWeb3Response(r)
     {
         console.log("handleWeb3Response: ")
@@ -358,47 +353,6 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
         return JSON.stringify(r);
     };
-
-
-/*
-//  Run on all web3 event repsonses (logs).
-//  Turns BigNumber into full strings.
-*/
-    function formatLogsArray(logsArray)
-    {
-        logsArray.map(function(log) { formatLog(log) } );
-        return logsArray;
-    }
-
-
-    function formatLog(log)
-    {
-        Object.keys(log.args).forEach(function(arg)
-        {
-            log.args[arg] = formatIfBigNum(log.args[arg]);
-        });
-        return log;
-    }
-
-
-    function formatIfBigNum(value)
-    {
-        if (value.isBigNumber)
-        {
-            return value.toFixed();
-        }
-        else if (Array.isArray(value))
-        {
-            return value.map(function(val)
-            {
-                return formatIfBigNum(val);
-            });
-        }
-        else
-        {
-            return value;
-        }
-    }
 
 
     return {

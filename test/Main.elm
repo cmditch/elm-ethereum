@@ -228,7 +228,7 @@ type Msg
       -- web3.setProvider
       -- web3.currentProvider
       -- web3.reset
-    | Sha3 String (Result Error Keccak256)
+    | Sha3 String (Result Error Sha3)
     | ToHex String (Result Error Hex)
     | ToAscii String (Result Error String)
     | FromAscii String (Result Error Hex)

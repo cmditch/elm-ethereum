@@ -2,12 +2,10 @@ module Web3.Utils
     exposing
         ( sha3
         , toHex
-        , toAscii
-        , fromAscii
-        , toDecimal
-        , fromDecimal
+        , hexToAscii
+        , hexToNumber
+        , numberToHex
         , isAddress
-        , isChecksumAddress
         , toChecksumAddress
         , fromWei
         , toWei
@@ -18,6 +16,7 @@ import Task exposing (Task)
 import Json.Encode as Encode
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
+import Web3.Encoders exposing (encodeByteArray)
 import Regex
 import Web3 exposing (toTask)
 
@@ -25,105 +24,59 @@ import Web3 exposing (toTask)
 -- UTIL
 
 
-sha3 : String -> Task Error Keccak256
+randomHex : Int -> Task Error Hex
+randomHex size =
+    toTask
+        { func = "utils.randomHex"
+        , args = Encode.list [ Encode.int size ]
+        , expect = expectJson hexDecoder
+        , callType = Sync
+        }
+
+
+sha3 : String -> Task Error Sha3
 sha3 val =
     toTask
-        { func = "sha3"
+        { func = "utils.sha3"
         , args = Encode.list [ Encode.string val ]
         , expect = expectJson keccakDecoder
         , callType = Sync
         }
 
 
-type Sha3Encoding
-    = HexEncoded
-
-
-sha3Encoded : Sha3Encoding -> String -> Task Error Keccak256
-sha3Encoded encodeType val =
-    let
-        encoding =
-            case encodeType of
-                HexEncoded ->
-                    Encode.string "hex"
-    in
-        toTask
-            { func = "sha3"
-            , args = Encode.list [ Encode.string val, Encode.object [ ( "encoding", encoding ) ] ]
-            , expect = expectJson keccakDecoder
-            , callType = Sync
-            }
-
-
-toHex : String -> Task Error Hex
-toHex val =
+keccak256 : String -> Task Error Sha3
+keccak256 val =
     toTask
-        { func = "toHex"
+        { func = "utils.sha3"
         , args = Encode.list [ Encode.string val ]
-        , expect = expectJson hexDecoder
+        , expect = expectJson keccakDecoder
         , callType = Sync
         }
 
 
-toAscii : Hex -> Task Error String
-toAscii (Hex val) =
-    toTask
-        { func = "toAscii"
-        , args = Encode.list [ Encode.string val ]
-        , expect = expectJson toAsciiDecoder
-        , callType = Sync
-        }
 
+{- Need to implement this Possibly in Web3.Eth.Solidity Module
 
-fromAscii : String -> Task Error Hex
-fromAscii val =
-    fromAsciiPadded 0 val
+   soliditySha3 : List SoldiityTypes -> Task Error Sha3
+   soliditySha3 solidityTypes =
+       toTask
+           { func = "utils.soliditySha3"
+           , args = encodeSolidityTypes solidityTypes
+           , expect = expectJson keccakDecoder
+           , callType = Sync
+           }
 
-
-fromAsciiPadded : Int -> String -> Task Error Hex
-fromAsciiPadded padding val =
-    toTask
-        { func = "fromAscii"
-        , args = Encode.list [ Encode.string val, Encode.int padding ]
-        , expect = expectJson hexDecoder
-        , callType = Sync
-        }
-
-
-toDecimal : Hex -> Task Error Int
-toDecimal (Hex hex) =
-    toTask
-        { func = "toDecimal"
-        , args = Encode.list [ Encode.string hex ]
-        , expect = expectInt
-        , callType = Sync
-        }
-
-
-fromDecimal : Int -> Task Error Hex
-fromDecimal decimal =
-    toTask
-        { func = "fromDecimal"
-        , args = Encode.list [ Encode.int decimal ]
-        , expect = expectJson hexDecoder
-        , callType = Sync
-        }
+-}
+{- isHex : String -> Task Error Bool
+   TODO Is this really needed?
+   If the only way to get Hex is through helper conversion functions.
+-}
 
 
 isAddress : Address -> Task Error Bool
 isAddress (Address address) =
     toTask
-        { func = "isAddress"
-        , args = Encode.list [ Encode.string address ]
-        , expect = expectBool
-        , callType = Sync
-        }
-
-
-isChecksumAddress : Address -> Task Error Bool
-isChecksumAddress (Address address) =
-    toTask
-        { func = "isChecksumAddress"
+        { func = "utils.isAddress"
         , args = Encode.list [ Encode.string address ]
         , expect = expectBool
         , callType = Sync
@@ -133,9 +86,121 @@ isChecksumAddress (Address address) =
 toChecksumAddress : Address -> Task Error Address
 toChecksumAddress (Address address) =
     toTask
-        { func = "toChecksumAddress"
+        { func = "utils.toChecksumAddress"
         , args = Encode.list [ Encode.string address ]
         , expect = expectJson addressDecoder
+        , callType = Sync
+        }
+
+
+checkAddressChecksum : Address -> Task Error Bool
+checkAddressChecksum (Address address) =
+    toTask
+        { func = "utils.isAddress"
+        , args = Encode.list [ Encode.string address ]
+        , expect = expectBool
+        , callType = Sync
+        }
+
+
+toHex : String -> Task Error Hex
+toHex val =
+    toTask
+        { func = "utils.toHex"
+        , args = Encode.list [ Encode.string val ]
+        , expect = expectJson hexDecoder
+        , callType = Sync
+        }
+
+
+hexToNumberString : Hex -> Task Error String
+hexToNumberString (Hex val) =
+    toTask
+        { func = "utils.hexToNumberString"
+        , args = Encode.list [ Encode.string val ]
+        , expect = expectString
+        , callType = Sync
+        }
+
+
+hexToNumber : Hex -> Task Error Int
+hexToNumber (Hex val) =
+    toTask
+        { func = "utils.hexToNumber"
+        , args = Encode.list [ Encode.string val ]
+        , expect = expectInt
+        , callType = Sync
+        }
+
+
+numberToHex : BigInt -> Task Error Hex
+numberToHex number =
+    toTask
+        { func = "utils.numberToHex"
+        , args = Encode.list [ Encode.string <| BigInt.toString number ]
+        , expect = expectJson hexDecoder
+        , callType = Sync
+        }
+
+
+hexToUtf8 : Hex -> Task Error String
+hexToUtf8 (Hex val) =
+    toTask
+        { func = "utils.hexToUtf8"
+        , args = Encode.list [ Encode.string val ]
+        , expect = expectString
+        , callType = Sync
+        }
+
+
+hexToAscii : Hex -> Task Error String
+hexToAscii (Hex val) =
+    toTask
+        { func = "utils.hexToAscii"
+        , args = Encode.list [ Encode.string val ]
+
+        -- TODO See if toAsciiDecoder is still needed
+        , expect = expectJson toAsciiDecoder
+        , callType = Sync
+        }
+
+
+utf8ToHex : String -> Task Error Hex
+utf8ToHex val =
+    toTask
+        { func = "utils.utf8ToHex"
+        , args = Encode.list [ Encode.string val ]
+        , expect = expectJson hexDecoder
+        , callType = Sync
+        }
+
+
+asciiToHex : String -> Task Error Hex
+asciiToHex val =
+    toTask
+        { func = "utils.asciiToHex"
+        , args = Encode.list [ Encode.string val ]
+        , expect = expectJson hexDecoder
+        , callType = Sync
+        }
+
+
+hexToBytes : Hex -> Task Error ByteArray
+hexToBytes (Hex hex) =
+    toTask
+        { func = "utils.hexToBytes"
+        , args = Encode.list [ Encode.string hex ]
+        , expect = expectJson byteArrayDecoder
+        , callType = Sync
+        }
+
+
+bytesToHex : ByteArray -> Task Error Hex
+bytesToHex byteArray =
+    toTask
+        { func = "utils.bytesToHex"
+        , args = Encode.list [ encodeByteArray byteArray ]
+        , expect = expectJson hexDecoder
         , callType = Sync
         }
 
@@ -201,7 +266,46 @@ bigIntToWei unit amount =
 
 
 
+--unitMap TODO Is this needed?
+
+
+leftPadHex : Int -> Hex -> Hex
+leftPadHex =
+    leftPadHexCustom '0'
+
+
+leftPadHexCustom : Char -> Int -> Hex -> Hex
+leftPadHexCustom char amount (Hex hex) =
+    let
+        deconstruct hexString =
+            ( String.left 2 hexString, String.dropLeft 2 hexString )
+
+        reConstruct ( zeroX, data ) =
+            zeroX ++ String.padLeft amount char data
+    in
+        deconstruct hex
+            |> reConstruct
+            |> Hex
+
+
+rightPadHex : Int -> Hex -> Hex
+rightPadHex =
+    rightPadHexCustom '0'
+
+
+rightPadHexCustom : Char -> Int -> Hex -> Hex
+rightPadHexCustom char amount (Hex hex) =
+    String.padRight amount char hex
+        |> Hex
+
+
+
 --Private
+
+
+deconsructHex : Hex -> ( String, String )
+deconsructHex (Hex hex) =
+    ( String.left 2 hex, String.dropLeft 2 hex )
 
 
 decimalShift : EthUnit -> Int

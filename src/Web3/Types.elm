@@ -32,12 +32,16 @@ type Bytes
     = Bytes String
 
 
+type ByteArray
+    = ByteArray (List Int)
+
+
 type Hex
     = Hex String
 
 
-type Keccak256
-    = Keccak256 String
+type Sha3
+    = Sha3 String
 
 
 type Abi

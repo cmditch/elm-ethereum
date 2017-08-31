@@ -9,6 +9,7 @@ module Web3.Encoders
         , getBlockIdValue
         , addressMaybeMap
         , listOfMaybesToVal
+        , encodeByteArray
         )
 
 import Web3.Types exposing (..)
@@ -117,3 +118,8 @@ listOfMaybesToVal object =
         |> List.filter (\( k, v ) -> v /= Nothing)
         |> List.map (\( k, v ) -> ( k, Maybe.withDefault Encode.null v ))
         |> Encode.object
+
+
+encodeByteArray : ByteArray -> Value
+encodeByteArray (ByteArray byteArray) =
+    Encode.list <| List.map Encode.int byteArray
