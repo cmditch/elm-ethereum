@@ -34,22 +34,12 @@ randomHex size =
         }
 
 
-sha3 : String -> Task Error Sha3
+sha3 : String -> Task Error Hex
 sha3 val =
     toTask
         { func = "utils.sha3"
         , args = Encode.list [ Encode.string val ]
-        , expect = expectJson keccakDecoder
-        , callType = Sync
-        }
-
-
-keccak256 : String -> Task Error Sha3
-keccak256 val =
-    toTask
-        { func = "utils.sha3"
-        , args = Encode.list [ Encode.string val ]
-        , expect = expectJson keccakDecoder
+        , expect = expectJson hexDecoder
         , callType = Sync
         }
 

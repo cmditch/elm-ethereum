@@ -7,7 +7,6 @@ module Web3.Decoders
         , txReceiptDecoder
         , logDecoder
         , addressDecoder
-        , keccakDecoder
         , txIdDecoder
         , bytesDecoder
         , hexDecoder
@@ -142,11 +141,6 @@ eventLogDecoder argsDecoder =
 addressDecoder : Decoder Address
 addressDecoder =
     specialTypeDecoder Address
-
-
-keccakDecoder : Decoder Sha3
-keccakDecoder =
-    specialTypeDecoder Sha3
 
 
 txIdDecoder : Decoder TxId

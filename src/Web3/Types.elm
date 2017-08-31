@@ -40,10 +40,6 @@ type Hex
     = Hex String
 
 
-type Sha3
-    = Sha3 String
-
-
 type Abi
     = Abi String
 
