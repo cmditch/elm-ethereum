@@ -40,8 +40,8 @@ import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
 version : Task Error String
 version =
     setOrGet
-        { func = "version"
-        , args = Encode.list []
+        { method = "version"
+        , params = Encode.list []
         , expect = expectString
         , callType = Getter
         }
@@ -55,15 +55,15 @@ version =
 isConnected : Task Error Bool
 isConnected =
     toTask
-        { func = "currentProvider.connected"
-        , args = Encode.list []
+        { method = "currentProvider.connected"
+        , params = Encode.list []
         , expect = expectBool
         , callType = Getter
         }
 
 
 
--- TODO Make this it's own native function. Perhaps have it clear out the eventRegister obect as well,
+-- TODO Make this it's own native methodtion. Perhaps have it clear out the eventRegister obect as well,
 --      unless that will conflict with Contract.stopWatching task.
 
 
@@ -90,9 +90,9 @@ getEvent =
 
 -- POLLING
 {-
-   Mad props to Nick Miller for this retry function
-              The MIRTCH Function
-   "Matrix Inception Recursive Task Chaining" Function
+   Mad props to Nick Miller for this retry methodtion
+              The MIRTCH methodtion
+   "Matrix Inception Recursive Task Chaining" methodtion
 -}
 
 

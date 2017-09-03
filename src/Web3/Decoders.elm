@@ -27,8 +27,8 @@ module Web3.Decoders
         )
 
 import BigInt exposing (BigInt)
-import Json.Decode as Decode exposing (int, list, nullable, string, bool, Decoder)
-import Json.Decode.Pipeline exposing (decode, required, optional)
+import Json.Decode as Decode exposing (int, list, nullable, string, bool, maybe, field, Decoder)
+import Json.Decode.Pipeline exposing (decode, required, optional, custom)
 import Web3.Types exposing (..)
 import Web3.Internal exposing (expectStringResponse)
 
@@ -75,19 +75,19 @@ txObjDecoder =
     decode TxObj
         |> required "blockHash" blockHashDecoder
         |> required "blockNumber" int
-        |> required "creates" (nullable addressDecoder)
+        |> custom (maybe (field "creates" addressDecoder))
         |> required "from" addressDecoder
         |> required "gas" int
         |> required "gasPrice" bigIntDecoder
         |> required "hash" txIdDecoder
-        |> required "input" bytesDecoder
-        |> required "networkId" (nullable int)
+        |> required "input" hexDecoder
+        |> custom (maybe (field "networkId" int))
         |> required "nonce" int
-        |> required "publicKey" hexDecoder
+        |> optional "publicKey" hexDecoder (Hex "0x0")
         |> required "r" hexDecoder
-        |> required "raw" bytesDecoder
+        |> optional "raw" hexDecoder (Hex "0x0")
         |> required "s" hexDecoder
-        |> required "standardV" hexDecoder
+        |> optional "standardV" hexDecoder (Hex "0x0")
         |> required "to" (nullable addressDecoder)
         |> optional "logs" (list logDecoder) []
         |> required "transactionIndex" int

@@ -102,12 +102,12 @@ type alias TxObj =
     , gas : Int
     , gasPrice : BigInt
     , hash : TxId
-    , input : Bytes
+    , input : Hex
     , networkId : Maybe Int
     , nonce : Int
     , publicKey : Hex
     , r : Hex
-    , raw : Bytes
+    , raw : Hex
     , s : Hex
     , standardV : Hex
     , to : Maybe Address
@@ -166,8 +166,7 @@ type alias EventLog a =
     , args : a
     , blockHash :
         Maybe String
-
-    -- TODO Possible to make BlockId?
+        -- TODO Possible to make BlockId?
     , blockNumber : Maybe Int
     , event : String
     , logIndex : Maybe Int
@@ -224,27 +223,54 @@ type CallType
 {-| Available ethereum denominations.
 -}
 type EthUnit
-    = Wei --        Base Unit
-    | Kwei --       10 ^ 3
-    | Ada --        10 ^ 3
-    | Femtoether -- 10 ^ 3
-    | Mwei --       10 ^ 6
-    | Babbage --    10 ^ 6
-    | Picoether --  10 ^ 6
-    | Gwei --       10 ^ 9
-    | Shannon --    10 ^ 9
-    | Nanoether --  10 ^ 9
-    | Nano --       10 ^ 9
-    | Szabo --      10 ^ 12
-    | Microether -- 10 ^ 12
-    | Micro --      10 ^ 12
-    | Finney --     10 ^ 15
-    | Milliether -- 10 ^ 15
-    | Milli --      10 ^ 15
-    | Ether --      10 ^ 18
-    | Kether --     10 ^ 21
-    | Grand --      10 ^ 21
-    | Einstein --   10 ^ 21
-    | Mether --     10 ^ 24
-    | Gether --     10 ^ 27
-    | Tether --     10 ^ 30
+    = Wei
+      --        Base Unit
+    | Kwei
+      --       10 ^ 3
+    | Ada
+      --        10 ^ 3
+    | Femtoether
+      -- 10 ^ 3
+    | Mwei
+      --       10 ^ 6
+    | Babbage
+      --    10 ^ 6
+    | Picoether
+      --  10 ^ 6
+    | Gwei
+      --       10 ^ 9
+    | Shannon
+      --    10 ^ 9
+    | Nanoether
+      --  10 ^ 9
+    | Nano
+      --       10 ^ 9
+    | Szabo
+      --      10 ^ 12
+    | Microether
+      -- 10 ^ 12
+    | Micro
+      --      10 ^ 12
+    | Finney
+      --     10 ^ 15
+    | Milliether
+      -- 10 ^ 15
+    | Milli
+      --      10 ^ 15
+    | Ether
+      --      10 ^ 18
+    | Kether
+      --     10 ^ 21
+    | Grand
+      --      10 ^ 21
+    | Einstein
+      --   10 ^ 21
+    | Mether
+      --     10 ^ 24
+    | Gether
+      --     10 ^ 27
+    | Tether
+
+
+
+--     10 ^ 30

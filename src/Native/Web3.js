@@ -46,10 +46,10 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                         response: r,
                         decoder: request.expect.responseToResult,
                         // funcName for debugging
-                        funcName: request.func
+                        funcName: request.method
                     });
 
-                    console.log(request.func + " ASYNC result: ", result);
+                    console.log(request.method + " ASYNC result: ", result);
 
                     switch (result.ctor)
                     {
@@ -58,24 +58,24 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     };
                 };
 
-                var func = eval("web3." + request.func);
+                var func = eval("web3." + request.method);
 
                 if (request.callType.ctor === "Async")
                 {
-                    func.apply(null, request.args.concat( web3Callback ));
+                    func.apply(null, request.params.concat( web3Callback ));
                 }
                 else if (request.callType.ctor === "Sync")
                 {
-                    var web3Response = func.apply(null, request.args);
+                    var web3Response = func.apply(null, request.params);
                     var result = handleWeb3Response({
                         error: null,
                         response: web3Response,
                         decoder: request.expect.responseToResult,
                         // funcName for debugging
-                        funcName: request.func
+                        funcName: request.method
                     });
 
-                    console.log(request.func + " SYNC result: ", result);
+                    console.log(request.method + " SYNC result: ", result);
 
                     switch (result.ctor)
                     {
@@ -105,9 +105,9 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
                 switch (request.callType.ctor) {
                     case "Setter":
-                        response = eval("web3." + request.func + " = '" + request.args + "'");
+                        response = eval("web3." + request.method + " = '" + request.params + "'");
                     case "Getter":
-                        response = eval("web3." + request.func);
+                        response = eval("web3." + request.method);
                 }
 
                 if (response !== undefined)
@@ -119,7 +119,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 else
                 {
                     return callback(fail({
-                        ctor: 'Error', _0: request.func + " setter failed - undefined response."
+                        ctor: 'Error', _0: request.method + " setter failed - undefined response."
                     }));
                 }
                 console.log("Getter decode: ", result)
@@ -173,8 +173,8 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             try
 		    {
                 request.isContractEvent === true
-                ? eventFilter = eval("web3." + request.func).apply(null, request.args)
-                : eventFilter = eval("web3." + request.func)
+                ? eventFilter = eval("web3." + request.method).apply(null, request.params)
+                : eventFilter = eval("web3." + request.method)
             }
             catch(err)
             {
@@ -246,13 +246,13 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     };
                 };
 
-                var eventParams = request.args.map(function(arg) {
+                var eventParams = request.params.map(function(arg) {
                     return JSON.stringify(arg)
                 });
 
                 eval(
                     "web3."
-                    + request.func
+                    + request.method
                     + "("
                     + eventParams.join(",")
                     + ")"

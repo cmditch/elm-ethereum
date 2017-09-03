@@ -12,8 +12,8 @@ import Web3.Types exposing (..)
 
 
 type alias Request a =
-    { func : String
-    , args : Encode.Value
+    { method : String
+    , params : Encode.Value
     , expect : Expect a
     , callType : CallType
     }

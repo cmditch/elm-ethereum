@@ -4,9 +4,11 @@ module Web3.Utils
         , toHex
         , hexToAscii
         , hexToNumber
+        , asciiToHex
         , numberToHex
         , isAddress
         , toChecksumAddress
+        , checkAddressChecksum
         , fromWei
         , toWei
         )
@@ -27,8 +29,8 @@ import Web3 exposing (toTask)
 randomHex : Int -> Task Error Hex
 randomHex size =
     toTask
-        { func = "utils.randomHex"
-        , args = Encode.list [ Encode.int size ]
+        { method = "utils.randomHex"
+        , params = Encode.list [ Encode.int size ]
         , expect = expectJson hexDecoder
         , callType = Sync
         }
@@ -37,8 +39,8 @@ randomHex size =
 sha3 : String -> Task Error Hex
 sha3 val =
     toTask
-        { func = "utils.sha3"
-        , args = Encode.list [ Encode.string val ]
+        { method = "utils.sha3"
+        , params = Encode.list [ Encode.string val ]
         , expect = expectJson hexDecoder
         , callType = Sync
         }
@@ -50,8 +52,8 @@ sha3 val =
    soliditySha3 : List SoldiityTypes -> Task Error Sha3
    soliditySha3 solidityTypes =
        toTask
-           { func = "utils.soliditySha3"
-           , args = encodeSolidityTypes solidityTypes
+           { method = "utils.soliditySha3"
+           , params = encodeSolidityTypes solidityTypes
            , expect = expectJson keccakDecoder
            , callType = Sync
            }
@@ -62,8 +64,8 @@ sha3 val =
 isHex : String -> Task Error Bool
 isHex val =
     toTask
-        { func = "utils.isHex"
-        , args = Encode.list [ Encode.string val ]
+        { method = "utils.isHex"
+        , params = Encode.list [ Encode.string val ]
         , expect = expectBool
         , callType = Sync
         }
@@ -72,8 +74,8 @@ isHex val =
 isAddress : Address -> Task Error Bool
 isAddress (Address address) =
     toTask
-        { func = "utils.isAddress"
-        , args = Encode.list [ Encode.string address ]
+        { method = "utils.isAddress"
+        , params = Encode.list [ Encode.string address ]
         , expect = expectBool
         , callType = Sync
         }
@@ -82,8 +84,8 @@ isAddress (Address address) =
 toChecksumAddress : Address -> Task Error Address
 toChecksumAddress (Address address) =
     toTask
-        { func = "utils.toChecksumAddress"
-        , args = Encode.list [ Encode.string address ]
+        { method = "utils.toChecksumAddress"
+        , params = Encode.list [ Encode.string address ]
         , expect = expectJson addressDecoder
         , callType = Sync
         }
@@ -92,8 +94,8 @@ toChecksumAddress (Address address) =
 checkAddressChecksum : Address -> Task Error Bool
 checkAddressChecksum (Address address) =
     toTask
-        { func = "utils.isAddress"
-        , args = Encode.list [ Encode.string address ]
+        { method = "utils.isAddress"
+        , params = Encode.list [ Encode.string address ]
         , expect = expectBool
         , callType = Sync
         }
@@ -102,8 +104,8 @@ checkAddressChecksum (Address address) =
 toHex : String -> Task Error Hex
 toHex val =
     toTask
-        { func = "utils.toHex"
-        , args = Encode.list [ Encode.string val ]
+        { method = "utils.toHex"
+        , params = Encode.list [ Encode.string val ]
         , expect = expectJson hexDecoder
         , callType = Sync
         }
@@ -112,8 +114,8 @@ toHex val =
 hexToNumberString : Hex -> Task Error String
 hexToNumberString (Hex val) =
     toTask
-        { func = "utils.hexToNumberString"
-        , args = Encode.list [ Encode.string val ]
+        { method = "utils.hexToNumberString"
+        , params = Encode.list [ Encode.string val ]
         , expect = expectString
         , callType = Sync
         }
@@ -122,18 +124,28 @@ hexToNumberString (Hex val) =
 hexToNumber : Hex -> Task Error Int
 hexToNumber (Hex val) =
     toTask
-        { func = "utils.hexToNumber"
-        , args = Encode.list [ Encode.string val ]
+        { method = "utils.hexToNumber"
+        , params = Encode.list [ Encode.string val ]
         , expect = expectInt
         , callType = Sync
         }
 
 
-numberToHex : BigInt -> Task Error Hex
+numberToHex : Int -> Task Error Hex
 numberToHex number =
     toTask
-        { func = "utils.numberToHex"
-        , args = Encode.list [ Encode.string <| BigInt.toString number ]
+        { method = "utils.numberToHex"
+        , params = Encode.list [ Encode.string <| toString number ]
+        , expect = expectJson hexDecoder
+        , callType = Sync
+        }
+
+
+bigIntToHex : BigInt -> Task Error Hex
+bigIntToHex number =
+    toTask
+        { method = "utils.numberToHex"
+        , params = Encode.list [ Encode.string <| BigInt.toString number ]
         , expect = expectJson hexDecoder
         , callType = Sync
         }
@@ -142,8 +154,8 @@ numberToHex number =
 hexToUtf8 : Hex -> Task Error String
 hexToUtf8 (Hex val) =
     toTask
-        { func = "utils.hexToUtf8"
-        , args = Encode.list [ Encode.string val ]
+        { method = "utils.hexToUtf8"
+        , params = Encode.list [ Encode.string val ]
         , expect = expectString
         , callType = Sync
         }
@@ -152,8 +164,8 @@ hexToUtf8 (Hex val) =
 utf8ToHex : String -> Task Error Hex
 utf8ToHex val =
     toTask
-        { func = "utils.utf8ToHex"
-        , args = Encode.list [ Encode.string val ]
+        { method = "utils.utf8ToHex"
+        , params = Encode.list [ Encode.string val ]
         , expect = expectJson hexDecoder
         , callType = Sync
         }
@@ -162,10 +174,10 @@ utf8ToHex val =
 hexToAscii : Hex -> Task Error String
 hexToAscii (Hex val) =
     toTask
-        { func = "utils.hexToAscii"
-        , args = Encode.list [ Encode.string val ]
-
-        -- TODO See if toAsciiDecoder is still needed
+        { method = "utils.hexToAscii"
+        , params =
+            Encode.list [ Encode.string val ]
+            -- TODO See if toAsciiDecoder is still needed
         , expect = expectJson toAsciiDecoder
         , callType = Sync
         }
@@ -174,8 +186,8 @@ hexToAscii (Hex val) =
 asciiToHex : String -> Task Error Hex
 asciiToHex val =
     toTask
-        { func = "utils.asciiToHex"
-        , args = Encode.list [ Encode.string val ]
+        { method = "utils.asciiToHex"
+        , params = Encode.list [ Encode.string val ]
         , expect = expectJson hexDecoder
         , callType = Sync
         }
@@ -184,8 +196,8 @@ asciiToHex val =
 hexToBytes : Hex -> Task Error Bytes
 hexToBytes (Hex hex) =
     toTask
-        { func = "utils.hexToBytes"
-        , args = Encode.list [ Encode.string hex ]
+        { method = "utils.hexToBytes"
+        , params = Encode.list [ Encode.string hex ]
         , expect = expectJson bytesDecoder
         , callType = Sync
         }
@@ -194,8 +206,8 @@ hexToBytes (Hex hex) =
 bytesToHex : Bytes -> Task Error Hex
 bytesToHex byteArray =
     toTask
-        { func = "utils.bytesToHex"
-        , args = Encode.list [ encodeBytes byteArray ]
+        { method = "utils.bytesToHex"
+        , params = Encode.list [ encodeBytes byteArray ]
         , expect = expectJson hexDecoder
         , callType = Sync
         }
@@ -230,7 +242,7 @@ toWei unit amount =
                 Nothing ->
                     Err "There was an error calculating toWei result. However, the fault is not yours; please report this bug on github."
     else
-        Err "Malformed number string passed to `toWei` function."
+        Err "Malformed number string passed to `toWei` methodtion."
 
 
 fromWei : EthUnit -> BigInt -> String
