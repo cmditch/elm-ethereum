@@ -62,6 +62,7 @@ type alias Config =
 type EthNetwork
     = MainNet
     | Ropsten
+    | DevNet
     | UnknownNetwork
 
 
@@ -85,6 +86,16 @@ ropstenConfig =
     }
 
 
+devNetConfig : Config
+devNetConfig =
+    { account = (Address "0x5b8d4bdb8ca6edcca3fce3e9adda34b3e468df3a")
+    , contract = (Address "0xdfbE7B4439682E2Ad6F33323b36D89aBF8f295F9")
+    , blockNumber = BlockNum 320
+    , blockHash = BlockHash "0x231a0c9b49d53f0df6f2d5ce2f9d4cbc73efa0d250e64a395869b484b45687bc"
+    , txId = TxId "0x9ce0dc95c47dd98e0de43143e21028de0a73e05cde86b363228a2164d8645bde"
+    }
+
+
 testCommands : EthNetwork -> List (Cmd Msg)
 testCommands network =
     let
@@ -96,26 +107,27 @@ testCommands network =
                 Ropsten ->
                     ropstenConfig
 
+                DevNet ->
+                    devNetConfig
+
                 UnknownNetwork ->
                     ropstenConfig
     in
         taskChains config
             ++ [ -- web3.version
                  Task.attempt (VersionGetNetwork "web3.eth.net.getId") Web3.Eth.getId
-
-               -- web3
+                 -- web3
                , Task.attempt (IsConnected "web3.isConnected") Web3.isConnected
                , Task.attempt (Sha3 "web3.sha3") (Web3.Utils.sha3 "History is not a burden on the memory but an illumination of the soul.")
                , Task.attempt (ToHex "web3.toHex") (Web3.Utils.toHex "The danger is not that a particular class is unfit to govern. Every class is unfit to govern.")
-               , Task.attempt (ToAscii "web3.toAscii") (Web3.Utils.toAscii (Hex "0x4f6e20736f6d6520677265617420616e6420676c6f72696f7573206461792074686520706c61696e20666f6c6b73206f6620746865206c616e642077696c6c207265616368207468656972206865617274277320646573697265206174206c6173742c20616e642074686520576869746520486f7573652077696c6c2062652061646f726e6564206279206120646f776e7269676874206d6f726f6e2e202d20482e4c2e204d656e636b656e"))
-               , Task.attempt (FromAscii "web3.fromAscii") (Web3.Utils.fromAscii "'I'm not a driven businessman, but a driven artist. I never think about money. Beautiful things make money.'")
-               , Task.attempt (ToDecimal "web3.toDecimal") (Web3.Utils.toDecimal (Hex "0x67932"))
-               , Task.attempt (FromDecimal "web3.fromDecimal") (Web3.Utils.fromDecimal 424242)
+               , Task.attempt (ToAscii "web3.toAscii") (Web3.Utils.hexToAscii (Hex "0x4f6e20736f6d6520677265617420616e6420676c6f72696f7573206461792074686520706c61696e20666f6c6b73206f6620746865206c616e642077696c6c207265616368207468656972206865617274277320646573697265206174206c6173742c20616e642074686520576869746520486f7573652077696c6c2062652061646f726e6564206279206120646f776e7269676874206d6f726f6e2e202d20482e4c2e204d656e636b656e"))
+               , Task.attempt (FromAscii "web3.fromAscii") (Web3.Utils.asciiToHex "'I'm not a driven businessman, but a driven artist. I never think about money. Beautiful things make money.'")
+               , Task.attempt (ToDecimal "web3.toDecimal") (Web3.Utils.hexToNumber (Hex "0x67932"))
+               , Task.attempt (FromDecimal "web3.fromDecimal") (Web3.Utils.numberToHex 424242)
                , Task.attempt (IsAddress "web3.isAddress") (Web3.Utils.isAddress config.account)
-               , Task.attempt (IsChecksumAddress "web3.isChecksumAddress") (Web3.Utils.isChecksumAddress config.account)
+               , Task.attempt (IsChecksumAddress "web3.isChecksumAddress") (Web3.Utils.checkAddressChecksum config.account)
                , Task.attempt (ToChecksumAddress "web3.toChecksumAddress") (Web3.Utils.toChecksumAddress config.account)
-
-               -- web3.eth
+                 -- web3.eth
                , Task.attempt (EthGetSyncing "web3.eth.getSyncing") (Web3.Eth.getSyncing)
                , Task.attempt (EthCoinbase "web3.eth.coinbase") (Web3.Eth.coinbase)
                , Task.attempt (EthGetHashrate "web3.eth.getHashrate") (Web3.Eth.getHashrate)
@@ -138,7 +150,7 @@ testCommands network =
 taskChains : Config -> List (Cmd Msg)
 taskChains config =
     [ Task.attempt (TaskChainStorageToAscii "getStorageAt -> toAscii")
-        (Web3.Eth.getStorageAt config.contract 1 |> Task.andThen Web3.Utils.toAscii)
+        (Web3.Eth.getStorageAt config.contract 1 |> Task.andThen Web3.Utils.hexToAscii)
     ]
 
 
@@ -228,7 +240,7 @@ type Msg
       -- web3.setProvider
       -- web3.currentProvider
       -- web3.reset
-    | Sha3 String (Result Error Sha3)
+    | Sha3 String (Result Error Hex)
     | ToHex String (Result Error Hex)
     | ToAscii String (Result Error String)
     | FromAscii String (Result Error Hex)
@@ -252,7 +264,7 @@ type Msg
     | EthGetBlockNumber String (Result Error BlockId)
     | EthGetBalance String (Result Error BigInt)
     | EthGetStorageAt String (Result Error Hex)
-    | EthGetCode String (Result Error Bytes)
+    | EthGetCode String (Result Error Hex)
     | EthGetBlock String (Result Error BlockTxIds)
     | EthGetBlockTxObjs String (Result Error BlockTxObjs)
     | EthGetBlockTransactionCount String (Result Error Int)
@@ -408,6 +420,9 @@ getNetwork id =
 
         2 ->
             Ropsten
+
+        42513 ->
+            DevNet
 
         _ ->
             UnknownNetwork
