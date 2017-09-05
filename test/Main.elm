@@ -89,7 +89,7 @@ ropstenConfig =
 devNetConfig : Config
 devNetConfig =
     { account = (Address "0x5b8d4bdb8ca6edcca3fce3e9adda34b3e468df3a")
-    , contract = (Address "0xdfbE7B4439682E2Ad6F33323b36D89aBF8f295F9")
+    , contract = (Address "0x491ea2d3263d21d582e0c69c648a360c76f50bbd")
     , blockNumber = BlockNum 320
     , blockHash = BlockHash "0x231a0c9b49d53f0df6f2d5ce2f9d4cbc73efa0d250e64a395869b484b45687bc"
     , txId = TxId "0x9ce0dc95c47dd98e0de43143e21028de0a73e05cde86b363228a2164d8645bde"

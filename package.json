@@ -4,6 +4,7 @@
   "description": "An elm wrapper for Web3.js",
   "scripts": {
     "rpc": "testrpc -s 1 -b 4 -i 42",
+    "geth": "geth --datadir 'temp/testNode' --networkid 42513 console --ws --wsport 8545 --wsaddr 0.0.0.0 --wsorigins '*'",
     "web": "python -m SimpleHTTPServer 8000",
     "test": "elm-live test/Main.elm --output=test/elm.js --debug",
     "lightbox-build": "elm-make examples/lightbox/Main.elm --output examples/lightbox/elm.js --yes --debug",

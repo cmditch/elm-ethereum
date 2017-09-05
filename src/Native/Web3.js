@@ -135,6 +135,35 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         });
     }
 
+
+    //  Not fully functional yet
+    //
+    // function contract(callType, request) {
+    //     console.log("contract: ", callType, request);
+    //     return nativeBinding(function(callback)
+    //     {
+    //         try
+    //         {
+    //             var contract =
+    //                 eval("new web3.eth.Contract(request.abi, request.contractAddress._0, {from: request.from._0, gasPrice: request.gasPrice, gas: request.gas}).methods."
+    //                     + request.method
+    //                     + "apply(null, request.params)."
+    //                     + callType
+    //                     + "(callback)"
+    //                 )
+    //             return callback(succeed({ ctor: "Bytes", _0: response }));
+    //         }
+    //         catch(err)
+    //         {
+    //             console.log("Try/Catch error on contractGetData", err);
+    //             return callback(fail({
+    //                 ctor: 'Error', _0: "Contract" + callType + " failed - " + err.toString()
+    //             }));
+    //         }
+    //     });
+    // };
+
+
     function contractGetData(request) {
         console.log("contractGetData: ", request);
         return nativeBinding(function(callback)
@@ -358,6 +387,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     return {
         toTask: toTask,
         setOrGet: setOrGet,
+        // contract: F2(contract),
         contractGetData: contractGetData,
         watchEvent: F2(watchEvent),
         stopWatchingEvent: stopWatchingEvent,
