@@ -93,8 +93,8 @@ ropstenConfig =
 
 devNetConfig : Config
 devNetConfig =
-    { account = (Address "0x5b8d4bdb8ca6edcca3fce3e9adda34b3e468df3a")
-    , contract = (Address "0x491ea2d3263d21d582e0c69c648a360c76f50bbd")
+    { account = (Address "0x853726f791d6fbff51f225587d7fff05ab5930a8")
+    , contract = (Address "0x853726f791d6fbff51f225587d7fff05ab5930a8")
     , blockNumber = BlockNum 320
     , blockHash = BlockHash "0x231a0c9b49d53f0df6f2d5ce2f9d4cbc73efa0d250e64a395869b484b45687bc"
     , txId = TxId "0x9ce0dc95c47dd98e0de43143e21028de0a73e05cde86b363228a2164d8645bde"
@@ -114,6 +114,9 @@ devNet2Config =
 testCommands : Model -> List (Cmd Msg)
 testCommands model =
     let
+        coinbase =
+            model.coinbase ?= Address "0x0000000000000000000000000000000000000000"
+
         config =
             case model.network ?= UnknownNetwork of
                 MainNet ->
@@ -132,11 +135,11 @@ testCommands model =
                     ropstenConfig
     in
         taskChains config
-            ++ [ -- web3.version
-                 Task.attempt (VersionGetNetwork "web3.eth.net.getId") Web3.Eth.getId
-
-               -- web3
-               , Task.attempt (IsConnected "web3.isConnected") Web3.isConnected
+            ++ [ Task.attempt (Version "web3.verison") Web3.version
+                 -- web3.eth.net
+               , Task.attempt (EthNetGetId "web3.eth.net.getId") Web3.Eth.getId
+               , Task.attempt (EthNetGetNetworkType "web3.eth.net.getNetworkType") Web3.Eth.getNetworkType
+                 -- web3
                , Task.attempt (Sha3 "web3.sha3") (Web3.Utils.sha3 "History is not a burden on the memory but an illumination of the soul.")
                , Task.attempt (ToHex "web3.toHex") (Web3.Utils.toHex "The danger is not that a particular class is unfit to govern. Every class is unfit to govern.")
                , Task.attempt (ToAscii "web3.toAscii") (Web3.Utils.hexToAscii (Hex "0x4f6e20736f6d6520677265617420616e6420676c6f72696f7573206461792074686520706c61696e20666f6c6b73206f6620746865206c616e642077696c6c207265616368207468656972206865617274277320646573697265206174206c6173742c20616e642074686520576869746520486f7573652077696c6c2062652061646f726e6564206279206120646f776e7269676874206d6f726f6e2e202d20482e4c2e204d656e636b656e"))
@@ -146,14 +149,13 @@ testCommands model =
                , Task.attempt (IsAddress "web3.isAddress") (Web3.Utils.isAddress config.account)
                , Task.attempt (IsChecksumAddress "web3.isChecksumAddress") (Web3.Utils.checkAddressChecksum config.account)
                , Task.attempt (ToChecksumAddress "web3.toChecksumAddress") (Web3.Utils.toChecksumAddress config.account)
-
-               -- web3.eth
-               , Task.attempt (EthGetSyncing "web3.eth.getSyncing") (Web3.Eth.getSyncing)
-               , Task.attempt (EthCoinbase "web3.eth.coinbase") (Web3.Eth.coinbase)
+                 -- web3.eth
+               , Task.attempt (EthIsSyncing "web3.eth.isSyncing") (Web3.Eth.isSyncing)
+               , Task.attempt (EthCoinbase "web3.eth.coinbase") (Web3.Eth.getCoinbase)
                , Task.attempt (EthGetHashrate "web3.eth.getHashrate") (Web3.Eth.getHashrate)
                , Task.attempt (EthGetGasPrice "web3.eth.getGasPrice") (Web3.Eth.getGasPrice)
                , Task.attempt (EthGetAccounts "web3.eth.getAccounts") (Web3.Eth.getAccounts)
-               , Task.attempt (EthGetMining "web3.eth.getMining") (Web3.Eth.getMining)
+               , Task.attempt (EthIsMining "web3.eth.isMining") (Web3.Eth.isMining)
                , Task.attempt (EthGetBlockNumber "web3.eth.getBlockNumber") (Web3.Eth.getBlockNumber)
                , Task.attempt (EthGetBalance "web3.eth.getBalance") (Web3.Eth.getBalance config.account)
                , Task.attempt (EthGetStorageAt "web3.eth.getStorageAt") (Web3.Eth.getStorageAt config.contract 1)
@@ -164,7 +166,9 @@ testCommands model =
                , Task.attempt (EthGetUncle "web3.eth.getUncle") (Web3.Eth.getUncle config.blockNumber 0)
                , Task.attempt (EthGetBlockUncleCount "web3.eth.getBlockUncleCount") (Web3.Eth.getBlockUncleCount config.blockNumber)
                , Task.attempt (EthGetTransaction "web3.eth.getTransaction") (Web3.Eth.getTransaction config.txId)
-               , Task.attempt (TestContractCall1 "web3.eth.Contract().call") (Contract.call <| methods.returnsTwoNamed (model.coinbase ?= Address ("0x0000000000000000000000000000000000000000")) config.contract 1 2)
+               , Task.attempt (TestContractCall "web3.eth.Contract(params).methods['...'].call()") (Contract.call <| methods.returnsTwoNamed coinbase config.contract 1 2)
+                 --  , Task.attempt (TestContractSend "web3.eth.Contract(params).methods['...'].send()") (Contract.send <| methods.returnsTwoNamed coinbase config.contract 1 2)
+               , Task.attempt (TestContractEstimateGas "web3.eth.Contract(params).methods['...'].estimateGas()") (Contract.estimateGas <| methods.returnsTwoNamed coinbase config.contract 1 2)
                ]
 
 
@@ -256,9 +260,10 @@ viewCoverage model =
 type Msg
     = EstablishCoinbase (Result Error Address)
     | EstablishNetworkId (Result Error Int)
+    | EthNetGetNetworkType String (Result Error Network)
     | StartTest
-    | VersionGetNetwork String (Result Error Int)
-    | IsConnected String (Result Error Bool)
+    | Version String (Result Error String)
+    | EthNetGetId String (Result Error Int)
       -- web3.setProvider
       -- web3.currentProvider
       -- web3.reset
@@ -276,13 +281,12 @@ type Msg
     | NetGetListening String (Result Error Bool)
     | NetPeerCount String (Result Error Int)
       -- web3.ethdefaultAccount
-    | EthGetSyncing String (Result Error (Maybe SyncStatus))
-      -- web3.eth.isSyncing
+    | EthIsSyncing String (Result Error (Maybe SyncStatus))
     | EthCoinbase String (Result Error Address)
     | EthGetHashrate String (Result Error Int)
     | EthGetGasPrice String (Result Error BigInt)
     | EthGetAccounts String (Result Error (List Address))
-    | EthGetMining String (Result Error Bool)
+    | EthIsMining String (Result Error Bool)
     | EthGetBlockNumber String (Result Error BlockId)
     | EthGetBalance String (Result Error BigInt)
     | EthGetStorageAt String (Result Error Hex)
@@ -295,7 +299,10 @@ type Msg
     | EthGetTransaction String (Result Error TxObj)
       -- Fun funcs
     | TaskChainStorageToAscii String (Result Error String)
-    | TestContractCall1 String (Result Error TC.ReturnsTwoNamed_)
+      -- Contract Funcs
+    | TestContractCall String (Result Error TC.ReturnsTwoNamed)
+    | TestContractSend String (Result Error TxId)
+    | TestContractEstimateGas String (Result Error Int)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -342,11 +349,14 @@ update msg model =
                     Nothing ->
                         model ! []
 
-            VersionGetNetwork funcName result ->
-                updateModel 4 funcName result ! []
+            Version funcName result ->
+                updateModel 1 funcName result ! []
 
-            IsConnected funcName result ->
-                updateModel 5 funcName result ! []
+            EthNetGetId funcName result ->
+                updateModel 2 funcName result ! []
+
+            EthNetGetNetworkType funcName result ->
+                updateModel 3 funcName result ! []
 
             Sha3 funcName result ->
                 updateModel 6 funcName result ! []
@@ -381,7 +391,7 @@ update msg model =
             NetPeerCount funcName result ->
                 updateModel 16 funcName result ! []
 
-            EthGetSyncing funcName result ->
+            EthIsSyncing funcName result ->
                 updateModel 17 funcName result ! []
 
             EthCoinbase funcName result ->
@@ -396,7 +406,7 @@ update msg model =
             EthGetAccounts funcName result ->
                 updateModel 21 funcName result ! []
 
-            EthGetMining funcName result ->
+            EthIsMining funcName result ->
                 updateModel 22 funcName result ! []
 
             EthGetBlockNumber funcName result ->
@@ -432,8 +442,14 @@ update msg model =
             TaskChainStorageToAscii funcName result ->
                 updateModel 100 funcName result ! []
 
-            TestContractCall1 funcName result ->
+            TestContractCall funcName result ->
                 updateModel 200 funcName result ! []
+
+            TestContractSend funcName result ->
+                updateModel 201 funcName result ! []
+
+            TestContractEstimateGas funcName result ->
+                updateModel 202 funcName result ! []
 
 
 subscriptions : Model -> Sub Msg

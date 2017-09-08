@@ -1,6 +1,8 @@
 module Web3.Eth.Contract
     exposing
         ( call
+        , send
+        , estimateGas
         , getData
         , watch
         , get
@@ -16,7 +18,7 @@ module Web3.Eth.Contract
 import Web3 exposing (Retry)
 import Web3.Internal exposing (EventRequest, GetDataRequest, contractFuncHelper)
 import Web3.Types exposing (..)
-import Web3.Decoders exposing (expectString, expectJson, contractInfoDecoder)
+import Web3.Decoders exposing (..)
 import Web3.EM exposing (eventSentry, watchEvent, stopWatchingEvent)
 import BigInt exposing (BigInt)
 import Json.Encode as Encode exposing (Value)
@@ -27,6 +29,12 @@ import Task exposing (Task)
 {-
    Contract Methods
 -}
+
+
+type MethodType
+    = Call
+    | Send
+    | EstimateGas
 
 
 type alias ContractMethod a =
@@ -81,14 +89,22 @@ call method =
     Native.Web3.contract "call" (formatMethod method)
 
 
-send : ContractMethod a -> Task Error a
+send : ContractMethod a -> Task Error TxId
 send method =
-    Native.Web3.contract "send" method
+    let
+        rawMethod =
+            formatMethod method
+    in
+        Native.Web3.contract "send" { rawMethod | expect = expectJson txIdDecoder }
 
 
 estimateGas : ContractMethod a -> Task Error Int
 estimateGas method =
-    Native.Web3.contract "estimateGas" method
+    let
+        rawMethod =
+            formatMethod method
+    in
+        Native.Web3.contract "estimateGas" { rawMethod | expect = expectInt }
 
 
 

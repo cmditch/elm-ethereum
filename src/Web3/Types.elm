@@ -203,6 +203,14 @@ type alias SyncStatus =
     }
 
 
+type Network
+    = MainNet
+    | Morden
+    | Ropsten
+    | Kovan
+    | Private
+
+
 
 {-
    INTERNAL

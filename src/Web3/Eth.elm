@@ -2,12 +2,13 @@ module Web3.Eth
     exposing
         ( setDefaultAccount
         , getDefaultAccount
-        , getSyncing
-        , coinbase
+        , isSyncing
+        , getCoinbase
         , getHashrate
         , getGasPrice
         , getAccounts
-        , getMining
+        , isMining
+        , getNetworkType
         , getBlockNumber
         , getBalance
         , getStorageAt
@@ -59,10 +60,10 @@ getDefaultAccount =
         }
 
 
-getSyncing : Task Error (Maybe SyncStatus)
-getSyncing =
+isSyncing : Task Error (Maybe SyncStatus)
+isSyncing =
     Web3.toTask
-        { method = "eth.getSyncing"
+        { method = "eth.isSyncing"
         , params = Encode.list []
         , expect = expectJson (Decode.maybe syncStatusDecoder)
         , callType = Async
@@ -98,15 +99,10 @@ getCoinbase =
         }
 
 
-coinbase : Task Error Address
-coinbase =
-    getCoinbase
-
-
-getMining : Task Error Bool
-getMining =
+isMining : Task Error Bool
+isMining =
     Web3.toTask
-        { method = "eth.getMining"
+        { method = "eth.isMining"
         , params = Encode.list []
         , expect = expectBool
         , callType = Async
@@ -358,7 +354,8 @@ estimateGas txParams =
         }
 
 
-{-| web3.eth.net methodtions
+{-|
+  web3.eth.net methods
 -}
 getId : Task Error Int
 getId =
@@ -386,6 +383,16 @@ getPeerCount =
         { method = "eth.net.getPeerCount"
         , params = Encode.list []
         , expect = expectInt
+        , callType = Async
+        }
+
+
+getNetworkType : Task Error Network
+getNetworkType =
+    Web3.toTask
+        { method = "eth.net.getNetworkType"
+        , params = Encode.list []
+        , expect = expectJson networkTypeDecoder
         , callType = Async
         }
 

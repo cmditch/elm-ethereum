@@ -1,6 +1,6 @@
 module Web3
     exposing
-        ( isConnected
+        ( version
         , Retry
         , reset
         , toTask
@@ -15,7 +15,7 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 
 # Web3
 
-@docs isConnected
+@docs version
 
 
 # Core
@@ -37,6 +37,11 @@ import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
 -- WEB3
 
 
+{-| Get the version of web3.js library used
+
+    Web3.version == "1.0.0-beta.18"
+
+-}
 version : Task Error String
 version =
     setOrGet
@@ -47,23 +52,8 @@ version =
         }
 
 
-{-| Check to see if a connection to a node exists
 
-    Web3.isConnected  == True
-
--}
-isConnected : Task Error Bool
-isConnected =
-    toTask
-        { method = "currentProvider.connected"
-        , params = Encode.list []
-        , expect = expectBool
-        , callType = Getter
-        }
-
-
-
--- TODO Make this it's own native methodtion. Perhaps have it clear out the eventRegister obect as well,
+-- TODO Make this it's own native function. Perhaps have it clear out the eventRegister obect as well,
 --      unless that will conflict with Contract.stopWatching task.
 
 
@@ -90,9 +80,9 @@ getEvent =
 
 -- POLLING
 {-
-   Mad props to Nick Miller for this retry methodtion
-              The MIRTCH methodtion
-   "Matrix Inception Recursive Task Chaining" methodtion
+   Mad props to Nick Miller for this retry function
+              The MIRTCH function
+   "Matrix Inception Recursive Task Chaining" function
 -}
 
 

@@ -11,6 +11,7 @@ module Web3.Decoders
         , bytesDecoder
         , hexDecoder
         , blockNumDecoder
+        , networkTypeDecoder
         , bigIntDecoder
         , toAsciiDecoder
         , syncStatusDecoder
@@ -159,6 +160,40 @@ hexDecoder =
 blockNumDecoder : Decoder BlockId
 blockNumDecoder =
     int |> Decode.andThen (BlockNum >> Decode.succeed)
+
+
+
+-- type Network
+--     = MainNet
+--     | Morden
+--     | Ropsten
+--     | Private
+
+
+networkTypeDecoder : Decoder Network
+networkTypeDecoder =
+    let
+        toNetworkType stringyNetwork =
+            case stringyNetwork of
+                "main" ->
+                    Decode.succeed MainNet
+
+                "morden" ->
+                    Decode.succeed Morden
+
+                "ropsten" ->
+                    Decode.succeed Ropsten
+
+                "kovan" ->
+                    Decode.succeed Kovan
+
+                "private" ->
+                    Decode.succeed Private
+
+                _ ->
+                    Decode.succeed Private
+    in
+        string |> Decode.andThen toNetworkType
 
 
 blockHashDecoder : Decoder BlockId

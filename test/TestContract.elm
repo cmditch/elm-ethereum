@@ -33,18 +33,18 @@ bytecode_ =
 
 
 methods =
-    { returnsTwoNamed = returnsTwoNamed__ }
+    { returnsTwoNamed = returnsTwoNamed_ }
 
 
-type alias ReturnsTwoNamed_ =
+type alias ReturnsTwoNamed =
     { someUint : BigInt, someString : String }
 
 
-returnsTwoNamed__ : Address -> Address -> Int -> Int -> ContractMethod ReturnsTwoNamed_
-returnsTwoNamed__ from to a b =
+returnsTwoNamed_ : Address -> Address -> Int -> Int -> ContractMethod ReturnsTwoNamed
+returnsTwoNamed_ from to a b =
     let
         decoder =
-            decode ReturnsTwoNamed_
+            decode ReturnsTwoNamed
                 |> required "someUint" bigIntDecoder
                 |> required "someString" string
     in
