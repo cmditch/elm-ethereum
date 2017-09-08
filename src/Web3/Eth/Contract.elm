@@ -30,20 +30,55 @@ import Task exposing (Task)
 
 
 type alias ContractMethod a =
-    { abi : String
+    { abi : Abi
     , contractAddress : Address
     , from : Address
     , gasPrice : BigInt
     , gas : Int
     , method : String
     , params : List Value
+    , decoder : Decoder a
+    }
+
+
+type alias RawContractMethod a =
+    { abi : String
+    , contractAddress : String
+    , from : String
+    , gasPrice : String
+    , gas : Int
+    , method : String
+    , params : Value
     , expect : Expect a
     }
 
 
+formatMethod : ContractMethod a -> RawContractMethod a
+formatMethod method =
+    let
+        (Abi abi) =
+            method.abi
+
+        (Address contractAddress) =
+            method.contractAddress
+
+        (Address from) =
+            method.from
+    in
+        { abi = abi
+        , contractAddress = contractAddress
+        , from = from
+        , gasPrice = BigInt.toString method.gasPrice
+        , gas = method.gas
+        , method = method.method
+        , params = Encode.list method.params
+        , expect = expectJson method.decoder
+        }
+
+
 call : ContractMethod a -> Task Error a
 call method =
-    Native.Web3.contract "call" method
+    Native.Web3.contract "call" (formatMethod method)
 
 
 send : ContractMethod a -> Task Error a

@@ -10,6 +10,8 @@ import Web3
 import Web3.Types exposing (..)
 import Web3.Eth
 import Web3.Utils
+import Web3.Eth.Contract as Contract
+import TestContract as TC exposing (methods)
 
 
 main : Program Never Model Msg
@@ -26,6 +28,7 @@ init : ( Model, Cmd Msg )
 init =
     { tests = Dict.empty
     , network = Nothing
+    , coinbase = Nothing
     , error = Nothing
     }
         ! [ Task.attempt EstablishNetworkId (retry Web3.Eth.getId) ]
@@ -39,6 +42,7 @@ retry =
 type alias Model =
     { tests : Dict.Dict Int Test
     , network : Maybe EthNetwork
+    , coinbase : Maybe Address
     , error : Maybe Error
     }
 
@@ -63,6 +67,7 @@ type EthNetwork
     = MainNet
     | Ropsten
     | DevNet
+    | DevNet2
     | UnknownNetwork
 
 
@@ -96,11 +101,21 @@ devNetConfig =
     }
 
 
-testCommands : EthNetwork -> List (Cmd Msg)
-testCommands network =
+devNet2Config : Config
+devNet2Config =
+    { account = (Address "0xd8b0990c007ba1ad97b37c001d1f87044312162e")
+    , contract = (Address "0xd8b0990c007ba1ad97b37c001d1f87044312162e")
+    , blockNumber = BlockNum 320
+    , blockHash = BlockHash "0xc9ec58770c8c49682d388054e9fa9bc6c51848db1393abb59157e7d629861282"
+    , txId = TxId "0x56026ef59e927fd95f781865695b28ff260f70bfb79c8392080f5678b33cf100"
+    }
+
+
+testCommands : Model -> List (Cmd Msg)
+testCommands model =
     let
         config =
-            case network of
+            case model.network ?= UnknownNetwork of
                 MainNet ->
                     mainnetConfig
 
@@ -110,13 +125,17 @@ testCommands network =
                 DevNet ->
                     devNetConfig
 
+                DevNet2 ->
+                    devNet2Config
+
                 UnknownNetwork ->
                     ropstenConfig
     in
         taskChains config
             ++ [ -- web3.version
                  Task.attempt (VersionGetNetwork "web3.eth.net.getId") Web3.Eth.getId
-                 -- web3
+
+               -- web3
                , Task.attempt (IsConnected "web3.isConnected") Web3.isConnected
                , Task.attempt (Sha3 "web3.sha3") (Web3.Utils.sha3 "History is not a burden on the memory but an illumination of the soul.")
                , Task.attempt (ToHex "web3.toHex") (Web3.Utils.toHex "The danger is not that a particular class is unfit to govern. Every class is unfit to govern.")
@@ -127,7 +146,8 @@ testCommands network =
                , Task.attempt (IsAddress "web3.isAddress") (Web3.Utils.isAddress config.account)
                , Task.attempt (IsChecksumAddress "web3.isChecksumAddress") (Web3.Utils.checkAddressChecksum config.account)
                , Task.attempt (ToChecksumAddress "web3.toChecksumAddress") (Web3.Utils.toChecksumAddress config.account)
-                 -- web3.eth
+
+               -- web3.eth
                , Task.attempt (EthGetSyncing "web3.eth.getSyncing") (Web3.Eth.getSyncing)
                , Task.attempt (EthCoinbase "web3.eth.coinbase") (Web3.Eth.coinbase)
                , Task.attempt (EthGetHashrate "web3.eth.getHashrate") (Web3.Eth.getHashrate)
@@ -144,6 +164,7 @@ testCommands network =
                , Task.attempt (EthGetUncle "web3.eth.getUncle") (Web3.Eth.getUncle config.blockNumber 0)
                , Task.attempt (EthGetBlockUncleCount "web3.eth.getBlockUncleCount") (Web3.Eth.getBlockUncleCount config.blockNumber)
                , Task.attempt (EthGetTransaction "web3.eth.getTransaction") (Web3.Eth.getTransaction config.txId)
+               , Task.attempt (TestContractCall1 "web3.eth.Contract().call") (Contract.call <| methods.returnsTwoNamed (model.coinbase ?= Address ("0x0000000000000000000000000000000000000000")) config.contract 1 2)
                ]
 
 
@@ -209,7 +230,7 @@ viewCoverage : Model -> Html Msg
 viewCoverage model =
     let
         quantityTests =
-            List.length (testCommands (model.network ?= UnknownNetwork))
+            List.length (testCommands model)
 
         quantityTestsRun =
             (Dict.keys model.tests |> List.length)
@@ -233,7 +254,8 @@ viewCoverage model =
 
 
 type Msg
-    = EstablishNetworkId (Result Error Int)
+    = EstablishCoinbase (Result Error Address)
+    | EstablishNetworkId (Result Error Int)
     | StartTest
     | VersionGetNetwork String (Result Error Int)
     | IsConnected String (Result Error Bool)
@@ -273,6 +295,7 @@ type Msg
     | EthGetTransaction String (Result Error TxObj)
       -- Fun funcs
     | TaskChainStorageToAscii String (Result Error String)
+    | TestContractCall1 String (Result Error TC.ReturnsTwoNamed_)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -295,6 +318,14 @@ update msg model =
                             { model | tests = Dict.insert key (Test funcName "ELM UPDATE ERR" False) model.tests }
     in
         case msg of
+            EstablishCoinbase result ->
+                case result of
+                    Ok coinbase ->
+                        { model | coinbase = Just coinbase } ! []
+
+                    Err err ->
+                        { model | error = Just err } ! []
+
             EstablishNetworkId result ->
                 case result of
                     Ok networkId ->
@@ -306,7 +337,7 @@ update msg model =
             StartTest ->
                 case model.network of
                     Just network ->
-                        model ! testCommands network
+                        model ! testCommands model
 
                     Nothing ->
                         model ! []
@@ -401,6 +432,9 @@ update msg model =
             TaskChainStorageToAscii funcName result ->
                 updateModel 100 funcName result ! []
 
+            TestContractCall1 funcName result ->
+                updateModel 200 funcName result ! []
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -423,6 +457,9 @@ getNetwork id =
 
         42513 ->
             DevNet
+
+        42512 ->
+            DevNet2
 
         _ ->
             UnknownNetwork
