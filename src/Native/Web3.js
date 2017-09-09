@@ -135,11 +135,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         });
     }
 
-
-    //  Not fully functional yet
-
-    function contract(callType, request) {
-        console.log("contract: ", callType, request);
+    function contract(evalString, request) {
         return nativeBinding(function(callback)
         {
             try
@@ -153,57 +149,31 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                         // funcName for debugging
                         funcName: request.method
                     });
-                    console.log(request.method + " CONTRACT result: ", result);
-
                     switch (result.ctor)
                     {
                         case "Ok": return callback(succeed(result._0));
                         case "Err": return callback(fail({ ctor: 'Error', _0: result._0 }));
                     };
                 };
-                var contract =
-                    eval("new web3.eth.Contract("
-                        + request.abi
-                        + ", request.contractAddress, {from: request.from, gasPrice: request.gasPrice, gas: request.gas}).methods['"
-                        + request.method
-                        + "'].apply(null, request.params)."
-                        + callType
-                        + "(web3Callback)")
+
+                /* start magic */
+                var response = eval(evalString);
+                /* end magic */
+
+                if (request.callType.ctor === "Sync")
+                {
+                  var result = request.expect.responseToResult(JSON.stringify(response));
+                  switch (result.ctor)
+                  {
+                      case "Ok": return callback(succeed(result._0));
+                      case "Err": return callback(fail({ ctor: 'Error', _0: result._0 }));
+                  };
+                }
             }
             catch(err)
             {
-                console.log("Try/Catch error on contractGetData", err);
                 return callback(fail({
-                    ctor: 'Error', _0: "Contract " + callType + " failed - " + err.toString()
-                }));
-            }
-        });
-    };
-
-
-    function contractGetData(request) {
-        console.log("contractGetData: ", request);
-        return nativeBinding(function(callback)
-        {
-            try
-            {
-                var response =
-                    eval("web3.eth.contract("
-                        + request.abi
-                        + ").getData("
-                        + request.constructorParams.join()
-                        + ", {data: '"
-                        + request.data
-                        + "'})"
-                    )
-                console.log(response);
-                return callback(succeed({ ctor: "Bytes", _0: response }));
-            }
-            catch(err)
-            {
-                console.log("Try/Catch error on contractGetData", err);
-                return callback(fail({
-                    ctor: 'Error', _0: "Contract.getData failed - " + err.toString()
+                    ctor: 'Error', _0: "Contract " + request.method + " failed - " + err.toString()
                 }));
             }
         });
@@ -352,16 +322,6 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             console.log("Web3 response error: ",r);
             return {ctor: "Err", _0: r.error.message.split("\n")[0] }
         }
-        // else if (r.response === null)
-        // {
-        //     console.log("Web3 response was null: ", r);
-        //     return {ctor: "Err", _0: config.error.nullResponse }
-        // }
-        // else if (r.response === undefined)
-        // {
-        //     console.log("Web3 response was undefined: ", r);
-        //     return { ctor: "Err", _0: config.error.undefinedResposnse }
-        // }
         else if (r.wasGetEvent)
         {
             return r.decoder( JSON.stringify(r.response) )
@@ -370,7 +330,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         {
             console.log("Web3 was async w/ decoder: ", r);
             // decoder returns a Result
-            return r.decoder( formatWeb3Response(r.response) )
+            return r.decoder( JSON.stringify(r.response) );
         }
         else
         {
@@ -380,32 +340,12 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-/*
-//  Run on all async web3 repsonses.
-//  Turns BigNumber into full strings.
-*/
-    function formatWeb3Response(r)
-    {
-        if (r === null || r == undefined) { return r };
-        if (r.isBigNumber) { return JSON.stringify(r.toFixed()) };
-
-        config.web3BigNumberFields.forEach(function(val)
-        {
-            if (r[val] !== undefined && r[val].isBigNumber)
-            {
-                    r[val] = r[val].toFixed()
-            }
-        });
-
-        return JSON.stringify(r);
-    };
 
 
     return {
         toTask: toTask,
         setOrGet: setOrGet,
         contract: F2(contract),
-        contractGetData: contractGetData,
         watchEvent: F2(watchEvent),
         stopWatchingEvent: stopWatchingEvent,
         getEvent: getEvent,

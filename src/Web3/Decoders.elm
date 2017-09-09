@@ -147,27 +147,24 @@ txIdDecoder =
     specialTypeDecoder TxId
 
 
-bytesDecoder : Decoder Bytes
-bytesDecoder =
-    list int |> Decode.andThen (Bytes >> Decode.succeed)
-
-
 hexDecoder : Decoder Hex
 hexDecoder =
     specialTypeDecoder Hex
 
 
+specialTypeDecoder : (String -> a) -> Decoder a
+specialTypeDecoder wrapper =
+    string |> Decode.andThen (wrapper >> Decode.succeed)
+
+
+bytesDecoder : Decoder Bytes
+bytesDecoder =
+    list int |> Decode.andThen (Bytes >> Decode.succeed)
+
+
 blockNumDecoder : Decoder BlockId
 blockNumDecoder =
     int |> Decode.andThen (BlockNum >> Decode.succeed)
-
-
-
--- type Network
---     = MainNet
---     | Morden
---     | Ropsten
---     | Private
 
 
 networkTypeDecoder : Decoder Network
@@ -224,11 +221,6 @@ toAsciiDecoder =
                 >> Decode.succeed
     in
         string |> Decode.andThen removeNulls
-
-
-specialTypeDecoder : (String -> a) -> Decoder a
-specialTypeDecoder wrapper =
-    string |> Decode.andThen (wrapper >> Decode.succeed)
 
 
 contractInfoDecoder : Decoder ContractInfo

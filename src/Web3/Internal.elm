@@ -5,6 +5,7 @@ module Web3.Internal
         , EventRequest
         , contractFuncHelper
         , expectStringResponse
+        , decapitalize
         )
 
 import Json.Encode as Encode exposing (Value)
@@ -48,3 +49,8 @@ contractFuncHelper (Abi abi) (Address address) func =
         ++ address
         ++ "')."
         ++ func
+
+
+decapitalize : String -> String
+decapitalize string =
+    (String.left 1 string |> String.toLower) ++ (String.dropLeft 1 string)

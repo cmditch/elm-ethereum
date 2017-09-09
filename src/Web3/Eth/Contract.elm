@@ -3,20 +3,21 @@ module Web3.Eth.Contract
         ( call
         , send
         , estimateGas
-        , getData
+        , methodData
+          -- , contractData
         , watch
         , get
         , sentry
         , reset
         , stopWatching
         , pollContract
-        , ContractMethod
+        , Params
         )
 
 -- import Web3.Internal exposing (Request)
 
 import Web3 exposing (Retry)
-import Web3.Internal exposing (EventRequest, GetDataRequest, contractFuncHelper)
+import Web3.Internal exposing (EventRequest, GetDataRequest, contractFuncHelper, decapitalize)
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
 import Web3.EM exposing (eventSentry, watchEvent, stopWatchingEvent)
@@ -27,88 +28,121 @@ import Task exposing (Task)
 
 
 {-
+   Types
+-}
+
+
+type alias Params a =
+    { abi : Abi
+    , gasPrice : BigInt
+    , gas : Int
+    , params : List Value
+    , decoder : Decoder a
+    , methodName : Maybe String
+    }
+
+
+
+{-
    Contract Methods
 -}
 
 
-type MethodType
-    = Call
-    | Send
-    | EstimateGas
-
-
-type alias ContractMethod a =
-    { abi : Abi
-    , contractAddress : Address
-    , from : Address
-    , gasPrice : BigInt
-    , gas : Int
-    , method : String
-    , params : List Value
-    , decoder : Decoder a
-    }
-
-
-type alias RawContractMethod a =
-    { abi : String
-    , contractAddress : String
-    , from : String
-    , gasPrice : String
-    , gas : Int
-    , method : String
-    , params : Value
-    , expect : Expect a
-    }
-
-
-formatMethod : ContractMethod a -> RawContractMethod a
-formatMethod method =
+evalHelper : ContractAction -> String
+evalHelper contractMethod =
     let
-        (Abi abi) =
-            method.abi
-
-        (Address contractAddress) =
-            method.contractAddress
-
-        (Address from) =
-            method.from
+        base =
+            "new web3.eth.Contract(JSON.parse(request.abi), request.contractAddress,"
+                ++ "{from: request.from, gasPrice: request.gasPrice, gas: request.gas})"
     in
-        { abi = abi
-        , contractAddress = contractAddress
-        , from = from
-        , gasPrice = BigInt.toString method.gasPrice
-        , gas = method.gas
-        , method = method.method
-        , params = Encode.list method.params
-        , expect = expectJson method.decoder
-        }
+        case contractMethod of
+            Method callType ->
+                let
+                    callbackIfAsync =
+                        case callType of
+                            EncodeABI ->
+                                "()"
+
+                            _ ->
+                                "(web3Callback)"
+                in
+                    base
+                        ++ ".methods[request.method].apply(null, request.params)."
+                        ++ (toString callType |> decapitalize)
+                        ++ callbackIfAsync
+
+            Event ->
+                base
+                    ++ "//under construction//"
+
+            ContractData ->
+                base
+                    ++ ".deploy({data: request.data, arguments: request.params}).encodeABI()"
+
+            DeployCost ->
+                base
+                    ++ ".deploy({data: request.data, arguments: request.params}).estimateGas(web3Callback)"
 
 
-call : ContractMethod a -> Task Error a
-call method =
-    Native.Web3.contract "call" (formatMethod method)
-
-
-send : ContractMethod a -> Task Error TxId
-send method =
+call : Address -> Params a -> Task Error a
+call (Address contractAddress) params =
     let
+        rawMethod_ =
+            formatMethod params
+
         rawMethod =
-            formatMethod method
+            { rawMethod_ | contractAddress = contractAddress }
     in
-        Native.Web3.contract "send" { rawMethod | expect = expectJson txIdDecoder }
+        Native.Web3.contract (evalHelper <| Method Call) rawMethod
 
 
-estimateGas : ContractMethod a -> Task Error Int
-estimateGas method =
+send : Address -> Address -> Params a -> Task Error TxId
+send (Address from) (Address contractAddress) params =
     let
+        rawMethod_ =
+            formatMethod params
+
         rawMethod =
-            formatMethod method
+            { rawMethod_
+                | expect = expectJson txIdDecoder
+                , from = from
+                , contractAddress = contractAddress
+            }
     in
-        Native.Web3.contract "estimateGas" { rawMethod | expect = expectInt }
+        Native.Web3.contract (evalHelper <| Method Send) rawMethod
+
+
+estimateGas : Address -> Params a -> Task Error Int
+estimateGas (Address contractAddress) params =
+    let
+        rawMethod_ =
+            formatMethod params
+
+        rawMethod =
+            { rawMethod_ | expect = expectJson txIdDecoder, contractAddress = contractAddress }
+    in
+        Native.Web3.contract (evalHelper <| Method EstimateGas) { rawMethod | expect = expectInt }
+
+
+methodData : Params a -> Task Error Hex
+methodData params =
+    let
+        rawMethod_ =
+            formatMethod params
+
+        rawMethod =
+            { rawMethod_ | expect = expectJson hexDecoder, callType = Sync }
+    in
+        Native.Web3.contract (evalHelper <| Method EncodeABI) { rawMethod | expect = expectJson hexDecoder }
 
 
 
--- contract = eval("new web3.eth.Contract(" + request.abi + ",'" + request.contractAddress._0 + "', "{from: request.from._0, gasPrice: request.gasPrice, gas: request.gas}).methods." + request.method + "(request.params)." + callType + "(callback)"
+-- contractData : Hex -> List Value -> Task Error Hex
+-- contractData (Hex contractData) params =
+--
+-- deployCost : Hex ->
+-- deploy : TxParams -> List Value -> Task Error Address
+-- deploy txParams args =
 {-
    Contract Events
 -}
@@ -144,15 +178,6 @@ reset =
     Web3.EM.reset
 
 
-getData : Abi -> Hex -> List Value -> Task Error Hex
-getData (Abi abi) (Hex data) constructorParams =
-    Native.Web3.contractGetData
-        { abi = abi
-        , data = data
-        , constructorParams = Encode.list constructorParams
-        }
-
-
 pollContract : Retry -> TxId -> Task Error ContractInfo
 pollContract retryParams (TxId txId) =
     -- TODO This could be made more general. pollMinedTx
@@ -163,3 +188,55 @@ pollContract retryParams (TxId txId) =
         , callType = Async
         }
         |> Web3.retry retryParams
+
+
+
+-- Internal
+
+
+type MethodAction
+    = Send
+    | Call
+    | EstimateGas
+    | EncodeABI
+
+
+type ContractAction
+    = Method MethodAction
+    | Event
+    | ContractData
+    | DeployCost
+
+
+type alias RawParams a =
+    { abi : String
+    , contractAddress : String
+    , from : String
+    , gasPrice : String
+    , gas : Int
+    , method : String
+    , params : Value
+    , expect : Expect a
+    , callType : CallType
+    }
+
+
+formatMethod : Params a -> RawParams a
+formatMethod contractParams =
+    let
+        methodName =
+            Maybe.withDefault "" contractParams.methodName
+
+        (Abi abi) =
+            contractParams.abi
+    in
+        { abi = abi
+        , contractAddress = ""
+        , from = ""
+        , gasPrice = BigInt.toString contractParams.gasPrice
+        , gas = contractParams.gas
+        , method = methodName
+        , params = Encode.list contractParams.params
+        , expect = expectJson contractParams.decoder
+        , callType = Async
+        }

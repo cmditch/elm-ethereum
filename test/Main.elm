@@ -11,7 +11,7 @@ import Web3.Types exposing (..)
 import Web3.Eth
 import Web3.Utils
 import Web3.Eth.Contract as Contract
-import TestContract as TC exposing (methods)
+import TestContract as TC
 
 
 main : Program Never Model Msg
@@ -31,7 +31,7 @@ init =
     , coinbase = Nothing
     , error = Nothing
     }
-        ! [ Task.attempt EstablishNetworkId (retry Web3.Eth.getId) ]
+        ! [ Task.attempt EstablishCoinbase (retry Web3.Eth.getCoinbase), Task.attempt EstablishNetworkId (retry Web3.Eth.getId) ]
 
 
 retry : Task Error a -> Task Error a
@@ -136,10 +136,12 @@ testCommands model =
     in
         taskChains config
             ++ [ Task.attempt (Version "web3.verison") Web3.version
-                 -- web3.eth.net
+
+               -- web3.eth.net
                , Task.attempt (EthNetGetId "web3.eth.net.getId") Web3.Eth.getId
                , Task.attempt (EthNetGetNetworkType "web3.eth.net.getNetworkType") Web3.Eth.getNetworkType
-                 -- web3
+
+               -- web3
                , Task.attempt (Sha3 "web3.sha3") (Web3.Utils.sha3 "History is not a burden on the memory but an illumination of the soul.")
                , Task.attempt (ToHex "web3.toHex") (Web3.Utils.toHex "The danger is not that a particular class is unfit to govern. Every class is unfit to govern.")
                , Task.attempt (ToAscii "web3.toAscii") (Web3.Utils.hexToAscii (Hex "0x4f6e20736f6d6520677265617420616e6420676c6f72696f7573206461792074686520706c61696e20666f6c6b73206f6620746865206c616e642077696c6c207265616368207468656972206865617274277320646573697265206174206c6173742c20616e642074686520576869746520486f7573652077696c6c2062652061646f726e6564206279206120646f776e7269676874206d6f726f6e2e202d20482e4c2e204d656e636b656e"))
@@ -149,7 +151,8 @@ testCommands model =
                , Task.attempt (IsAddress "web3.isAddress") (Web3.Utils.isAddress config.account)
                , Task.attempt (IsChecksumAddress "web3.isChecksumAddress") (Web3.Utils.checkAddressChecksum config.account)
                , Task.attempt (ToChecksumAddress "web3.toChecksumAddress") (Web3.Utils.toChecksumAddress config.account)
-                 -- web3.eth
+
+               -- web3.eth
                , Task.attempt (EthIsSyncing "web3.eth.isSyncing") (Web3.Eth.isSyncing)
                , Task.attempt (EthCoinbase "web3.eth.coinbase") (Web3.Eth.getCoinbase)
                , Task.attempt (EthGetHashrate "web3.eth.getHashrate") (Web3.Eth.getHashrate)
@@ -166,9 +169,11 @@ testCommands model =
                , Task.attempt (EthGetUncle "web3.eth.getUncle") (Web3.Eth.getUncle config.blockNumber 0)
                , Task.attempt (EthGetBlockUncleCount "web3.eth.getBlockUncleCount") (Web3.Eth.getBlockUncleCount config.blockNumber)
                , Task.attempt (EthGetTransaction "web3.eth.getTransaction") (Web3.Eth.getTransaction config.txId)
-               , Task.attempt (TestContractCall "web3.eth.Contract(params).methods['...'].call()") (Contract.call <| methods.returnsTwoNamed coinbase config.contract 1 2)
-                 --  , Task.attempt (TestContractSend "web3.eth.Contract(params).methods['...'].send()") (Contract.send <| methods.returnsTwoNamed coinbase config.contract 1 2)
-               , Task.attempt (TestContractEstimateGas "web3.eth.Contract(params).methods['...'].estimateGas()") (Contract.estimateGas <| methods.returnsTwoNamed coinbase config.contract 1 2)
+               , Task.attempt (TestContractCall "web3.eth.Contract(params).methods['...'].call()") (Contract.call config.contract <| (TC.returnsTwoNamed 1 2))
+
+               --  , Task.attempt (TestContractSend "web3.eth.Contract(params).methods['...'].send()") (Contract.send <| methods.returnsTwoNamed coinbase config.contract 1 2)
+               , Task.attempt (TestContractEstimateGas "web3.eth.Contract(params).methods['...'].estimateGas()") (Contract.estimateGas config.contract <| TC.returnsTwoNamed 1 2)
+               , Task.attempt (TestContractEncodeABI "web3.eth.Contract(params).methods['...'].encodeABI()") (Contract.methodData <| TC.returnsTwoNamed 1 2)
                ]
 
 
@@ -303,6 +308,7 @@ type Msg
     | TestContractCall String (Result Error TC.ReturnsTwoNamed)
     | TestContractSend String (Result Error TxId)
     | TestContractEstimateGas String (Result Error Int)
+    | TestContractEncodeABI String (Result Error Hex)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -450,6 +456,9 @@ update msg model =
 
             TestContractEstimateGas funcName result ->
                 updateModel 202 funcName result ! []
+
+            TestContractEncodeABI funcName result ->
+                updateModel 203 funcName result ! []
 
 
 subscriptions : Model -> Sub Msg
