@@ -4,7 +4,6 @@ module Web3
         , Retry
         , reset
         , toTask
-        , setOrGet
         , getEvent
         , retry
         )
@@ -44,7 +43,7 @@ import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
 -}
 version : Task Error String
 version =
-    setOrGet
+    toTask
         { method = "version"
         , params = Encode.list []
         , expect = expectString
@@ -63,18 +62,32 @@ reset keepIsSyncing =
 
 
 toTask : Request a -> Task Error a
-toTask =
-    Native.Web3.toTask
-
-
-setOrGet : Request a -> Task Error a
-setOrGet =
-    Native.Web3.setOrGet
+toTask request =
+    Native.Web3.toTask (evalHelper request) request
 
 
 getEvent : Request a -> Task Error a
 getEvent =
     Native.Web3.getEvent
+
+
+evalHelper : Request a -> String
+evalHelper request =
+    let
+        callType =
+            case request.callType of
+                Async ->
+                    ".apply(null, request.params.concat(web3Callback))"
+
+                Sync ->
+                    ".apply(null, request.params)"
+
+                Getter ->
+                    ""
+    in
+        "web3."
+            ++ request.method
+            ++ callType
 
 
 

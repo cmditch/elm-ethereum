@@ -52,8 +52,8 @@ evalHelper : ContractAction -> String
 evalHelper contractMethod =
     let
         base =
-            "new web3.eth.Contract(JSON.parse(request.abi), request.contractAddress,"
-                ++ "{from: request.from, gasPrice: request.gasPrice, gas: request.gas})"
+            "new web3.eth.Contract( JSON.parse(request.abi), request.contractAddress,"
+                ++ "{from: request.from, gasPrice: request.gasPrice, gas: request.gas} )"
     in
         case contractMethod of
             Method callType ->
@@ -93,7 +93,7 @@ call (Address contractAddress) params =
         rawMethod =
             { rawMethod_ | contractAddress = contractAddress }
     in
-        Native.Web3.contract (evalHelper <| Method Call) rawMethod
+        Native.Web3.toTask (evalHelper <| Method Call) rawMethod
 
 
 send : Address -> Address -> Params a -> Task Error TxId
@@ -109,7 +109,7 @@ send (Address from) (Address contractAddress) params =
                 , contractAddress = contractAddress
             }
     in
-        Native.Web3.contract (evalHelper <| Method Send) rawMethod
+        Native.Web3.toTask (evalHelper <| Method Send) rawMethod
 
 
 estimateGas : Address -> Params a -> Task Error Int
@@ -121,7 +121,7 @@ estimateGas (Address contractAddress) params =
         rawMethod =
             { rawMethod_ | expect = expectJson txIdDecoder, contractAddress = contractAddress }
     in
-        Native.Web3.contract (evalHelper <| Method EstimateGas) { rawMethod | expect = expectInt }
+        Native.Web3.toTask (evalHelper <| Method EstimateGas) { rawMethod | expect = expectInt }
 
 
 methodData : Params a -> Task Error Hex
@@ -133,7 +133,7 @@ methodData params =
         rawMethod =
             { rawMethod_ | expect = expectJson hexDecoder, callType = Sync }
     in
-        Native.Web3.contract (evalHelper <| Method EncodeABI) { rawMethod | expect = expectJson hexDecoder }
+        Native.Web3.toTask (evalHelper <| Method EncodeABI) { rawMethod | expect = expectJson hexDecoder }
 
 
 

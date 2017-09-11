@@ -1,7 +1,6 @@
 module Web3.Eth
     exposing
-        ( setDefaultAccount
-        , getDefaultAccount
+        ( getDefaultAccount
         , isSyncing
         , getCoinbase
         , getHashrate
@@ -40,19 +39,12 @@ import Task exposing (Task)
 import BigInt exposing (BigInt)
 
 
-setDefaultAccount : Address -> Task Error Address
-setDefaultAccount (Address address) =
-    Web3.setOrGet
-        { method = "eth.defaultAccount"
-        , params = Encode.list [ Encode.string address ]
-        , expect = expectJson addressDecoder
-        , callType = Setter
-        }
+-- setDefaultAccount : Address -> Task Error Address
 
 
 getDefaultAccount : Task Error Address
 getDefaultAccount =
-    Web3.setOrGet
+    Web3.toTask
         { method = "eth.defaultAccount"
         , params = Encode.list []
         , expect = expectJson addressDecoder
@@ -85,7 +77,6 @@ watchIncomingTxs name =
    Implement within Effect Manager.
    NOTE Doesn't seem to work within MetaMask!
    isSyncing : Task Error (Maybe SyncStatus)
-
 -}
 
 
