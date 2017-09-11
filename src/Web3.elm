@@ -1,11 +1,9 @@
 module Web3
     exposing
         ( version
-        , Retry
-        , reset
         , toTask
-        , getEvent
         , retry
+        , Retry
         )
 
 {-| Version allows one to check the various library, protocol, & network versions one is interacting with. [Web3
@@ -51,24 +49,12 @@ version =
         }
 
 
-
--- TODO Make this it's own native function. Perhaps have it clear out the eventRegister obect as well,
---      unless that will conflict with Contract.stopWatching task.
-
-
-reset : Bool -> Task Error ()
-reset keepIsSyncing =
-    Native.Web3.reset (Encode.bool keepIsSyncing)
-
-
+{-|
+    Magic happens here
+-}
 toTask : Request a -> Task Error a
 toTask request =
     Native.Web3.toTask (evalHelper request) request
-
-
-getEvent : Request a -> Task Error a
-getEvent =
-    Native.Web3.getEvent
 
 
 evalHelper : Request a -> String
