@@ -2,8 +2,8 @@ module Web3.Internal
     exposing
         ( Request
         , EventRequest
-        , contractFuncHelper
         , expectStringResponse
+        , constructOptions
         , decapitalize
         )
 
@@ -34,16 +34,16 @@ expectStringResponse =
     Native.Web3.expectStringResponse
 
 
-contractFuncHelper : Abi -> Address -> String -> String
-contractFuncHelper (Abi abi) (Address address) func =
-    "eth.contract("
-        ++ abi
-        ++ ").at('"
-        ++ address
-        ++ "')."
-        ++ func
-
-
 decapitalize : String -> String
 decapitalize string =
     (String.left 1 string |> String.toLower) ++ (String.dropLeft 1 string)
+
+
+constructOptions : List ( String, Maybe String ) -> String
+constructOptions options =
+    options
+        |> List.filter (\( k, v ) -> v /= Nothing)
+        |> List.map (\( k, v ) -> ( k, Maybe.withDefault "" v ))
+        |> List.map (\( k, v ) -> k ++ ": " ++ v ++ ",")
+        |> String.join ""
+        |> String.dropRight 1

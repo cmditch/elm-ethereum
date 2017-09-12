@@ -175,8 +175,10 @@ testCommands model =
                , Task.attempt (TestContractCall "web3.eth.Contract(params).methods['...'].call()") (Contract.call config.contract <| (TC.returnsTwoNamed 1 2))
 
                --  , Task.attempt (TestContractSend "web3.eth.Contract(params).methods['...'].send()") (Contract.send <| methods.returnsTwoNamed coinbase config.contract 1 2)
-               , Task.attempt (TestContractEstimateGas "web3.eth.Contract(params).methods['...'].estimateGas()") (Contract.estimateGas config.contract <| TC.returnsTwoNamed 1 2)
-               , Task.attempt (TestContractEncodeABI "web3.eth.Contract(params).methods['...'].encodeABI()") (Contract.methodData <| TC.returnsTwoNamed 1 2)
+               , Task.attempt (TestContractEstimateMethodGas "web3.eth.Contract(params).methods['...'].estimateGas()") (Contract.estimateMethodGas config.contract <| TC.returnsTwoNamed 1 2)
+               , Task.attempt (TestContractEncodeMethodABI "web3.eth.Contract(params).methods['...'].encodeABI()") (Contract.encodeMethodABI <| TC.returnsTwoNamed 1 2)
+               , Task.attempt (TestContractEstimateContractGas "web3.eth.Contract(params).deploy({...}).estimateGas()") (TC.estimateContractGas (BigInt.fromInt 10) ("Test Constructor String"))
+               , Task.attempt (TestContractEncodeContractABI "web3.eth.Contract(params).deploy({...}).encodeABI()") (TC.encodeContractABI (BigInt.fromInt 10) ("Test Constructor String"))
 
                -- web3.eth.accounts
                , Task.attempt (EthAccountsCreate "web3.eth.accounts.create") (Accounts.create)
@@ -311,10 +313,12 @@ type Msg
       -- Fun funcs
     | TaskChainStorageToAscii String (Result Error String)
       -- Contract Funcs
-    | TestContractCall String (Result Error TC.ReturnsTwoNamed)
+    | TestContractCall String (Result Error { someUint : BigInt, someString : String })
     | TestContractSend String (Result Error TxId)
-    | TestContractEstimateGas String (Result Error Int)
-    | TestContractEncodeABI String (Result Error Hex)
+    | TestContractEstimateMethodGas String (Result Error Int)
+    | TestContractEncodeMethodABI String (Result Error Hex)
+    | TestContractEstimateContractGas String (Result Error Int)
+    | TestContractEncodeContractABI String (Result Error Hex)
       -- Accounts
     | EthAccountsCreate String (Result Error Account)
     | EthAccountsCreateWithEntropy String (Result Error Account)
@@ -463,11 +467,17 @@ update msg model =
             TestContractSend funcName result ->
                 updateModel 201 funcName result ! []
 
-            TestContractEstimateGas funcName result ->
+            TestContractEstimateMethodGas funcName result ->
                 updateModel 202 funcName result ! []
 
-            TestContractEncodeABI funcName result ->
+            TestContractEncodeMethodABI funcName result ->
                 updateModel 203 funcName result ! []
+
+            TestContractEstimateContractGas funcName result ->
+                updateModel 204 funcName result ! []
+
+            TestContractEncodeContractABI funcName result ->
+                updateModel 205 funcName result ! []
 
             EthAccountsCreate funcName result ->
                 updateModel 300 funcName result ! []

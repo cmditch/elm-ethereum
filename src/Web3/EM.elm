@@ -12,7 +12,7 @@ effect module Web3.EM
 import Dict
 import Task exposing (Task)
 import Json.Encode as Encode
-import Web3.Internal exposing (EventRequest, contractFuncHelper)
+import Web3.Internal exposing (EventRequest)
 
 
 -- SUBSCRIPTIONS
@@ -196,8 +196,10 @@ initWatch : Platform.Router msg Msg -> String -> EventRequest -> Task Never Web3
 initWatch router name { abi, address, argsFilter, filterParams, eventName } =
     let
         method =
-            contractFuncHelper abi address eventName
+            ""
 
+        -- NOTE Hack so it can compile, till this module is redesigned
+        -- contractFuncHelper abi address eventName
         params =
             Encode.list [ argsFilter, filterParams ]
     in

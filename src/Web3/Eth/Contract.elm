@@ -2,8 +2,10 @@ module Web3.Eth.Contract
     exposing
         ( call
         , send
-        , estimateGas
-        , methodData
+        , estimateMethodGas
+        , estimateContractGas
+        , encodeMethodABI
+        , encodeContractABI
         , watch
         , sentry
         , reset
@@ -15,7 +17,7 @@ module Web3.Eth.Contract
 -- import Web3.Internal exposing (Request)
 
 import Web3 exposing (Retry)
-import Web3.Internal exposing (EventRequest, contractFuncHelper, decapitalize)
+import Web3.Internal exposing (EventRequest, constructOptions, decapitalize)
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
 import Web3.EM exposing (eventSentry, watchEvent, stopWatchingEvent)
@@ -32,11 +34,12 @@ import Task exposing (Task)
 
 type alias Params a =
     { abi : Abi
-    , gasPrice : BigInt
-    , gas : Int
+    , gasPrice : Maybe BigInt
+    , gas : Maybe Int
+    , data : Maybe Hex
     , params : List Value
-    , decoder : Decoder a
     , methodName : Maybe String
+    , decoder : Decoder a
     }
 
 
@@ -49,62 +52,71 @@ type alias Params a =
 call : Address -> Params a -> Task Error a
 call (Address contractAddress) params =
     let
-        rawMethod_ =
-            formatMethod params
-
-        rawMethod =
-            { rawMethod_ | contractAddress = contractAddress }
+        rawParams =
+            defaultRawParams params
     in
-        Native.Web3.toTask (evalHelper <| Method Call) rawMethod
+        toTask (constructEval params <| Methods Call rawParams.method)
+            { rawParams | contractAddress = contractAddress }
 
 
 send : Address -> Address -> Params a -> Task Error TxId
 send (Address from) (Address contractAddress) params =
     let
-        rawMethod_ =
-            formatMethod params
-
-        rawMethod =
-            { rawMethod_
+        rawParams =
+            defaultRawParams params
+    in
+        toTask (constructEval params <| Methods Send rawParams.method)
+            { rawParams
                 | expect = expectJson txIdDecoder
                 , from = from
                 , contractAddress = contractAddress
             }
-    in
-        Native.Web3.toTask (evalHelper <| Method Send) rawMethod
 
 
-estimateGas : Address -> Params a -> Task Error Int
-estimateGas (Address contractAddress) params =
+estimateMethodGas : Address -> Params a -> Task Error Int
+estimateMethodGas (Address contractAddress) params =
     let
-        rawMethod_ =
-            formatMethod params
-
-        rawMethod =
-            { rawMethod_ | expect = expectJson txIdDecoder, contractAddress = contractAddress }
+        rawParams =
+            defaultRawParams params
     in
-        Native.Web3.toTask (evalHelper <| Method EstimateGas) { rawMethod | expect = expectInt }
+        toTask (constructEval params <| Methods EstimateGas rawParams.method)
+            { rawParams
+                | expect = expectInt
+                , contractAddress = contractAddress
+            }
 
 
-methodData : Params a -> Task Error Hex
-methodData params =
+encodeMethodABI : Params a -> Task Error Hex
+encodeMethodABI params =
     let
-        rawMethod_ =
-            formatMethod params
-
-        rawMethod =
-            { rawMethod_ | expect = expectJson hexDecoder, callType = Sync }
+        rawParams =
+            defaultRawParams params
     in
-        Native.Web3.toTask (evalHelper <| Method EncodeABI) { rawMethod | expect = expectJson hexDecoder }
+        toTask (constructEval params <| Methods EncodeABI rawParams.method)
+            { rawParams
+                | expect = expectJson hexDecoder
+                , callType = Sync
+            }
+
+
+encodeContractABI : Params Hex -> Task Error Hex
+encodeContractABI params =
+    let
+        rawParams =
+            defaultRawParams params
+    in
+        toTask (constructEval params <| Deploy EncodeABI)
+            { rawParams | callType = Sync }
+
+
+estimateContractGas : Params Int -> Task Error Int
+estimateContractGas params =
+    toTask (constructEval params <| Deploy EstimateGas)
+        (defaultRawParams params)
 
 
 
--- contractData : Hex -> List Value -> Task Error Hex
--- contractData (Hex contractData) params =
---
--- deployCost : Hex ->
--- deploy : TxParams -> List Value -> Task Error Address
--- deploy txParams args =
+-- deploy : Params -> Task Error Address
 {-
    Contract Events
 -}
@@ -147,6 +159,11 @@ pollContract retryParams (TxId txId) =
 -- Internal
 
 
+toTask : String -> RawParams a -> Task Error a
+toTask =
+    Native.Web3.toTask
+
+
 type MethodAction
     = Send
     | Call
@@ -155,18 +172,18 @@ type MethodAction
 
 
 type ContractAction
-    = Method MethodAction
-    | Event
-    | ContractData
-    | DeployCost
+    = Methods MethodAction String
+    | Events
+    | Deploy MethodAction
 
 
 type alias RawParams a =
     { abi : String
     , contractAddress : String
     , from : String
-    , gasPrice : String
     , gas : Int
+    , gasPrice : String
+    , data : String
     , method : String
     , params : Value
     , expect : Expect a
@@ -174,11 +191,20 @@ type alias RawParams a =
     }
 
 
-formatMethod : Params a -> RawParams a
-formatMethod contractParams =
+defaultRawParams : Params a -> RawParams a
+defaultRawParams contractParams =
     let
         methodName =
             Maybe.withDefault "" contractParams.methodName
+
+        gasPrice =
+            Maybe.withDefault (BigInt.fromInt 0) contractParams.gasPrice
+
+        gas =
+            Maybe.withDefault 0 contractParams.gas
+
+        (Hex data) =
+            Maybe.withDefault (Hex "") contractParams.data
 
         (Abi abi) =
             contractParams.abi
@@ -186,46 +212,64 @@ formatMethod contractParams =
         { abi = abi
         , contractAddress = ""
         , from = ""
-        , gasPrice = BigInt.toString contractParams.gasPrice
-        , gas = contractParams.gas
+        , gasPrice = BigInt.toString gasPrice
+        , gas = gas
         , method = methodName
         , params = Encode.list contractParams.params
         , expect = expectJson contractParams.decoder
         , callType = Async
+        , data = data
         }
 
 
-evalHelper : ContractAction -> String
-evalHelper contractMethod =
+constructEval : Params a -> ContractAction -> String
+constructEval { gas, gasPrice, data } contractMethod =
     let
+        gas_ =
+            Maybe.map toString gas
+                |> Maybe.map (\_ -> "request.gas")
+
+        gasPrice_ =
+            Maybe.map BigInt.toString gasPrice
+                |> Maybe.map (\_ -> "request.gasPrice")
+
+        data_ =
+            Maybe.map hexToString data
+                |> Maybe.map (\_ -> "request.data")
+
+        options =
+            "{ from: request.from, "
+                ++ constructOptions [ ( "data", gas_ ), ( "gasPrice", gasPrice_ ), ( "data", data_ ) ]
+                ++ "}"
+
         base =
             "new web3.eth.Contract( JSON.parse(request.abi), request.contractAddress,"
-                ++ "{from: request.from, gasPrice: request.gasPrice, gas: request.gas} )"
+                ++ options
+                ++ ")"
+
+        callbackIfAsync callType =
+            case callType of
+                EncodeABI ->
+                    "()"
+
+                _ ->
+                    "(web3Callback)"
     in
         case contractMethod of
-            Method callType ->
-                let
-                    callbackIfAsync =
-                        case callType of
-                            EncodeABI ->
-                                "()"
+            Methods callType methodName ->
+                base
+                    ++ ".methods['"
+                    ++ methodName
+                    ++ "'].apply(null, request.params)."
+                    ++ (toString callType |> decapitalize)
+                    ++ callbackIfAsync callType
 
-                            _ ->
-                                "(web3Callback)"
-                in
-                    base
-                        ++ ".methods[request.method].apply(null, request.params)."
-                        ++ (toString callType |> decapitalize)
-                        ++ callbackIfAsync
+            Deploy callType ->
+                base
+                    ++ ".deploy({arguments: request.params })."
+                    ++ (toString callType |> decapitalize)
+                    ++ callbackIfAsync callType
 
-            Event ->
+            Events ->
                 base
                     ++ "//under construction//"
-
-            ContractData ->
-                base
-                    ++ ".deploy({data: request.data, arguments: request.params}).encodeABI()"
-
-            DeployCost ->
-                base
-                    ++ ".deploy({data: request.data, arguments: request.params}).estimateGas(web3Callback)"
