@@ -28,7 +28,7 @@ import Json.Encode as Encode
 import Native.Web3
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
-import Web3.Internal exposing (Request, EventRequest, GetDataRequest)
+import Web3.Internal exposing (Request, EventRequest)
 
 
 -- WEB3
@@ -46,10 +46,12 @@ version =
         , params = Encode.list []
         , expect = expectString
         , callType = Getter
+        , applyScope = Nothing
         }
 
 
 {-|
+
     Magic happens here
 -}
 toTask : Request a -> Task Error a
@@ -60,13 +62,21 @@ toTask request =
 evalHelper : Request a -> String
 evalHelper request =
     let
+        applyScope =
+            case request.applyScope of
+                Just scope ->
+                    scope
+
+                Nothing ->
+                    "null"
+
         callType =
             case request.callType of
                 Async ->
-                    ".apply(null, request.params.concat(web3Callback))"
+                    ".apply(" ++ applyScope ++ ", request.params.concat(web3Callback))"
 
                 Sync ->
-                    ".apply(null, request.params)"
+                    ".apply(" ++ applyScope ++ ", request.params)"
 
                 Getter ->
                     ""

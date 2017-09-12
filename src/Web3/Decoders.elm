@@ -10,6 +10,11 @@ module Web3.Decoders
         , txIdDecoder
         , bytesDecoder
         , hexDecoder
+        , sha3Decoder
+        , keystoreDecoder
+        , privateKeyDecoder
+        , accountDecoder
+        , signedTxDecoder
         , blockNumDecoder
         , networkTypeDecoder
         , bigIntDecoder
@@ -20,6 +25,8 @@ module Web3.Decoders
         , hexToString
         , addressToString
         , txIdToString
+        , sha3ToString
+        , privateKeyToString
         , expectInt
         , expectString
         , expectBool
@@ -137,23 +144,83 @@ eventLogDecoder argsDecoder =
         |> required "transactionIndex" int
 
 
+accountDecoder : Decoder Account
+accountDecoder =
+    decode Account
+        |> required "address" addressDecoder
+        |> required "privateKey" privateKeyDecoder
+
+
+signedTxDecoder : Decoder SignedTx
+signedTxDecoder =
+    decode SignedTx
+        |> custom (maybe (field "message" string))
+        |> required "messageHash" sha3Decoder
+        |> required "r" hexDecoder
+        |> required "s" hexDecoder
+        |> required "v" hexDecoder
+        |> required "rawTransaction" hexDecoder
+
+
+keystoreDecoder : Decoder Keystore
+keystoreDecoder =
+    decode Keystore
+        |> required "version" int
+        |> required "id" string
+        |> required "address" string
+        |> required "crypto" cryptoDecoder
+
+
+cryptoDecoder : Decoder Crypto
+cryptoDecoder =
+    let
+        cipherparamsDecoder =
+            decode (\iv -> { iv = iv }) |> required "iv" string
+
+        kdfparamsDecoder =
+            decode (\dklen salt n r p -> { dklen = dklen, salt = salt, n = n, r = r, p = p })
+                |> required "iv" int
+                |> required "salt" string
+                |> required "n" int
+                |> required "r" int
+                |> required "p" int
+    in
+        decode Crypto
+            |> required "ciphertext" string
+            |> required "cipherparams" cipherparamsDecoder
+            |> required "cipher" string
+            |> required "kdf" string
+            |> required "kdfparams" kdfparamsDecoder
+            |> required "mac" string
+
+
 addressDecoder : Decoder Address
 addressDecoder =
-    specialTypeDecoder Address
+    stringyTypeDecoder Address
 
 
 txIdDecoder : Decoder TxId
 txIdDecoder =
-    specialTypeDecoder TxId
+    stringyTypeDecoder TxId
 
 
 hexDecoder : Decoder Hex
 hexDecoder =
-    specialTypeDecoder Hex
+    stringyTypeDecoder Hex
 
 
-specialTypeDecoder : (String -> a) -> Decoder a
-specialTypeDecoder wrapper =
+sha3Decoder : Decoder Sha3
+sha3Decoder =
+    stringyTypeDecoder Sha3
+
+
+privateKeyDecoder : Decoder PrivateKey
+privateKeyDecoder =
+    stringyTypeDecoder PrivateKey
+
+
+stringyTypeDecoder : (String -> a) -> Decoder a
+stringyTypeDecoder wrapper =
     string |> Decode.andThen (wrapper >> Decode.succeed)
 
 
@@ -251,6 +318,16 @@ txIdToString (TxId txId) =
 hexToString : Hex -> String
 hexToString (Hex hex) =
     hex
+
+
+sha3ToString : Sha3 -> String
+sha3ToString (Sha3 sha3) =
+    sha3
+
+
+privateKeyToString : PrivateKey -> String
+privateKeyToString (PrivateKey privateKey) =
+    privateKey
 
 
 expectInt : Expect Int

@@ -33,16 +33,18 @@ randomHex size =
         , params = Encode.list [ Encode.int size ]
         , expect = expectJson hexDecoder
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
-sha3 : String -> Task Error Hex
+sha3 : String -> Task Error Sha3
 sha3 val =
     toTask
         { method = "utils.sha3"
         , params = Encode.list [ Encode.string val ]
-        , expect = expectJson hexDecoder
+        , expect = expectJson sha3Decoder
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -68,6 +70,7 @@ isHex val =
         , params = Encode.list [ Encode.string val ]
         , expect = expectBool
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -78,6 +81,7 @@ isAddress (Address address) =
         , params = Encode.list [ Encode.string address ]
         , expect = expectBool
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -88,6 +92,7 @@ toChecksumAddress (Address address) =
         , params = Encode.list [ Encode.string address ]
         , expect = expectJson addressDecoder
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -98,6 +103,7 @@ checkAddressChecksum (Address address) =
         , params = Encode.list [ Encode.string address ]
         , expect = expectBool
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -108,6 +114,7 @@ toHex val =
         , params = Encode.list [ Encode.string val ]
         , expect = expectJson hexDecoder
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -118,6 +125,7 @@ hexToNumberString (Hex val) =
         , params = Encode.list [ Encode.string val ]
         , expect = expectString
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -128,6 +136,7 @@ hexToNumber (Hex val) =
         , params = Encode.list [ Encode.string val ]
         , expect = expectInt
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -138,6 +147,7 @@ numberToHex number =
         , params = Encode.list [ Encode.string <| toString number ]
         , expect = expectJson hexDecoder
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -148,6 +158,7 @@ bigIntToHex number =
         , params = Encode.list [ Encode.string <| BigInt.toString number ]
         , expect = expectJson hexDecoder
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -158,6 +169,7 @@ hexToUtf8 (Hex val) =
         , params = Encode.list [ Encode.string val ]
         , expect = expectString
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -168,6 +180,7 @@ utf8ToHex val =
         , params = Encode.list [ Encode.string val ]
         , expect = expectJson hexDecoder
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -177,9 +190,11 @@ hexToAscii (Hex val) =
         { method = "utils.hexToAscii"
         , params =
             Encode.list [ Encode.string val ]
-            -- TODO See if toAsciiDecoder is still needed
+
+        -- TODO See if toAsciiDecoder is still needed
         , expect = expectJson toAsciiDecoder
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -190,6 +205,7 @@ asciiToHex val =
         , params = Encode.list [ Encode.string val ]
         , expect = expectJson hexDecoder
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -200,6 +216,7 @@ hexToBytes (Hex hex) =
         , params = Encode.list [ Encode.string hex ]
         , expect = expectJson bytesDecoder
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -210,6 +227,7 @@ bytesToHex byteArray =
         , params = Encode.list [ encodeBytes byteArray ]
         , expect = expectJson hexDecoder
         , callType = Sync
+        , applyScope = Nothing
         }
 
 
@@ -251,7 +269,7 @@ fromWei unit amount =
         decimalIndex =
             decimalShift unit
 
-        -- There are under 10^27 wei in existance (so we safe for the next couple of malenium of mining).
+        -- There are under 10^27 wei in existance (so we safe for the next couple of millennia).
         amountStr =
             BigInt.toString amount |> String.padLeft 27 '0'
 

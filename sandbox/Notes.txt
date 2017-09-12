@@ -1,0 +1,20 @@
+Functions of with TxObjecty inputs
+
+http://web3js.readthedocs.io/en/1.0/web3-eth-accounts.html?highlight=returnSignature#signtransaction
+chainId -   String: (optional) The chain id to use when signing this transaction. Default will use web3.eth.net.getId().
+to -        String: (optional) The recevier of the transaction, can be empty when deploying a contract.
+value -     String: (optional) The value of the transaction in wei.
+data -      String: (optional) The call data of the transaction, can be empty for simple value transfers.
+gas -       String: The gas provided by the transaction.
+gasPrice -  String: (optional) The gas price set by this transaction, if empty, it will use web3.eth.gasPrice()
+nonce -     String: (optional) The nonce to use when signing this transaction. Default will use web3.eth.getTransactionCount().
+
+
+http://web3js.readthedocs.io/en/1.0/web3-eth.html#eth-sendtransaction
+from -      String|Number: The address for the sending account. Uses the web3.eth.defaultAccount property, if not specified. Or an address or index of a local wallet in web3.eth.accounts.wallet.
+to -        String: (optional) The destination address of the message, left undefined for a contract-creation transaction.
+value -     String: (optional) The value transferred for the transaction in wei, also the endowment if it’s a contract-creation transaction.
+data -      String: (optional) Either a `ABI byte string <https://github.com/ethereum/wiki/wiki/Solidity,-Docs-and-ABI`_ containing the data of the function call on a contract, or in the case of a contract-creation transaction the initialisation code.
+gas -       Number: (optional, default: To-Be-Determined) The amount of gas to use for the transaction (unused gas is refunded).
+gasPrice -  Number|String|BN|BigNumber: (optional) The price of gas for this transaction in wei, defaults to web3.eth.gasPrice.
+nonce -     Number: (optional) Integer of a nonce. This allows to overwrite your own pending transactions that use the same nonce.

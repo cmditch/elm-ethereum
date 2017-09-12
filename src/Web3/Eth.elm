@@ -1,7 +1,6 @@
 module Web3.Eth
     exposing
-        ( getDefaultAccount
-        , isSyncing
+        ( isSyncing
         , getCoinbase
         , getHashrate
         , getGasPrice
@@ -20,6 +19,7 @@ module Web3.Eth
         , getTransaction
         , estimateGas
         , sendTransaction
+        , sendSignedTransaction
         , getId
         , defaultTxParams
         , defaultFilterParams
@@ -32,24 +32,10 @@ import Web3
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
 import Web3.Encoders exposing (encodeTxParams, getBlockIdValue, encodeBytes)
-import Web3.EM
 import Json.Encode as Encode
 import Json.Decode as Decode
 import Task exposing (Task)
 import BigInt exposing (BigInt)
-
-
--- setDefaultAccount : Address -> Task Error Address
-
-
-getDefaultAccount : Task Error Address
-getDefaultAccount =
-    Web3.toTask
-        { method = "eth.defaultAccount"
-        , params = Encode.list []
-        , expect = expectJson addressDecoder
-        , callType = Getter
-        }
 
 
 isSyncing : Task Error (Maybe SyncStatus)
@@ -59,17 +45,8 @@ isSyncing =
         , params = Encode.list []
         , expect = expectJson (Decode.maybe syncStatusDecoder)
         , callType = Async
+        , applyScope = Nothing
         }
-
-
-watchMinedBlocks : String -> Cmd msg
-watchMinedBlocks name =
-    Web3.EM.watchFilter name "latest"
-
-
-watchIncomingTxs : String -> Cmd msg
-watchIncomingTxs name =
-    Web3.EM.watchFilter name "pending"
 
 
 
@@ -87,6 +64,7 @@ getCoinbase =
         , params = Encode.list []
         , expect = expectJson addressDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -97,6 +75,7 @@ isMining =
         , params = Encode.list []
         , expect = expectBool
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -107,6 +86,7 @@ getHashrate =
         , params = Encode.list []
         , expect = expectInt
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -117,6 +97,7 @@ getGasPrice =
         , params = Encode.list []
         , expect = expectBigInt
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -127,12 +108,8 @@ getAccounts =
         , params = Encode.list []
         , expect = expectJson (Decode.list addressDecoder)
         , callType = Async
+        , applyScope = Nothing
         }
-
-
-accounts : Task Error (List Address)
-accounts =
-    getAccounts
 
 
 getBlockNumber : Task Error BlockId
@@ -142,6 +119,7 @@ getBlockNumber =
         , params = Encode.list []
         , expect = expectJson blockNumDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -152,6 +130,7 @@ getBalance (Address address) =
         , params = Encode.list [ Encode.string address ]
         , expect = expectBigInt
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -167,6 +146,7 @@ getStorageAtBlock blockId (Address address) position =
         , params = Encode.list [ Encode.string address, Encode.int position, getBlockIdValue blockId ]
         , expect = expectJson hexDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -182,6 +162,7 @@ getCodeAtBlock blockId (Address address) =
         , params = Encode.list [ Encode.string address, getBlockIdValue blockId ]
         , expect = expectJson hexDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -192,6 +173,7 @@ getBlock blockId =
         , params = Encode.list [ getBlockIdValue blockId, Encode.bool False ]
         , expect = expectJson blockTxIdDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -202,16 +184,18 @@ getBlockTxObjs blockId =
         , params = Encode.list [ getBlockIdValue blockId, Encode.bool True ]
         , expect = expectJson blockTxObjDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
 getBlockTransactionCount : BlockId -> Task Error Int
 getBlockTransactionCount blockId =
     Web3.toTask
-        { method = "eth.getBlockTransactionCount"
+        { method = "eth.getTransactionCount"
         , params = Encode.list [ getBlockIdValue blockId ]
         , expect = expectInt
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -222,6 +206,7 @@ getBlockUncleCount blockId =
         , params = Encode.list [ getBlockIdValue blockId ]
         , expect = expectInt
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -232,6 +217,7 @@ getUncle blockId index =
         , params = Encode.list [ getBlockIdValue blockId, Encode.int index, Encode.bool False ]
         , expect = expectJson (Decode.maybe blockTxIdDecoder)
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -242,6 +228,7 @@ getUncleTxObjs blockId index =
         , params = Encode.list [ getBlockIdValue blockId, Encode.int index, Encode.bool True ]
         , expect = expectJson blockTxObjDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -252,6 +239,7 @@ getTransaction (TxId txId) =
         , params = Encode.list [ Encode.string txId ]
         , expect = expectJson txObjDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -262,6 +250,7 @@ getTransactionFromBlock blockId index =
         , params = Encode.list [ getBlockIdValue blockId, Encode.int index ]
         , expect = expectJson txObjDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -272,6 +261,7 @@ getTransactionReceipt (TxId txId) =
         , params = Encode.list [ Encode.string txId ]
         , expect = expectJson txReceiptDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -287,6 +277,7 @@ getTransactionCountAtBlock blockId (Address address) =
         , params = Encode.list [ Encode.string address, getBlockIdValue blockId ]
         , expect = expectInt
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -297,16 +288,18 @@ sendTransaction txParams =
         , params = Encode.list [ encodeTxParams txParams ]
         , expect = expectJson txIdDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
-sendRawTransaction : Hex -> Task Error TxId
-sendRawTransaction (Hex signedData) =
+sendSignedTransaction : Hex -> Task Error TxId
+sendSignedTransaction (Hex signedData) =
     Web3.toTask
-        { method = "eth.sendRawTransaction"
+        { method = "eth.sendSignedTransaction"
         , params = Encode.list [ Encode.string signedData ]
         , expect = expectJson txIdDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -317,6 +310,7 @@ sign (Address address) (Hex data) =
         , params = Encode.list [ Encode.string address, Encode.string data ]
         , expect = expectJson bytesDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -332,6 +326,7 @@ callAtBlock blockId txParams =
         , params = Encode.list [ encodeTxParams txParams, getBlockIdValue blockId ]
         , expect = expectJson txIdDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -342,11 +337,11 @@ estimateGas txParams =
         , params = Encode.list [ encodeTxParams txParams ]
         , expect = expectInt
         , callType = Async
+        , applyScope = Nothing
         }
 
 
-{-|
-  web3.eth.net methods
+{-| web3.eth.net methods
 -}
 getId : Task Error Int
 getId =
@@ -355,6 +350,7 @@ getId =
         , params = Encode.list []
         , expect = expectInt
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -365,6 +361,7 @@ isListening =
         , params = Encode.list []
         , expect = expectBool
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -375,6 +372,7 @@ getPeerCount =
         , params = Encode.list []
         , expect = expectInt
         , callType = Async
+        , applyScope = Nothing
         }
 
 
@@ -385,6 +383,7 @@ getNetworkType =
         , params = Encode.list []
         , expect = expectJson networkTypeDecoder
         , callType = Async
+        , applyScope = Nothing
         }
 
 

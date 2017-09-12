@@ -1,7 +1,6 @@
 module Web3.Internal
     exposing
         ( Request
-        , GetDataRequest
         , EventRequest
         , contractFuncHelper
         , expectStringResponse
@@ -17,13 +16,7 @@ type alias Request a =
     , params : Encode.Value
     , expect : Expect a
     , callType : CallType
-    }
-
-
-type alias GetDataRequest =
-    { abi : Abi
-    , data : Bytes
-    , constructorParams : Value
+    , applyScope : Maybe String
     }
 
 

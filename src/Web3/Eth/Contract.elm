@@ -4,9 +4,7 @@ module Web3.Eth.Contract
         , send
         , estimateGas
         , methodData
-          -- , contractData
         , watch
-        , get
         , sentry
         , reset
         , stopWatching
@@ -17,7 +15,7 @@ module Web3.Eth.Contract
 -- import Web3.Internal exposing (Request)
 
 import Web3 exposing (Retry)
-import Web3.Internal exposing (EventRequest, GetDataRequest, contractFuncHelper, decapitalize)
+import Web3.Internal exposing (EventRequest, contractFuncHelper, decapitalize)
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
 import Web3.EM exposing (eventSentry, watchEvent, stopWatchingEvent)
@@ -46,42 +44,6 @@ type alias Params a =
 {-
    Contract Methods
 -}
-
-
-evalHelper : ContractAction -> String
-evalHelper contractMethod =
-    let
-        base =
-            "new web3.eth.Contract( JSON.parse(request.abi), request.contractAddress,"
-                ++ "{from: request.from, gasPrice: request.gasPrice, gas: request.gas} )"
-    in
-        case contractMethod of
-            Method callType ->
-                let
-                    callbackIfAsync =
-                        case callType of
-                            EncodeABI ->
-                                "()"
-
-                            _ ->
-                                "(web3Callback)"
-                in
-                    base
-                        ++ ".methods[request.method].apply(null, request.params)."
-                        ++ (toString callType |> decapitalize)
-                        ++ callbackIfAsync
-
-            Event ->
-                base
-                    ++ "//under construction//"
-
-            ContractData ->
-                base
-                    ++ ".deploy({data: request.data, arguments: request.params}).encodeABI()"
-
-            DeployCost ->
-                base
-                    ++ ".deploy({data: request.data, arguments: request.params}).estimateGas(web3Callback)"
 
 
 call : Address -> Params a -> Task Error a
@@ -158,16 +120,6 @@ stopWatching name =
     Web3.EM.stopWatchingEvent name
 
 
-get : Decoder log -> EventRequest -> Task Error (List log)
-get argDecoder { abi, address, argsFilter, filterParams, eventName } =
-    Web3.getEvent
-        { method = contractFuncHelper abi address eventName
-        , params = Encode.list [ argsFilter, filterParams ]
-        , expect = expectJson (Decode.list argDecoder)
-        , callType = Async
-        }
-
-
 sentry : String -> (String -> msg) -> Sub msg
 sentry eventId toMsg =
     Web3.EM.eventSentry eventId toMsg
@@ -186,6 +138,7 @@ pollContract retryParams (TxId txId) =
         , params = Encode.list [ Encode.string txId ]
         , expect = expectJson contractInfoDecoder
         , callType = Async
+        , applyScope = Nothing
         }
         |> Web3.retry retryParams
 
@@ -240,3 +193,39 @@ formatMethod contractParams =
         , expect = expectJson contractParams.decoder
         , callType = Async
         }
+
+
+evalHelper : ContractAction -> String
+evalHelper contractMethod =
+    let
+        base =
+            "new web3.eth.Contract( JSON.parse(request.abi), request.contractAddress,"
+                ++ "{from: request.from, gasPrice: request.gasPrice, gas: request.gas} )"
+    in
+        case contractMethod of
+            Method callType ->
+                let
+                    callbackIfAsync =
+                        case callType of
+                            EncodeABI ->
+                                "()"
+
+                            _ ->
+                                "(web3Callback)"
+                in
+                    base
+                        ++ ".methods[request.method].apply(null, request.params)."
+                        ++ (toString callType |> decapitalize)
+                        ++ callbackIfAsync
+
+            Event ->
+                base
+                    ++ "//under construction//"
+
+            ContractData ->
+                base
+                    ++ ".deploy({data: request.data, arguments: request.params}).encodeABI()"
+
+            DeployCost ->
+                base
+                    ++ ".deploy({data: request.data, arguments: request.params}).estimateGas(web3Callback)"

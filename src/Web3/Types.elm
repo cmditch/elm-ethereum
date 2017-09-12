@@ -40,6 +40,10 @@ type Abi
     = Abi String
 
 
+type Sha3
+    = Sha3 String
+
+
 
 {-
    BLOCKS
@@ -141,6 +145,16 @@ type alias TxParams =
     }
 
 
+type alias SignedTx =
+    { message : Maybe String
+    , messageHash : Sha3
+    , r : Hex
+    , s : Hex
+    , v : Hex
+    , rawTransaction : Hex
+    }
+
+
 type alias ContractInfo =
     { address : Address
     , txId : TxId
@@ -166,7 +180,8 @@ type alias EventLog a =
     , args : a
     , blockHash :
         Maybe String
-        -- TODO Possible to make BlockId?
+
+    -- TODO Possible to make BlockId?
     , blockNumber : Maybe Int
     , event : String
     , logIndex : Maybe Int
@@ -187,6 +202,46 @@ type alias Log =
     , transactionIndex : Int
     , transactionLogIndex : String
     , type_ : String
+    }
+
+
+
+{-
+   WALLET / ACCOUNTS
+-}
+
+
+type PrivateKey
+    = PrivateKey String
+
+
+type alias Account =
+    { address : Address
+    , privateKey : PrivateKey
+    }
+
+
+type alias Keystore =
+    { version : Int
+    , id : String
+    , address : String
+    , crypto : Crypto
+    }
+
+
+type alias Crypto =
+    { ciphertext : String
+    , cipherparams : { iv : String }
+    , cipher : String
+    , kdf : String
+    , kdfparams :
+        { dklen : Int
+        , salt : String
+        , n : Int
+        , r : Int
+        , p : Int
+        }
+    , mac : String
     }
 
 
@@ -231,53 +286,26 @@ type CallType
 -}
 type EthUnit
     = Wei
-      --        Base Unit
     | Kwei
-      --       10 ^ 3
     | Ada
-      --        10 ^ 3
     | Femtoether
-      -- 10 ^ 3
     | Mwei
-      --       10 ^ 6
     | Babbage
-      --    10 ^ 6
     | Picoether
-      --  10 ^ 6
     | Gwei
-      --       10 ^ 9
     | Shannon
-      --    10 ^ 9
     | Nanoether
-      --  10 ^ 9
     | Nano
-      --       10 ^ 9
     | Szabo
-      --      10 ^ 12
     | Microether
-      -- 10 ^ 12
     | Micro
-      --      10 ^ 12
     | Finney
-      --     10 ^ 15
     | Milliether
-      -- 10 ^ 15
     | Milli
-      --      10 ^ 15
     | Ether
-      --      10 ^ 18
     | Kether
-      --     10 ^ 21
     | Grand
-      --      10 ^ 21
     | Einstein
-      --   10 ^ 21
     | Mether
-      --     10 ^ 24
     | Gether
-      --     10 ^ 27
     | Tether
-
-
-
---     10 ^ 30

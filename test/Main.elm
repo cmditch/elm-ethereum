@@ -11,6 +11,7 @@ import Web3.Types exposing (..)
 import Web3.Eth
 import Web3.Utils
 import Web3.Eth.Contract as Contract
+import Web3.Eth.Accounts as Accounts
 import TestContract as TC
 
 
@@ -169,11 +170,17 @@ testCommands model =
                , Task.attempt (EthGetUncle "web3.eth.getUncle") (Web3.Eth.getUncle config.blockNumber 0)
                , Task.attempt (EthGetBlockUncleCount "web3.eth.getBlockUncleCount") (Web3.Eth.getBlockUncleCount config.blockNumber)
                , Task.attempt (EthGetTransaction "web3.eth.getTransaction") (Web3.Eth.getTransaction config.txId)
+
+               -- web3.eth.Contract
                , Task.attempt (TestContractCall "web3.eth.Contract(params).methods['...'].call()") (Contract.call config.contract <| (TC.returnsTwoNamed 1 2))
 
                --  , Task.attempt (TestContractSend "web3.eth.Contract(params).methods['...'].send()") (Contract.send <| methods.returnsTwoNamed coinbase config.contract 1 2)
                , Task.attempt (TestContractEstimateGas "web3.eth.Contract(params).methods['...'].estimateGas()") (Contract.estimateGas config.contract <| TC.returnsTwoNamed 1 2)
                , Task.attempt (TestContractEncodeABI "web3.eth.Contract(params).methods['...'].encodeABI()") (Contract.methodData <| TC.returnsTwoNamed 1 2)
+
+               -- web3.eth.accounts
+               , Task.attempt (EthAccountsCreate "web3.eth.accounts.create") (Accounts.create)
+               , Task.attempt (EthAccountsCreateWithEntropy "web3.eth.accounts.create('buNchOFr4nd0mstr1ngstuffF0rEntr0py')") (Accounts.createWithEntropy "buNchOFr4nd0mstr1ngstuffF0rEntr0py")
                ]
 
 
@@ -272,7 +279,7 @@ type Msg
       -- web3.setProvider
       -- web3.currentProvider
       -- web3.reset
-    | Sha3 String (Result Error Hex)
+    | Sha3 String (Result Error Sha3)
     | ToHex String (Result Error Hex)
     | ToAscii String (Result Error String)
     | FromAscii String (Result Error Hex)
@@ -285,7 +292,6 @@ type Msg
     | ToChecksumAddress String (Result Error Address)
     | NetGetListening String (Result Error Bool)
     | NetPeerCount String (Result Error Int)
-      -- web3.ethdefaultAccount
     | EthIsSyncing String (Result Error (Maybe SyncStatus))
     | EthCoinbase String (Result Error Address)
     | EthGetHashrate String (Result Error Int)
@@ -309,6 +315,9 @@ type Msg
     | TestContractSend String (Result Error TxId)
     | TestContractEstimateGas String (Result Error Int)
     | TestContractEncodeABI String (Result Error Hex)
+      -- Accounts
+    | EthAccountsCreate String (Result Error Account)
+    | EthAccountsCreateWithEntropy String (Result Error Account)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -459,6 +468,12 @@ update msg model =
 
             TestContractEncodeABI funcName result ->
                 updateModel 203 funcName result ! []
+
+            EthAccountsCreate funcName result ->
+                updateModel 300 funcName result ! []
+
+            EthAccountsCreateWithEntropy funcName result ->
+                updateModel 301 funcName result ! []
 
 
 subscriptions : Model -> Sub Msg
