@@ -191,7 +191,7 @@ getBlockTxObjs blockId =
 getBlockTransactionCount : BlockId -> Task Error Int
 getBlockTransactionCount blockId =
     Web3.toTask
-        { method = "eth.getTransactionCount"
+        { method = "eth.getBlockTransactionCount"
         , params = Encode.list [ getBlockIdValue blockId ]
         , expect = expectInt
         , callType = Async

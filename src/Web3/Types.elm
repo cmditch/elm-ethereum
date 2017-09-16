@@ -280,6 +280,7 @@ type CallType
     = Sync
     | Async
     | Getter
+    | CustomSync String
 
 
 {-| Available ethereum denominations.

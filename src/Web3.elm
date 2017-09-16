@@ -78,7 +78,7 @@ evalHelper request =
                 Sync ->
                     ".apply(" ++ applyScope ++ ", request.params)"
 
-                Getter ->
+                _ ->
                     ""
     in
         "web3."
@@ -87,7 +87,6 @@ evalHelper request =
 
 
 
--- POLLING
 {-
    Mad props to Nick Miller for this retry function
               The MIRTCH function

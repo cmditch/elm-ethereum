@@ -36,7 +36,14 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
                 var response = eval(evalString);
 
-                if (callType === "Sync" || callType === "Getter") { elmCallback(response) };
+                if (callType === "Sync" || callType === "Getter")
+                {
+                    elmCallback(response)
+                }
+                else if (callType === "CustomSync") 
+                {
+                    elmCallback( eval(request.callType._0) );
+                }
             }
             catch(e)
             {
