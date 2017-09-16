@@ -226,16 +226,13 @@ constructEval : Params a -> ContractAction -> String
 constructEval { gas, gasPrice, data } contractMethod =
     let
         gas_ =
-            Maybe.map toString gas
-                |> Maybe.map (\_ -> "request.gas")
+            Maybe.map (\_ -> "request.gas") gas
 
         gasPrice_ =
-            Maybe.map BigInt.toString gasPrice
-                |> Maybe.map (\_ -> "request.gasPrice")
+            Maybe.map (\_ -> "request.gasPrice") gasPrice
 
         data_ =
-            Maybe.map hexToString data
-                |> Maybe.map (\_ -> "request.data")
+            Maybe.map (\_ -> "request.data") data
 
         options =
             "{ from: request.from, "
@@ -243,9 +240,7 @@ constructEval { gas, gasPrice, data } contractMethod =
                 ++ "}"
 
         base =
-            "new web3.eth.Contract( JSON.parse(request.abi), request.contractAddress,"
-                ++ options
-                ++ ")"
+            "new web3.eth.Contract(JSON.parse(request.abi), request.contractAddress," ++ options ++ ")"
 
         callbackIfAsync callType =
             case callType of

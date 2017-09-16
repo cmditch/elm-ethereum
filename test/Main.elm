@@ -177,8 +177,8 @@ testCommands model =
                --  , Task.attempt (TestContractSend "web3.eth.Contract(params).methods['...'].send()") (Contract.send <| methods.returnsTwoNamed coinbase config.contract 1 2)
                , Task.attempt (TestContractEstimateMethodGas "web3.eth.Contract(params).methods['...'].estimateGas()") (Contract.estimateMethodGas config.contract <| TC.returnsTwoNamed 1 2)
                , Task.attempt (TestContractEncodeMethodABI "web3.eth.Contract(params).methods['...'].encodeABI()") (Contract.encodeMethodABI <| TC.returnsTwoNamed 1 2)
-               , Task.attempt (TestContractEstimateContractGas "web3.eth.Contract(params).deploy({...}).estimateGas()") (TC.estimateContractGas (BigInt.fromInt 10) ("Test Constructor String"))
-               , Task.attempt (TestContractEncodeContractABI "web3.eth.Contract(params).deploy({...}).encodeABI()") (TC.encodeContractABI (BigInt.fromInt 10) ("Test Constructor String"))
+               , Task.attempt (TestContractEstimateContractGas "web3.eth.Contract(params).deploy({...}).estimateGas()") (TC.estimateContractGas (BigInt.fromInt 10) ("Test Constructor String."))
+               , Task.attempt (TestContractEncodeContractABI "web3.eth.Contract(params).deploy({...}).encodeABI()") (TC.encodeContractABI (BigInt.fromInt 10) ("Test Constructor String OMG this is long seeing how many bytest this is."))
 
                -- web3.eth.accounts
                , Task.attempt (EthAccountsCreate "web3.eth.accounts.create") (Accounts.create)
