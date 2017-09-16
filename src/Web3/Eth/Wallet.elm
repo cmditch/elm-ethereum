@@ -69,10 +69,9 @@ list count =
                         Just ( n, n - 1 )
                 )
 
-        toIndexAccountTupleTask : Int -> Task Error ( Int, Maybe Account )
-        toIndexAccountTupleTask index =
-            index
-                |> getByIndex
+        toTaskOFIndexAccountTuple : Int -> Task Error ( Int, Maybe Account )
+        toTaskOFIndexAccountTuple index =
+            getByIndex index
                 |> Task.map (\account -> ( index, account ))
 
         filterMaybes : ( Int, Maybe Account ) -> List ( Int, Account ) -> List ( Int, Account )
@@ -83,12 +82,15 @@ list count =
 
                 Nothing ->
                     accum
+
+        maybeAccountsToDictOfAccounts : List ( Int, Maybe Account ) -> Dict Int Account
+        maybeAccountsToDictOfAccounts =
+            Dict.fromList << List.foldl filterMaybes []
     in
         countUpFrom (count - 1)
-            |> List.map toIndexAccountTupleTask
+            |> List.map toTaskOFIndexAccountTuple
             |> Task.sequence
-            |> Task.map (List.foldl filterMaybes [])
-            |> Task.map Dict.fromList
+            |> Task.map maybeAccountsToDictOfAccounts
 
 
 unfoldr : (b -> Maybe ( a, b )) -> b -> List a
