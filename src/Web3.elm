@@ -3,6 +3,7 @@ module Web3
         ( version
         , toTask
         , retry
+        , retryThrice
         , Retry
         )
 
@@ -78,7 +79,10 @@ evalHelper request =
                 Sync ->
                     ".apply(" ++ applyScope ++ ", request.params)"
 
-                _ ->
+                CustomSync _ ->
+                    ".apply(" ++ applyScope ++ ", request.params)"
+
+                Getter ->
                     ""
     in
         "web3."
@@ -115,3 +119,8 @@ retry { attempts, sleep } web3Task =
                     else
                         Task.fail x
                 )
+
+
+retryThrice : Task Error a -> Task Error a
+retryThrice =
+    retry { sleep = 1, attempts = 3 }
