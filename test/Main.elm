@@ -1,18 +1,27 @@
 module Main exposing (..)
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
-import Dict
+import Html exposing (Html)
 import Task exposing (Task)
-import BigInt exposing (BigInt)
-import Web3
+import Element exposing (..)
+import Element.Attributes exposing (..)
+import Element.Events exposing (..)
+import Config exposing (..)
+import Pages.Home as Home
+import Pages.Utils as Utils
 import Web3.Types exposing (..)
 import Web3.Eth
-import Web3.Utils
-import Web3.Eth.Contract as Contract
-import Web3.Eth.Accounts as Accounts
-import TestContract as TC
+
+
+-- import Web3
+-- import Html.Events exposing (onClick)
+-- import Dict exposing (Dict)
+-- import BigInt exposing (BigInt)
+-- import Web3.Utils
+-- import Web3.Eth.Contract as Contract
+-- import Web3.Eth.Accounts as Accounts
+-- import Web3.Eth.Wallet as Wallet
+-- import TestContract as TC
+-- import Helpers exposing (Config, retryThrice)
 
 
 main : Program Never Model Msg
@@ -25,506 +34,141 @@ main =
         }
 
 
-init : ( Model, Cmd Msg )
-init =
-    { tests = Dict.empty
-    , network = Nothing
-    , coinbase = Nothing
-    , error = Nothing
-    }
-        ! [ Task.attempt EstablishCoinbase (retry Web3.Eth.getCoinbase), Task.attempt EstablishNetworkId (retry Web3.Eth.getId) ]
-
-
-retry : Task Error a -> Task Error a
-retry =
-    Web3.retry { sleep = 1, attempts = 3 }
-
-
 type alias Model =
-    { tests : Dict.Dict Int Test
-    , network : Maybe EthNetwork
-    , coinbase : Maybe Address
+    { currentPage : Page
+    , config : Config
+    , homeModel : Home.Model
+    , utilsModel : Utils.Model
     , error : Maybe Error
     }
 
 
-type alias Test =
-    { name : String
-    , result : String
-    , passed : Bool
+init : ( Model, Cmd Msg )
+init =
+    { currentPage = Home
+    , config = Config.mainnetConfig
+    , homeModel = Home.init
+    , utilsModel = Utils.init
+    , error = Nothing
     }
+        ! [ Task.attempt EstablishNetworkId (retryThrice Web3.Eth.getId) ]
 
 
-type alias Config =
-    { account : Address
-    , contract : Address
-    , blockNumber : BlockId
-    , blockHash : BlockId
-    , txId : TxId
-    }
-
-
-type EthNetwork
-    = MainNet
-    | Ropsten
-    | DevNet
-    | DevNet2
-    | UnknownNetwork
-
-
-mainnetConfig : Config
-mainnetConfig =
-    { account = (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7")
-    , contract = (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7")
-    , blockNumber = BlockNum 4182808
-    , blockHash = BlockHash "0x000997b870b069a5b1857de507103521860590ca747cf16e46ee38ac456d204e"
-    , txId = TxId "0x0bb84e278f50d334022a2c239c90f3c186867b0888e989189ac3c19b27c70372"
-    }
-
-
-ropstenConfig : Config
-ropstenConfig =
-    { account = (Address "0x10A19C4bD26C8E8203628384083b7ee6819e36B6")
-    , contract = (Address "0xdfbE7B4439682E2Ad6F33323b36D89aBF8f295F9")
-    , blockNumber = BlockNum 1530779
-    , blockHash = BlockHash "0x1562e2c2506d2cfad8a95ef78fd48b507c3ffa62c44a3fc619facc4af191b3de"
-    , txId = TxId "0x444b76b68af09969f46eabbbe60eef38f4b0674c4a7cb2e32c7764096997b916"
-    }
-
-
-devNetConfig : Config
-devNetConfig =
-    { account = (Address "0x853726f791d6fbff51f225587d7fff05ab5930a8")
-    , contract = (Address "0x853726f791d6fbff51f225587d7fff05ab5930a8")
-    , blockNumber = BlockNum 320
-    , blockHash = BlockHash "0x231a0c9b49d53f0df6f2d5ce2f9d4cbc73efa0d250e64a395869b484b45687bc"
-    , txId = TxId "0x9ce0dc95c47dd98e0de43143e21028de0a73e05cde86b363228a2164d8645bde"
-    }
-
-
-devNet2Config : Config
-devNet2Config =
-    { account = (Address "0xd8b0990c007ba1ad97b37c001d1f87044312162e")
-    , contract = (Address "0xd8b0990c007ba1ad97b37c001d1f87044312162e")
-    , blockNumber = BlockNum 320
-    , blockHash = BlockHash "0xc9ec58770c8c49682d388054e9fa9bc6c51848db1393abb59157e7d629861282"
-    , txId = TxId "0x56026ef59e927fd95f781865695b28ff260f70bfb79c8392080f5678b33cf100"
-    }
-
-
-testCommands : Model -> List (Cmd Msg)
-testCommands model =
-    let
-        coinbase =
-            model.coinbase ?= Address "0x0000000000000000000000000000000000000000"
-
-        config =
-            case model.network ?= UnknownNetwork of
-                MainNet ->
-                    mainnetConfig
-
-                Ropsten ->
-                    ropstenConfig
-
-                DevNet ->
-                    devNetConfig
-
-                DevNet2 ->
-                    devNet2Config
-
-                UnknownNetwork ->
-                    ropstenConfig
-    in
-        taskChains config
-            ++ [ Task.attempt (Version "web3.verison") Web3.version
-
-               -- web3.eth.net
-               , Task.attempt (EthNetGetId "web3.eth.net.getId") Web3.Eth.getId
-               , Task.attempt (EthNetGetNetworkType "web3.eth.net.getNetworkType") Web3.Eth.getNetworkType
-
-               -- web3
-               , Task.attempt (Sha3 "web3.sha3") (Web3.Utils.sha3 "History is not a burden on the memory but an illumination of the soul.")
-               , Task.attempt (ToHex "web3.toHex") (Web3.Utils.toHex "The danger is not that a particular class is unfit to govern. Every class is unfit to govern.")
-               , Task.attempt (ToAscii "web3.toAscii") (Web3.Utils.hexToAscii (Hex "0x4f6e20736f6d6520677265617420616e6420676c6f72696f7573206461792074686520706c61696e20666f6c6b73206f6620746865206c616e642077696c6c207265616368207468656972206865617274277320646573697265206174206c6173742c20616e642074686520576869746520486f7573652077696c6c2062652061646f726e6564206279206120646f776e7269676874206d6f726f6e2e202d20482e4c2e204d656e636b656e"))
-               , Task.attempt (FromAscii "web3.fromAscii") (Web3.Utils.asciiToHex "'I'm not a driven businessman, but a driven artist. I never think about money. Beautiful things make money.'")
-               , Task.attempt (ToDecimal "web3.toDecimal") (Web3.Utils.hexToNumber (Hex "0x67932"))
-               , Task.attempt (FromDecimal "web3.fromDecimal") (Web3.Utils.numberToHex 424242)
-               , Task.attempt (IsAddress "web3.isAddress") (Web3.Utils.isAddress config.account)
-               , Task.attempt (IsChecksumAddress "web3.isChecksumAddress") (Web3.Utils.checkAddressChecksum config.account)
-               , Task.attempt (ToChecksumAddress "web3.toChecksumAddress") (Web3.Utils.toChecksumAddress config.account)
-
-               -- web3.eth
-               , Task.attempt (EthIsSyncing "web3.eth.isSyncing") (Web3.Eth.isSyncing)
-               , Task.attempt (EthCoinbase "web3.eth.coinbase") (Web3.Eth.getCoinbase)
-               , Task.attempt (EthGetHashrate "web3.eth.getHashrate") (Web3.Eth.getHashrate)
-               , Task.attempt (EthGetGasPrice "web3.eth.getGasPrice") (Web3.Eth.getGasPrice)
-               , Task.attempt (EthGetAccounts "web3.eth.getAccounts") (Web3.Eth.getAccounts)
-               , Task.attempt (EthIsMining "web3.eth.isMining") (Web3.Eth.isMining)
-               , Task.attempt (EthGetBlockNumber "web3.eth.getBlockNumber") (Web3.Eth.getBlockNumber)
-               , Task.attempt (EthGetBalance "web3.eth.getBalance") (Web3.Eth.getBalance config.account)
-               , Task.attempt (EthGetStorageAt "web3.eth.getStorageAt") (Web3.Eth.getStorageAt config.contract 1)
-               , Task.attempt (EthGetCode "web3.eth.getCode") (Web3.Eth.getCode config.contract)
-               , Task.attempt (EthGetBlock "web3.eth.getBlock") (Web3.Eth.getBlock config.blockNumber)
-               , Task.attempt (EthGetBlockTxObjs "web3.eth.getBlockTxObjs") (Web3.Eth.getBlockTxObjs config.blockNumber)
-               , Task.attempt (EthGetBlockTransactionCount "web3.eth.getBlockTransactionCount") (Web3.Eth.getBlockTransactionCount config.blockNumber)
-               , Task.attempt (EthGetUncle "web3.eth.getUncle") (Web3.Eth.getUncle config.blockNumber 0)
-               , Task.attempt (EthGetBlockUncleCount "web3.eth.getBlockUncleCount") (Web3.Eth.getBlockUncleCount config.blockNumber)
-               , Task.attempt (EthGetTransaction "web3.eth.getTransaction") (Web3.Eth.getTransaction config.txId)
-
-               -- web3.eth.Contract
-               , Task.attempt (TestContractCall "web3.eth.Contract(params).methods['...'].call()") (Contract.call config.contract <| (TC.returnsTwoNamed 1 2))
-
-               --  , Task.attempt (TestContractSend "web3.eth.Contract(params).methods['...'].send()") (Contract.send <| methods.returnsTwoNamed coinbase config.contract 1 2)
-               , Task.attempt (TestContractEstimateMethodGas "web3.eth.Contract(params).methods['...'].estimateGas()") (Contract.estimateMethodGas config.contract <| TC.returnsTwoNamed 1 2)
-               , Task.attempt (TestContractEncodeMethodABI "web3.eth.Contract(params).methods['...'].encodeABI()") (Contract.encodeMethodABI <| TC.returnsTwoNamed 1 2)
-               , Task.attempt (TestContractEstimateContractGas "web3.eth.Contract(params).deploy({...}).estimateGas()") (TC.estimateContractGas (BigInt.fromInt 10) ("Test Constructor String."))
-               , Task.attempt (TestContractEncodeContractABI "web3.eth.Contract(params).deploy({...}).encodeABI()") (TC.encodeContractABI (BigInt.fromInt 10) ("Test Constructor String OMG this is long seeing how many bytest this is."))
-
-               -- web3.eth.accounts
-               , Task.attempt (EthAccountsCreate "web3.eth.accounts.create") (Accounts.create)
-               , Task.attempt (EthAccountsCreateWithEntropy "web3.eth.accounts.create('buNchOFr4nd0mstr1ngstuffF0rEntr0py')") (Accounts.createWithEntropy "buNchOFr4nd0mstr1ngstuffF0rEntr0py")
-               ]
-
-
-taskChains : Config -> List (Cmd Msg)
-taskChains config =
-    [ Task.attempt (TaskChainStorageToAscii "getStorageAt -> toAscii")
-        (Web3.Eth.getStorageAt config.contract 1 |> Task.andThen Web3.Utils.hexToAscii)
-    ]
+type Page
+    = Home
+    | Utils
+    | Eth
+    | Account
+    | Wallet
+    | Contract
+    | Events
 
 
 view : Model -> Html Msg
 view model =
-    let
-        tableHead =
-            thead []
-                [ tr []
-                    [ th [] [ text "Function" ]
-                    , th [] [ text "Details" ]
-                    , th [] [ text "Result" ]
-                    , th [] [ button [ onClick StartTest ] [ text "Run Tests" ] ]
-                    ]
+    Element.viewport stylesheet <|
+        column None
+            [ height fill ]
+            [ row None
+                [ height fill, width fill ]
+                [ drawer
+                , viewPage model
                 ]
-
-        tableBody =
-            model.tests
-                |> Dict.toList
-                |> List.map viewTestRow
-                |> tbody []
-    in
-        div []
-            [ viewCoverage model
-            , table [] [ tableHead, tableBody ]
             ]
 
 
-viewTestRow : ( Int, Test ) -> Html Msg
-viewTestRow ( _, test ) =
+viewPage : Model -> Element Styles variation Msg
+viewPage model =
+    case model.currentPage of
+        Home ->
+            Home.view model.homeModel |> Element.map HomeMsg
+
+        Utils ->
+            Utils.view model.utilsModel |> Element.map UtilsMsg
+
+        _ ->
+            text "No tests here yet"
+
+
+drawer : Element Styles variation Msg
+drawer =
     let
-        concatText string =
-            if String.length string > 50 then
-                text <| (String.left 50 string) ++ "...\""
-            else
-                text string
+        pages =
+            [ Home, Utils, Eth, Account, Wallet, Contract, Events ]
+
+        pageButton page =
+            button None [ onClick <| SetPage page ] (text <| toString page)
     in
-        tr []
-            [ td [] [ text test.name ]
-            , td [ class "result", title test.result ] [ concatText test.result ]
-            , viewTestResult test
-            ]
+        column Drawer
+            [ height fill, spacing 10, padding 10, width (px 180) ]
+            (List.map pageButton pages)
 
 
-viewTestResult : Test -> Html Msg
-viewTestResult test =
-    case test.passed of
-        True ->
-            td [ greenText ] [ text "Pass" ]
-
-        False ->
-            td [ redText ] [ text "Fail" ]
-
-
-viewCoverage : Model -> Html Msg
-viewCoverage model =
-    let
-        quantityTests =
-            List.length (testCommands model)
-
-        quantityTestsRun =
-            (Dict.keys model.tests |> List.length)
-
-        allTestsExecuted =
-            quantityTests == quantityTestsRun
-
-        styling =
-            if allTestsExecuted then
-                greenText
-            else
-                redText
-    in
-        div [ styling ]
-            [ text <|
-                toString quantityTestsRun
-                    ++ " out of "
-                    ++ toString quantityTests
-                    ++ " tests returned a value"
-            ]
+testTable : Model -> Element Styles variation Msg
+testTable model =
+    column Table
+        [ width fill, spacing 10, padding 10 ]
+        []
 
 
 type Msg
-    = EstablishCoinbase (Result Error Address)
-    | EstablishNetworkId (Result Error Int)
-    | EthNetGetNetworkType String (Result Error Network)
-    | StartTest
-    | Version String (Result Error String)
-    | EthNetGetId String (Result Error Int)
-      -- web3.setProvider
-      -- web3.currentProvider
-      -- web3.reset
-    | Sha3 String (Result Error Sha3)
-    | ToHex String (Result Error Hex)
-    | ToAscii String (Result Error String)
-    | FromAscii String (Result Error Hex)
-    | ToDecimal String (Result Error Int)
-    | FromDecimal String (Result Error Hex)
-      -- fromWei
-      -- toWei
-    | IsAddress String (Result Error Bool)
-    | IsChecksumAddress String (Result Error Bool)
-    | ToChecksumAddress String (Result Error Address)
-    | NetGetListening String (Result Error Bool)
-    | NetPeerCount String (Result Error Int)
-    | EthIsSyncing String (Result Error (Maybe SyncStatus))
-    | EthCoinbase String (Result Error Address)
-    | EthGetHashrate String (Result Error Int)
-    | EthGetGasPrice String (Result Error BigInt)
-    | EthGetAccounts String (Result Error (List Address))
-    | EthIsMining String (Result Error Bool)
-    | EthGetBlockNumber String (Result Error BlockId)
-    | EthGetBalance String (Result Error BigInt)
-    | EthGetStorageAt String (Result Error Hex)
-    | EthGetCode String (Result Error Hex)
-    | EthGetBlock String (Result Error BlockTxIds)
-    | EthGetBlockTxObjs String (Result Error BlockTxObjs)
-    | EthGetBlockTransactionCount String (Result Error Int)
-    | EthGetUncle String (Result Error (Maybe BlockTxIds))
-    | EthGetBlockUncleCount String (Result Error Int)
-    | EthGetTransaction String (Result Error TxObj)
-      -- Fun funcs
-    | TaskChainStorageToAscii String (Result Error String)
-      -- Contract Funcs
-    | TestContractCall String (Result Error { someUint : BigInt, someString : String })
-    | TestContractSend String (Result Error TxId)
-    | TestContractEstimateMethodGas String (Result Error Int)
-    | TestContractEncodeMethodABI String (Result Error Hex)
-    | TestContractEstimateContractGas String (Result Error Int)
-    | TestContractEncodeContractABI String (Result Error Hex)
-      -- Accounts
-    | EthAccountsCreate String (Result Error Account)
-    | EthAccountsCreateWithEntropy String (Result Error Account)
+    = EstablishNetworkId (Result Error Int)
+    | HomeMsg Home.Msg
+    | UtilsMsg Utils.Msg
+    | SetPage Page
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    let
-        updateModel key funcName result =
+    case msg of
+        EstablishNetworkId result ->
             case result of
-                Ok val ->
-                    { model | tests = Dict.insert key (Test funcName (Debug.log "ELM UPDATE OK: " <| toString val) True) model.tests }
+                Ok networkId ->
+                    let
+                        config =
+                            getConfig <| getNetwork networkId
+                    in
+                        { model | config = config } ! []
 
-                Err error ->
-                    case error of
-                        Error err ->
-                            { model | tests = Dict.insert key (Test funcName (Debug.log "ELM UPDATE ERR: " <| toString err) False) model.tests }
+                Err err ->
+                    { model | error = Just err } ! []
 
-                        BadPayload err ->
-                            { model | tests = Dict.insert key (Test funcName (Debug.log "ELM UPDATE ERR: " <| toString err) False) model.tests }
+        HomeMsg subMsg ->
+            let
+                ( subModel, subCmd ) =
+                    Home.update subMsg model.homeModel
+            in
+                { model | homeModel = subModel } ! [ Cmd.map HomeMsg subCmd ]
 
-                        NoWallet ->
-                            { model | tests = Dict.insert key (Test funcName "ELM UPDATE ERR" False) model.tests }
-    in
-        case msg of
-            EstablishCoinbase result ->
-                case result of
-                    Ok coinbase ->
-                        { model | coinbase = Just coinbase } ! []
+        UtilsMsg subMsg ->
+            let
+                ( subModel, subCmd ) =
+                    Utils.update model.config subMsg model.utilsModel
+            in
+                { model | utilsModel = subModel } ! [ Cmd.map UtilsMsg subCmd ]
 
-                    Err err ->
-                        { model | error = Just err } ! []
+        SetPage page ->
+            case page of
+                Home ->
+                    { model | currentPage = page } ! []
 
-            EstablishNetworkId result ->
-                case result of
-                    Ok networkId ->
-                        update StartTest { model | network = Just (getNetwork networkId) }
+                Utils ->
+                    if model.utilsModel.tests == Nothing then
+                        { model | currentPage = page }
+                            ! (Utils.testCommands model.config |> List.map (Cmd.map UtilsMsg))
+                    else
+                        { model | currentPage = page } ! []
 
-                    Err err ->
-                        { model | error = Just err } ! []
+                _ ->
+                    { model | currentPage = page } ! []
 
-            StartTest ->
-                case model.network of
-                    Just network ->
-                        model ! testCommands model
 
-                    Nothing ->
-                        model ! []
 
-            Version funcName result ->
-                updateModel 1 funcName result ! []
-
-            EthNetGetId funcName result ->
-                updateModel 2 funcName result ! []
-
-            EthNetGetNetworkType funcName result ->
-                updateModel 3 funcName result ! []
-
-            Sha3 funcName result ->
-                updateModel 6 funcName result ! []
-
-            ToHex funcName result ->
-                updateModel 7 funcName result ! []
-
-            ToAscii funcName result ->
-                updateModel 8 funcName result ! []
-
-            FromAscii funcName result ->
-                updateModel 9 funcName result ! []
-
-            ToDecimal funcName result ->
-                updateModel 10 funcName result ! []
-
-            FromDecimal funcName result ->
-                updateModel 11 funcName result ! []
-
-            IsAddress funcName result ->
-                updateModel 12 funcName result ! []
-
-            IsChecksumAddress funcName result ->
-                updateModel 13 funcName result ! []
-
-            ToChecksumAddress funcName result ->
-                updateModel 14 funcName result ! []
-
-            NetGetListening funcName result ->
-                updateModel 15 funcName result ! []
-
-            NetPeerCount funcName result ->
-                updateModel 16 funcName result ! []
-
-            EthIsSyncing funcName result ->
-                updateModel 17 funcName result ! []
-
-            EthCoinbase funcName result ->
-                updateModel 18 funcName result ! []
-
-            EthGetHashrate funcName result ->
-                updateModel 19 funcName result ! []
-
-            EthGetGasPrice funcName result ->
-                updateModel 20 funcName result ! []
-
-            EthGetAccounts funcName result ->
-                updateModel 21 funcName result ! []
-
-            EthIsMining funcName result ->
-                updateModel 22 funcName result ! []
-
-            EthGetBlockNumber funcName result ->
-                updateModel 23 funcName result ! []
-
-            EthGetBalance funcName result ->
-                updateModel 24 funcName result ! []
-
-            EthGetStorageAt funcName result ->
-                updateModel 25 funcName result ! []
-
-            EthGetCode funcName result ->
-                updateModel 26 funcName result ! []
-
-            EthGetBlock funcName result ->
-                updateModel 27 funcName result ! []
-
-            EthGetBlockTxObjs funcName result ->
-                updateModel 28 funcName result ! []
-
-            EthGetBlockTransactionCount funcName result ->
-                updateModel 29 funcName result ! []
-
-            EthGetUncle funcName result ->
-                updateModel 30 funcName result ! []
-
-            EthGetBlockUncleCount funcName result ->
-                updateModel 31 funcName result ! []
-
-            EthGetTransaction funcName result ->
-                updateModel 32 funcName result ! []
-
-            TaskChainStorageToAscii funcName result ->
-                updateModel 100 funcName result ! []
-
-            TestContractCall funcName result ->
-                updateModel 200 funcName result ! []
-
-            TestContractSend funcName result ->
-                updateModel 201 funcName result ! []
-
-            TestContractEstimateMethodGas funcName result ->
-                updateModel 202 funcName result ! []
-
-            TestContractEncodeMethodABI funcName result ->
-                updateModel 203 funcName result ! []
-
-            TestContractEstimateContractGas funcName result ->
-                updateModel 204 funcName result ! []
-
-            TestContractEncodeContractABI funcName result ->
-                updateModel 205 funcName result ! []
-
-            EthAccountsCreate funcName result ->
-                updateModel 300 funcName result ! []
-
-            EthAccountsCreateWithEntropy funcName result ->
-                updateModel 301 funcName result ! []
+-- UtilsMsg subMsg ->
+--     toPage Utils UtilsMsg Utils.update subMsg model.utilsModel
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         []
-
-
-
---  Helpers
-
-
-getNetwork : Int -> EthNetwork
-getNetwork id =
-    case id of
-        1 ->
-            MainNet
-
-        2 ->
-            Ropsten
-
-        42513 ->
-            DevNet
-
-        42512 ->
-            DevNet2
-
-        _ ->
-            UnknownNetwork
-
-
-greenText : Attribute Msg
-greenText =
-    style [ ( "color", "green" ) ]
-
-
-redText : Attribute Msg
-redText =
-    style [ ( "color", "red" ) ]
-
-
-(?=) : Maybe a -> a -> a
-(?=) a b =
-    Maybe.withDefault b a

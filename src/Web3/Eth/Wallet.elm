@@ -1,12 +1,21 @@
-module Web3.Eth.Wallet exposing (..)
+module Web3.Eth.Wallet
+    exposing
+        ( create
+        , createMany
+        , load
+        , count
+        , getByIndex
+        , list
+        )
 
 import Task exposing (Task)
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (maybe)
-import Web3 exposing (toTask)
+import Web3 exposing (toTask, retryThrice)
 import Dict exposing (Dict)
 import Web3.Types exposing (..)
-import Web3.Decoders exposing (expectJson, expectInt, accountDecoder)
+import Web3.Decoders exposing (expectJson, expectInt, expectBool, accountDecoder)
+import Web3.Internal exposing (unfoldr)
 
 
 create : Maybe String -> Task Error Account
@@ -34,13 +43,39 @@ createMany count maybeEntropy =
             }
 
 
+load : String -> Task Error ()
+load password =
+    Web3.toTask
+        { method = "eth.accounts.wallet.load"
+        , params = Encode.list [ Encode.string password ]
+        , expect = expectJson (Decode.succeed ())
+        , callType = CustomSync "null"
+        , applyScope = Just "web3.eth.accounts.wallet"
+        }
+
+
+list : String -> Task Error (Dict Int Account)
+list password =
+    let
+        waitToLoad count =
+            if count == 0 then
+                Task.fail (Error "Error: Zero wallets loaded, try increasing retry time to allow longer decryption")
+            else
+                Task.succeed count
+    in
+        load password
+            |> Task.andThen (\_ -> count)
+            |> Task.andThen (waitToLoad >> retryThrice)
+            |> Task.andThen listByInt
+
+
 count : Task Error Int
 count =
     Web3.toTask
-        { method = "eth.accounts.wallet"
+        { method = "eth.accounts.wallet.length"
         , params = Encode.list []
         , expect = expectInt
-        , callType = CustomSync "response.length"
+        , callType = Getter
         , applyScope = Nothing
         }
 
@@ -48,16 +83,16 @@ count =
 getByIndex : Int -> Task Error (Maybe Account)
 getByIndex index =
     Web3.toTask
-        { method = "eth.accounts.wallet"
+        { method = "eth.accounts.wallet[" ++ toString index ++ "]"
         , params = Encode.list []
         , expect = expectJson (maybe accountDecoder)
-        , callType = CustomSync ("response[" ++ toString index ++ "]")
+        , callType = Getter
         , applyScope = Nothing
         }
 
 
-list : Int -> Task Error (Dict Int Account)
-list count =
+listByInt : Int -> Task Error (Dict Int Account)
+listByInt count =
     let
         countUpFrom : Int -> List Int
         countUpFrom =
@@ -91,13 +126,3 @@ list count =
             |> List.map toTaskOFIndexAccountTuple
             |> Task.sequence
             |> Task.map maybeAccountsToDictOfAccounts
-
-
-unfoldr : (b -> Maybe ( a, b )) -> b -> List a
-unfoldr f seed =
-    case f seed of
-        Nothing ->
-            []
-
-        Just ( a, b ) ->
-            a :: unfoldr f b
