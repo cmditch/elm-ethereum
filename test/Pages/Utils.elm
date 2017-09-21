@@ -1,23 +1,25 @@
 module Pages.Utils exposing (..)
 
 import Element exposing (..)
-import Element.Attributes exposing (..)
-import Element.Events exposing (..)
-import Style exposing (..)
-import Color
-import Style.Color as Color
+import Config exposing (..)
 import Dict exposing (Dict)
 import Task exposing (Task)
-import BigInt exposing (BigInt)
-import Web3
-import Web3.Types exposing (..)
-import Web3.Eth
 import Web3.Utils
-import Web3.Eth.Contract as Contract
-import Web3.Eth.Accounts as Accounts
-import Web3.Eth.Wallet as Wallet
-import TestContract as TC
-import Config exposing (..)
+import Web3.Types exposing (..)
+import Element.Attributes exposing (..)
+
+
+-- import Element.Events exposing (..)
+-- import Style exposing (..)
+-- import Color
+-- import Style.Color as Color
+-- import BigInt exposing (BigInt)
+-- import Web3
+-- import Web3.Eth
+-- import Web3.Eth.Contract as Contract
+-- import Web3.Eth.Accounts as Accounts
+-- import Web3.Eth.Wallet as Wallet
+-- import TestContract as TC
 
 
 init : Model
@@ -47,19 +49,29 @@ testCommands config =
     ]
 
 
-view : Model -> Element Styles variation Msg
+viewTest : Test -> Element Styles Variations Msg
+viewTest test =
+    row TestRow
+        [ spacing 20, paddingXY 20 20 ]
+        [ column TestPassed [ vary Pass test.passed, vary Fail (not test.passed) ] [ text <| toString test.passed ]
+        , column TestName [] [ text test.name ]
+        , column TestResponse [ attribute "title" test.response, maxWidth <| percent 70 ] [ text test.response ]
+        ]
+
+
+view : Model -> Element Styles Variations Msg
 view model =
     let
-        viewTest test =
-            row None [] [ text ("Function: " ++ test.name), text ("Result: " ++ test.result), text ("  " ++ (toString test.passed)) ]
-
         testsTable =
             model.tests
                 ?= Dict.empty
                 |> Dict.values
                 |> List.map viewTest
+
+        titleRow =
+            [ row TestRow [ padding 30, center ] [ text "Web.Utils Tests" ] ]
     in
-        column None [] testsTable
+        column None [ width fill, scrollbars ] (titleRow ++ testsTable)
 
 
 type Msg
@@ -88,13 +100,13 @@ update config msg model =
                 Err error ->
                     case error of
                         Error err ->
-                            { model | tests = updateTest key (Test funcName (Debug.log "ELM UPDATE ERR: " <| toString err) False) }
+                            { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR: " <| toString err), passed = False } }
 
                         BadPayload err ->
-                            { model | tests = updateTest key (Test funcName (Debug.log "ELM UPDATE ERR: " <| toString err) False) }
+                            { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR: " <| toString err), passed = False } }
 
                         NoWallet ->
-                            { model | tests = updateTest key (Test funcName "ELM UPDATE ERR" False) }
+                            { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR" "NO WALLET"), passed = False } }
     in
         case msg of
             Sha3 funcName result ->

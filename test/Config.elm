@@ -7,6 +7,7 @@ import Style exposing (..)
 import Color
 import Style.Color as Color
 import Style.Border as Border
+import Style.Font as Font
 
 
 -- Styling
@@ -15,16 +16,31 @@ import Style.Border as Border
 type Styles
     = None
     | Drawer
-    | Table
+    | TestRow
+    | TestName
+    | TestResponse
+    | TestPassed
 
 
-stylesheet : StyleSheet Styles variation
+type Variations
+    = Pass
+    | Fail
+
+
+stylesheet : StyleSheet Styles Variations
 stylesheet =
-    Style.styleSheet
-        [ style None []
-        , style Drawer [ Border.dotted, Border.right 0.5 ]
-        , style Table [ Color.background Color.red ]
-        ]
+    let
+        helvetica =
+            [ Font.font "Helvetica" ] |> Font.typeface
+    in
+        Style.styleSheet
+            [ style None []
+            , style Drawer [ Border.dotted, Border.right 0.5 ]
+            , style TestRow [ Border.bottom 1, Border.right 1, helvetica, Font.size 18 ]
+            , style TestName []
+            , style TestResponse []
+            , style TestPassed [ variation Pass [ Color.text Color.green ], variation Fail [ Color.text Color.red ] ]
+            ]
 
 
 type EthNetwork
@@ -37,7 +53,7 @@ type EthNetwork
 
 type alias Test =
     { name : String
-    , result : String
+    , response : String
     , passed : Bool
     }
 

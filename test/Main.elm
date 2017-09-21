@@ -5,8 +5,8 @@ import Task exposing (Task)
 import Element exposing (..)
 import Element.Attributes exposing (..)
 import Element.Events exposing (..)
-import Config as Config
-import Pages.Home as Home
+import Config exposing (..)
+import Pages.Home as Home exposing (Msg(..))
 import Pages.Utils as Utils
 import Web3.Types exposing (..)
 import Web3.Eth
@@ -45,7 +45,7 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    { currentPage = Home
+    { currentPage = Utils
     , config = Config.mainnetConfig
     , homeModel = Home.init
     , utilsModel = Utils.init
@@ -77,7 +77,7 @@ view model =
             ]
 
 
-viewPage : Model -> Element Styles variation Msg
+viewPage : Model -> Element Styles Variations Msg
 viewPage model =
     case model.currentPage of
         Home ->
@@ -90,7 +90,7 @@ viewPage model =
             text "No tests here yet"
 
 
-drawer : Element Styles variation Msg
+drawer : Element Styles Variations Msg
 drawer =
     let
         pages =
@@ -102,13 +102,6 @@ drawer =
         column Drawer
             [ height fill, spacing 10, padding 10, width (px 180) ]
             (List.map pageButton pages)
-
-
-testTable : Model -> Element Styles variation Msg
-testTable model =
-    column Table
-        [ width fill, spacing 10, padding 10 ]
-        []
 
 
 type Msg
@@ -128,7 +121,7 @@ update msg model =
                         config =
                             getConfig <| getNetwork networkId
                     in
-                        { model | config = config } ! []
+                        update (SetPage Utils) { model | config = config }
 
                 Err err ->
                     { model | error = Just err } ! []
