@@ -16,6 +16,7 @@ import Style.Font as Font
 type Styles
     = None
     | Drawer
+    | TestTitle
     | TestRow
     | TestName
     | TestResponse
@@ -36,7 +37,8 @@ stylesheet =
         Style.styleSheet
             [ style None []
             , style Drawer [ Border.dotted, Border.right 0.5 ]
-            , style TestRow [ Border.bottom 1, Border.right 1, helvetica, Font.size 18 ]
+            , style TestTitle [ Border.bottom 0.5, Font.size 20, Font.bold ]
+            , style TestRow [ Border.bottom 1, Border.right 1, helvetica, Font.size 18, Font.lineHeight 1.2 ]
             , style TestName []
             , style TestResponse []
             , style TestPassed [ variation Pass [ Color.text Color.green ], variation Fail [ Color.text Color.red ] ]
@@ -148,6 +150,16 @@ getConfig ethNetwork =
 retryThrice : Task Error a -> Task Error a
 retryThrice =
     Web3.retry { attempts = 3, sleep = 1 }
+
+
+resultToTask : Result x a -> Task x a
+resultToTask result =
+    case result of
+        Ok val ->
+            Task.succeed val
+
+        Err err ->
+            Task.fail err
 
 
 (?=) : Maybe a -> a -> a

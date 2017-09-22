@@ -5,6 +5,7 @@ import Task exposing (Task)
 import Element exposing (..)
 import Element.Attributes exposing (..)
 import Element.Events exposing (..)
+import Style.Font as Font
 import Config exposing (..)
 import Pages.Home as Home exposing (Msg(..))
 import Pages.Utils as Utils
@@ -45,7 +46,7 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    { currentPage = Utils
+    { currentPage = Home
     , config = Config.mainnetConfig
     , homeModel = Home.init
     , utilsModel = Utils.init
@@ -120,8 +121,11 @@ update msg model =
                     let
                         config =
                             getConfig <| getNetwork networkId
+
+                        model_ =
+                            { model | config = config }
                     in
-                        update (SetPage Utils) { model | config = config }
+                        update (SetPage Utils) model_
 
                 Err err ->
                     { model | error = Just err } ! []
@@ -146,11 +150,7 @@ update msg model =
                     { model | currentPage = page } ! []
 
                 Utils ->
-                    if model.utilsModel.tests == Nothing then
-                        { model | currentPage = page }
-                            ! (Utils.testCommands model.config |> List.map (Cmd.map UtilsMsg))
-                    else
-                        { model | currentPage = page } ! []
+                    { model | currentPage = page } ! (Utils.testCommands model.config |> List.map (Cmd.map UtilsMsg))
 
                 _ ->
                     { model | currentPage = page } ! []

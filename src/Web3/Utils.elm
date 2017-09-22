@@ -1,16 +1,29 @@
 module Web3.Utils
     exposing
-        ( sha3
-        , toHex
-        , hexToAscii
-        , hexToNumber
-        , asciiToHex
-        , numberToHex
+        ( randomHex
+        , sha3
+        , isHex
         , isAddress
         , toChecksumAddress
         , checkAddressChecksum
+        , toHex
+        , hexToNumberString
+        , hexToNumber
+        , numberToHex
+        , bigIntToHex
+        , hexToUtf8
+        , utf8ToHex
+        , hexToAscii
+        , asciiToHex
+        , hexToBytes
+        , bytesToHex
         , fromWei
         , toWei
+        , bigIntToWei
+        , leftPadHex
+        , rightPadHex
+        , leftPadHexCustom
+        , rightPadHexCustom
         )
 
 import BigInt exposing (BigInt)
@@ -140,6 +153,10 @@ hexToNumber (Hex val) =
         }
 
 
+
+-- TODO Add support for hexToBigInt
+
+
 numberToHex : Int -> Task Error Hex
 numberToHex number =
     toTask
@@ -231,7 +248,7 @@ bytesToHex byteArray =
         }
 
 
-toWei : EthUnit -> String -> Result String BigInt
+toWei : EthUnit -> String -> Result Error BigInt
 toWei unit amount =
     -- check to make sure input string is formatted correctly, should never error in here.
     if Regex.contains (Regex.regex "^\\d*\\.?\\d+$") amount then
@@ -258,9 +275,9 @@ toWei unit amount =
                     Ok result
 
                 Nothing ->
-                    Err "There was an error calculating toWei result. However, the fault is not yours; please report this bug on github."
+                    Err (Error "There was an error calculating toWei result. However, the fault is not yours; please report this bug on github.")
     else
-        Err "Malformed number string passed to `toWei` methodtion."
+        Err (Error "Malformed number string passed to `toWei` methodtion.")
 
 
 fromWei : EthUnit -> BigInt -> String
@@ -295,9 +312,18 @@ bigIntToWei unit amount =
 --unitMap TODO Is this needed?
 
 
-leftPadHex : Int -> Hex -> Hex
+leftPadHex : Hex -> Hex
 leftPadHex =
-    leftPadHexCustom '0'
+    leftPadHexCustom '0' 32
+
+
+rightPadHex : Hex -> Hex
+rightPadHex =
+    rightPadHexCustom '0' 32
+
+
+
+-- output won't always be hex if no hexy char is provided :\
 
 
 leftPadHexCustom : Char -> Int -> Hex -> Hex
@@ -314,14 +340,13 @@ leftPadHexCustom char amount (Hex hex) =
             |> Hex
 
 
-rightPadHex : Int -> Hex -> Hex
-rightPadHex =
-    rightPadHexCustom '0'
+
+-- output won't always be hex if no hexy char is provided :\
 
 
 rightPadHexCustom : Char -> Int -> Hex -> Hex
 rightPadHexCustom char amount (Hex hex) =
-    String.padRight amount char hex
+    String.padRight (amount + 2) char hex
         |> Hex
 
 
