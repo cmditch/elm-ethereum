@@ -5,10 +5,10 @@ import Task exposing (Task)
 import Element exposing (..)
 import Element.Attributes exposing (..)
 import Element.Events exposing (..)
-import Style.Font as Font
 import Config exposing (..)
 import Pages.Home as Home exposing (Msg(..))
 import Pages.Utils as Utils
+import Pages.Accounts as Accounts
 import Web3.Types exposing (..)
 import Web3.Eth
 
@@ -40,6 +40,7 @@ type alias Model =
     , config : Config
     , homeModel : Home.Model
     , utilsModel : Utils.Model
+    , accountsModel : Accounts.Model
     , error : Maybe Error
     }
 
@@ -50,6 +51,7 @@ init =
     , config = Config.mainnetConfig
     , homeModel = Home.init
     , utilsModel = Utils.init
+    , accountsModel = Accounts.init
     , error = Nothing
     }
         ! [ Task.attempt EstablishNetworkId (retryThrice Web3.Eth.getId) ]
@@ -59,7 +61,7 @@ type Page
     = Home
     | Utils
     | Eth
-    | Account
+    | Accounts
     | Wallet
     | Contract
     | Events
@@ -87,6 +89,9 @@ viewPage model =
         Utils ->
             Utils.view model.utilsModel |> Element.map UtilsMsg
 
+        Accounts ->
+            Accounts.view model.accountsModel |> Element.map AccountsMsg
+
         _ ->
             text "No tests here yet"
 
@@ -95,7 +100,7 @@ drawer : Element Styles Variations Msg
 drawer =
     let
         pages =
-            [ Home, Utils, Eth, Account, Wallet, Contract, Events ]
+            [ Home, Utils, Eth, Accounts, Wallet, Contract, Events ]
 
         pageButton page =
             button None [ onClick <| SetPage page ] (text <| toString page)
@@ -109,6 +114,7 @@ type Msg
     = EstablishNetworkId (Result Error Int)
     | HomeMsg Home.Msg
     | UtilsMsg Utils.Msg
+    | AccountsMsg Accounts.Msg
     | SetPage Page
 
 
@@ -136,6 +142,13 @@ update msg model =
                     Home.update subMsg model.homeModel
             in
                 { model | homeModel = subModel } ! [ Cmd.map HomeMsg subCmd ]
+
+        AccountsMsg subMsg ->
+            let
+                ( subModel, subCmd ) =
+                    Accounts.update model.config subMsg model.accountsModel
+            in
+                { model | accountsModel = subModel } ! [ Cmd.map AccountsMsg subCmd ]
 
         UtilsMsg subMsg ->
             let
