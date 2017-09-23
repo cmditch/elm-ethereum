@@ -10,6 +10,7 @@ import Web3.Types exposing (..)
 import Element.Attributes exposing (..)
 import Web3.Eth.Accounts as Accounts
 import Element.Events exposing (..)
+import Element.Input as Input exposing (Text)
 
 
 -- import Style exposing (..)
@@ -27,6 +28,7 @@ import Element.Events exposing (..)
 init : Model
 init =
     { newAccount = Nothing
+    , signature = Nothing
     , tests = Nothing
     , error = Nothing
     }
@@ -34,6 +36,7 @@ init =
 
 type alias Model =
     { newAccount : Maybe Account
+    , signature : Maybe SignedMsg
     , tests : Maybe (Dict.Dict Int Test)
     , error : Maybe Error
     }
@@ -54,22 +57,45 @@ viewTest test =
         ]
 
 
-viewNewAccount : Model -> Element Styles Variations Msg
+viewNewAccount : Model -> List (Element Styles Variations Msg)
 viewNewAccount model =
     let
-        viewAccount account =
+        viewNewAccount account =
             row TestRow
                 [ spacing 20, paddingXY 20 13 ]
                 [ column None [ verticalCenter ] [ button None [ onClick InitCreate ] (text "Create") ]
-                , row TestResponse
+                , row TestResponse [] [ column None [ spacing 10 ] [ text <| toString account.address, text <| toString account.privateKey ] ]
+                ]
+
+        viewSignedMsg { message, messageHash, r, s, v, signature } =
+            row TestResponse
+                []
+                [ column None
                     []
-                    [ column None
-                        [ spacing 10 ]
-                        [ text <| toString account.address
-                        , text <| toString account.privateKey
-                        ]
+                    [ text <| "Message: " ++ (toString message)
+                    , text <| "MessageHash: " ++ (toString messageHash)
+                    , text <| "r: " ++ (toString r)
+                    , text <| "s: " ++ (toString s)
+                    , text <| "v: " ++ (toString v)
+                    , text <| "signature: " ++ (toString signature)
                     ]
                 ]
+
+        signMessage =
+            case model.signature of
+                Nothing ->
+                    row TestRow
+                        [ spacing 20, paddingXY 20 13 ]
+                        [ column None [ verticalCenter ] [ button None [ onClick InitSign ] (text "Sign") ]
+                        , row TestResponse [] []
+                        ]
+
+                Just sig ->
+                    row TestRow
+                        [ spacing 20, paddingXY 20 13 ]
+                        [ column None [ verticalCenter ] [ button None [ onClick InitSign ] (text "Sign") ]
+                        , viewSignedMsg sig
+                        ]
 
         createAccount =
             row TestRow
@@ -79,10 +105,10 @@ viewNewAccount model =
     in
         case model.newAccount of
             Nothing ->
-                createAccount
+                [ createAccount ]
 
             Just account ->
-                viewAccount account
+                [ viewNewAccount account, signMessage ]
 
 
 titleRow model =
@@ -119,12 +145,14 @@ view model =
     in
         column None
             [ width fill, scrollbars ]
-            (titleRow model ++ [ viewNewAccount model ] ++ testsTable)
+            (titleRow model ++ viewNewAccount model ++ testsTable)
 
 
 type Msg
     = InitCreate
+    | InitSign
     | Create (Result Error Account)
+    | Sign (Result Error SignedMsg)
 
 
 update : Config -> Msg -> Model -> ( Model, Cmd Msg )
@@ -160,6 +188,22 @@ update config msg model =
 
                     Ok account ->
                         { model | newAccount = Just account } ! []
+
+            InitSign ->
+                case model.newAccount of
+                    Just account ->
+                        model ! [ Task.attempt Sign <| Accounts.sign account "This is a test message" ]
+
+                    Nothing ->
+                        model ! []
+
+            Sign result ->
+                case result of
+                    Err err ->
+                        { model | error = Just err } ! []
+
+                    Ok sig ->
+                        { model | signature = Just sig } ! []
 
 
 subscriptions : Model -> Sub Msg

@@ -131,7 +131,7 @@ update msg model =
                         model_ =
                             { model | config = config }
                     in
-                        update (SetPage Utils) model_
+                        update (SetPage Accounts) model_
 
                 Err err ->
                     { model | error = Just err } ! []

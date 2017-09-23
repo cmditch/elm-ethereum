@@ -155,6 +155,16 @@ type alias SignedTx =
     }
 
 
+type alias SignedMsg =
+    { message : Maybe String
+    , messageHash : Sha3
+    , r : Hex
+    , s : Hex
+    , v : Hex
+    , signature : Hex
+    }
+
+
 type alias ContractInfo =
     { address : Address
     , txId : TxId

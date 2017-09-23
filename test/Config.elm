@@ -37,8 +37,8 @@ stylesheet =
         Style.styleSheet
             [ style None []
             , style Drawer [ Border.dotted, Border.right 0.5 ]
-            , style TestTitle [ Border.bottom 0.5, Font.size 20, Font.bold ]
-            , style TestRow [ Border.bottom 1, Border.right 1, helvetica, Font.size 18, Font.lineHeight 1.2 ]
+            , style TestTitle [ Border.bottom 0.5, Font.size 20, Font.bold, Font.lineHeight 1.5 ]
+            , style TestRow [ Border.bottom 1, Border.right 1, helvetica, Font.size 12, Font.lineHeight 1.2 ]
             , style TestName []
             , style TestResponse []
             , style TestPassed [ variation Pass [ Color.text Color.green ], variation Fail [ Color.text Color.red ] ]

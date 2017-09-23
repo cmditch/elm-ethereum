@@ -15,6 +15,7 @@ module Web3.Decoders
         , privateKeyDecoder
         , accountDecoder
         , signedTxDecoder
+        , signedMsgDecoder
         , blockNumDecoder
         , networkTypeDecoder
         , bigIntDecoder
@@ -160,6 +161,17 @@ signedTxDecoder =
         |> required "s" hexDecoder
         |> required "v" hexDecoder
         |> required "rawTransaction" hexDecoder
+
+
+signedMsgDecoder : Decoder SignedMsg
+signedMsgDecoder =
+    decode SignedMsg
+        |> custom (maybe (field "message" string))
+        |> required "messageHash" sha3Decoder
+        |> required "r" hexDecoder
+        |> required "s" hexDecoder
+        |> required "v" hexDecoder
+        |> required "signature" hexDecoder
 
 
 keystoreDecoder : Decoder Keystore

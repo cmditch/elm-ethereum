@@ -2,6 +2,7 @@ module Web3.Eth.Accounts
     exposing
         ( create
         , createWithEntropy
+        , sign
         )
 
 import Task exposing (Task)
@@ -75,7 +76,7 @@ hashMessage message =
         }
 
 
-sign : Account -> String -> Task Error SignedTx
+sign : Account -> String -> Task Error SignedMsg
 sign { privateKey } message =
     Web3.toTask
         { method = "eth.accounts.sign"
@@ -84,9 +85,9 @@ sign { privateKey } message =
                 [ Encode.string message
                 , Encode.string (privateKeyToString privateKey)
                 ]
-        , expect = expectJson signedTxDecoder
+        , expect = expectJson signedMsgDecoder
         , callType = Sync
-        , applyScope = Nothing
+        , applyScope = Just "web3.eth.accounts"
         }
 
 
