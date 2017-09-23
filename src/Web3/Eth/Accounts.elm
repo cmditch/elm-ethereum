@@ -2,7 +2,14 @@ module Web3.Eth.Accounts
     exposing
         ( create
         , createWithEntropy
+        , signTransaction
+        , signTransactionAtChain
+        , hashMessage
         , sign
+        , recoverTx
+        , recoverMsg
+        , encrypt
+        , decrypt
         )
 
 import Task exposing (Task)
@@ -46,7 +53,7 @@ signTransaction { privateKey } txParams =
                 ]
         , expect = expectJson signedTxDecoder
         , callType = Async
-        , applyScope = Nothing
+        , applyScope = Just "web3.eth.accounts"
         }
 
 
@@ -61,7 +68,7 @@ signTransactionAtChain chainId { privateKey } txParams =
                 ]
         , expect = expectJson signedTxDecoder
         , callType = Sync
-        , applyScope = Nothing
+        , applyScope = Just "web3.eth.accounts"
         }
 
 
@@ -91,8 +98,25 @@ sign { privateKey } message =
         }
 
 
-recover : SignedTx -> Task Error Address
-recover { messageHash, v, r, s } =
+recoverTx : SignedTx -> Task Error Address
+recoverTx { messageHash, v, r, s } =
+    Web3.toTask
+        { method = "eth.accounts.recover"
+        , params =
+            Encode.list
+                [ Encode.string (sha3ToString messageHash)
+                , Encode.string (hexToString v)
+                , Encode.string (hexToString r)
+                , Encode.string (hexToString s)
+                ]
+        , expect = expectJson addressDecoder
+        , callType = Sync
+        , applyScope = Nothing
+        }
+
+
+recoverMsg : SignedMsg -> Task Error Address
+recoverMsg { messageHash, v, r, s } =
     Web3.toTask
         { method = "eth.accounts.recover"
         , params =

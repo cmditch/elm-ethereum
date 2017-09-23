@@ -126,16 +126,8 @@ update config msg model =
                 Ok val ->
                     { model | tests = updateTest key (Test funcName (Debug.log "ELM UPDATE OK: " <| toString val) True) }
 
-                Err error ->
-                    case error of
-                        Error err ->
-                            { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR: " <| toString err), passed = False } }
-
-                        BadPayload err ->
-                            { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR: " <| toString err), passed = False } }
-
-                        NoWallet ->
-                            { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR" "NO WALLET"), passed = False } }
+                Err (Error err) ->
+                    { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR: " <| toString err), passed = False } }
     in
         case msg of
             RandomHex funcName result ->

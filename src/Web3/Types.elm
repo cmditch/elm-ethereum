@@ -10,8 +10,6 @@ import BigInt exposing (BigInt)
 
 type Error
     = Error String
-    | BadPayload String
-    | NoWallet
 
 
 

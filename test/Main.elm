@@ -83,9 +83,6 @@ view model =
 viewPage : Model -> Element Styles Variations Msg
 viewPage model =
     case model.currentPage of
-        Home ->
-            Home.view model.homeModel |> Element.map HomeMsg
-
         Utils ->
             Utils.view model.utilsModel |> Element.map UtilsMsg
 
@@ -93,7 +90,7 @@ viewPage model =
             Accounts.view model.accountsModel |> Element.map AccountsMsg
 
         _ ->
-            text "No tests here yet"
+            text <| "No tests at " ++ toString model.currentPage ++ " yet"
 
 
 drawer : Element Styles Variations Msg
@@ -124,17 +121,12 @@ update msg model =
         EstablishNetworkId result ->
             case result of
                 Ok networkId ->
-                    let
-                        config =
-                            getConfig <| getNetwork networkId
-
-                        model_ =
-                            { model | config = config }
-                    in
-                        update (SetPage Accounts) model_
+                    update (SetPage Accounts)
+                        { model | config = getConfig <| getNetwork networkId }
 
                 Err err ->
-                    { model | error = Just err } ! []
+                    update (SetPage Accounts)
+                        { model | error = Just err }
 
         HomeMsg subMsg ->
             let
@@ -158,15 +150,22 @@ update msg model =
                 { model | utilsModel = subModel } ! [ Cmd.map UtilsMsg subCmd ]
 
         SetPage page ->
-            case page of
-                Home ->
-                    { model | currentPage = page } ! []
+            let
+                cmds =
+                    case page of
+                        Home ->
+                            []
 
-                Utils ->
-                    { model | currentPage = page } ! (Utils.testCommands model.config |> List.map (Cmd.map UtilsMsg))
+                        Utils ->
+                            (Utils.testCommands model.config |> List.map (Cmd.map UtilsMsg))
 
-                _ ->
-                    { model | currentPage = page } ! []
+                        Accounts ->
+                            [ Cmd.map AccountsMsg Accounts.initCreateAccount ]
+
+                        _ ->
+                            []
+            in
+                { model | currentPage = page } ! cmds
 
 
 

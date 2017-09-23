@@ -4,8 +4,6 @@ import Element exposing (..)
 import Config exposing (..)
 import Dict exposing (Dict)
 import Task exposing (Task)
-import BigInt exposing (BigInt)
-import Web3.Utils
 import Web3.Types exposing (..)
 import Element.Attributes exposing (..)
 import Web3.Eth.Accounts as Accounts
@@ -13,6 +11,8 @@ import Element.Events exposing (..)
 import Element.Input as Input exposing (Text)
 
 
+-- import BigInt exposing (BigInt)
+-- import Web3.Utils
 -- import Style exposing (..)
 -- import Color
 -- import Style.Color as Color
@@ -28,7 +28,9 @@ import Element.Input as Input exposing (Text)
 init : Model
 init =
     { newAccount = Nothing
-    , signature = Nothing
+    , entropy = ""
+    , signedMsg = Nothing
+    , signedTx = Nothing
     , tests = Nothing
     , error = Nothing
     }
@@ -36,10 +38,17 @@ init =
 
 type alias Model =
     { newAccount : Maybe Account
-    , signature : Maybe SignedMsg
+    , entropy : String
+    , signedMsg : Maybe SignedMsg
+    , signedTx : Maybe SignedTx
     , tests : Maybe (Dict.Dict Int Test)
     , error : Maybe Error
     }
+
+
+initCreateAccount : Cmd Msg
+initCreateAccount =
+    Task.attempt Create Accounts.create
 
 
 testCommands : Config -> List (Cmd Msg)
@@ -60,41 +69,72 @@ viewTest test =
 viewNewAccount : Model -> List (Element Styles Variations Msg)
 viewNewAccount model =
     let
+        entropyTextfieldConfig =
+            { onChange = Entropy
+            , value = model.entropy
+            , label = Input.placeholder { text = "Define Entropy", label = Input.hiddenLabel "Paste entropy" }
+            , options = []
+            }
+
         viewNewAccount account =
             row TestRow
                 [ spacing 20, paddingXY 20 13 ]
-                [ column None [ verticalCenter ] [ button None [ onClick InitCreate ] (text "Create") ]
+                [ column None
+                    [ verticalCenter, spacing 15 ]
+                    [ button None [ onClick InitCreate ] (text "Create Account")
+                    , row None
+                        [ spacing 15 ]
+                        [ Input.text TextField [] entropyTextfieldConfig
+                        , button None [ onClick InitCreateWithEntropy ] (text "Create w/ Entropy")
+                        ]
+                    ]
                 , row TestResponse [] [ column None [ spacing 10 ] [ text <| toString account.address, text <| toString account.privateKey ] ]
                 ]
 
-        viewSignedMsg { message, messageHash, r, s, v, signature } =
-            row TestResponse
-                []
-                [ column None
-                    []
-                    [ text <| "Message: " ++ (toString message)
-                    , text <| "MessageHash: " ++ (toString messageHash)
-                    , text <| "r: " ++ (toString r)
-                    , text <| "s: " ++ (toString s)
-                    , text <| "v: " ++ (toString v)
-                    , text <| "signature: " ++ (toString signature)
-                    ]
-                ]
-
         signMessage =
-            case model.signature of
+            case model.signedMsg of
                 Nothing ->
+                    row TestRow [] []
+
+                Just { message, messageHash, r, s, v, signature } ->
                     row TestRow
                         [ spacing 20, paddingXY 20 13 ]
-                        [ column None [ verticalCenter ] [ button None [ onClick InitSign ] (text "Sign") ]
-                        , row TestResponse [] []
+                        [ column None [ verticalCenter ] [ button None [] (text "Sign Msg") ]
+                        , row TestResponse
+                            []
+                            [ column None
+                                []
+                                [ text ("Message: " ++ (toString message))
+                                , text ("MessageHash: " ++ (toString messageHash))
+                                , text ("r: " ++ (toString r))
+                                , text ("s: " ++ (toString s))
+                                , text ("v: " ++ (toString v))
+                                , text ("signature: " ++ (toString signature))
+                                ]
+                            ]
                         ]
 
-                Just sig ->
+        signTransaction =
+            case model.signedTx of
+                Nothing ->
+                    row TestRow [] []
+
+                Just { message, messageHash, r, s, v, rawTransaction } ->
                     row TestRow
                         [ spacing 20, paddingXY 20 13 ]
-                        [ column None [ verticalCenter ] [ button None [ onClick InitSign ] (text "Sign") ]
-                        , viewSignedMsg sig
+                        [ column None [ verticalCenter ] [ button None [] (text "Sign Tx") ]
+                        , row TestResponse
+                            []
+                            [ column None
+                                []
+                                [ text ("Message: " ++ (toString message))
+                                , text ("MessageHash: " ++ (toString messageHash))
+                                , text ("r: " ++ (toString r))
+                                , text ("s: " ++ (toString s))
+                                , text ("v: " ++ (toString v))
+                                , text ("signature: " ++ (toString rawTransaction))
+                                ]
+                            ]
                         ]
 
         createAccount =
@@ -108,9 +148,10 @@ viewNewAccount model =
                 [ createAccount ]
 
             Just account ->
-                [ viewNewAccount account, signMessage ]
+                [ viewNewAccount account, signMessage, signTransaction ]
 
 
+titleRow : Model -> List (Element Styles Variations Msg)
 titleRow model =
     let
         error =
@@ -129,30 +170,20 @@ titleRow model =
         ]
 
 
-
--- manualTests : Element Styles Variations Msg
--- manualTests =
-
-
 view : Model -> Element Styles Variations Msg
 view model =
-    let
-        testsTable =
-            model.tests
-                ?= Dict.empty
-                |> Dict.values
-                |> List.map viewTest
-    in
-        column None
-            [ width fill, scrollbars ]
-            (titleRow model ++ viewNewAccount model ++ testsTable)
+    column None
+        [ width fill, scrollbars ]
+        (titleRow model ++ viewNewAccount model)
 
 
 type Msg
     = InitCreate
-    | InitSign
+    | Entropy String
+    | InitCreateWithEntropy
     | Create (Result Error Account)
-    | Sign (Result Error SignedMsg)
+    | SignMsg (Result Error SignedMsg)
+    | SignTx (Result Error SignedTx)
 
 
 update : Config -> Msg -> Model -> ( Model, Cmd Msg )
@@ -166,20 +197,18 @@ update config msg model =
                 Ok val ->
                     { model | tests = updateTest key (Test funcName (Debug.log "ELM UPDATE OK: " <| toString val) True) }
 
-                Err error ->
-                    case error of
-                        Error err ->
-                            { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR: " <| toString err), passed = False } }
-
-                        BadPayload err ->
-                            { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR: " <| toString err), passed = False } }
-
-                        NoWallet ->
-                            { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR" "NO WALLET"), passed = False } }
+                Err (Error err) ->
+                    { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR: " <| toString err), passed = False } }
     in
         case msg of
             InitCreate ->
                 model ! [ Task.attempt Create Accounts.create ]
+
+            Entropy entropyString ->
+                { model | entropy = entropyString } ! []
+
+            InitCreateWithEntropy ->
+                model ! [ Task.attempt Create <| Accounts.createWithEntropy model.entropy ]
 
             Create result ->
                 case result of
@@ -187,23 +216,26 @@ update config msg model =
                         { model | error = Just err } ! []
 
                     Ok account ->
-                        { model | newAccount = Just account } ! []
+                        { model | newAccount = Just account }
+                            ! [ Task.attempt SignMsg <| Accounts.sign account "This is a test message"
+                              , Task.attempt SignTx <| Accounts.signTransaction account config.txParams
+                              ]
 
-            InitSign ->
-                case model.newAccount of
-                    Just account ->
-                        model ! [ Task.attempt Sign <| Accounts.sign account "This is a test message" ]
-
-                    Nothing ->
-                        model ! []
-
-            Sign result ->
+            SignMsg result ->
                 case result of
                     Err err ->
                         { model | error = Just err } ! []
 
                     Ok sig ->
-                        { model | signature = Just sig } ! []
+                        { model | signedMsg = Just sig } ! []
+
+            SignTx result ->
+                case result of
+                    Err err ->
+                        { model | error = Just err } ! []
+
+                    Ok sig ->
+                        { model | signedTx = Just sig } ! []
 
 
 subscriptions : Model -> Sub Msg
