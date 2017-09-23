@@ -1,8 +1,9 @@
 # <img src="https://cdn.rawgit.com/cmditch/elm-web3/master/elm-web3-logo.svg" width="75"> elm-web3
 ###### Feed the tree some ether.
 
-## Be wary! Still under heavy development. 
-Alpha release will be ready near the beginning of September '17   
+## Be wary! Still under heavy development.
+Development has switched over to the 1.0 branch. 1.0 will soon merge into master.
+Alpha release will be ready near the beginning of November '17   
 Examples are under constant change. As it stands, they are more like testbeds than examples.
 
 #### Task List
@@ -13,20 +14,16 @@ Examples are under constant change. As it stands, they are more like testbeds th
 * Reach out to experienced web3/functional programmers for feedback on API
 * Document, evaluate, and refactor Web3.js Native file. This will be under refinement for some time, as it's complexity and inherent coupling to web3's nuances is vast.
 
+Install Elm things    
+```
+npm install -g elm
+npm install -g elm-live
+```
+then get elm-web3 and open test/example page   
 ```
 git clone https://github.com/cmditch/elm-web3.git
 cd elm-web3/
-npm run lightbox-build && npm run web
+git checkout 1.0
+npm run test
 ```
-open localhost:8000/examples in browser
-
-### Development:
-To run a live-reload server of the examples, first install elm live:
-```bash
-npm install -g elm-live
-```
-Then start the dev server:
-```bash
-npm run lightbox-live
-```
-This should open the page in your browser. If not open: http://localhost:1234/
+open http://localhost:8000/test   
