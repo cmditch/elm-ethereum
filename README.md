@@ -12,7 +12,6 @@ Alpha release will be ready November '17
 * Reach out to experienced web3/functional programmers for feedback on API
 * Document, evaluate, and refactor Web3.js Native file. This will be under refinement for some time, as it's complexity and inherent coupling to web3's nuances is vast.
 
-
 Install Elm things    
 ```
 npm install -g elm
