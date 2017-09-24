@@ -1,11 +1,13 @@
 module Web3.Eth.Wallet
     exposing
         ( create
+        , createWithEntropy
         , createMany
         , load
+        , list
         , count
         , getByIndex
-        , list
+        , listThisMany
         )
 
 import Task exposing (Task)
@@ -18,12 +20,27 @@ import Web3.Decoders exposing (expectJson, expectInt, expectBool, accountDecoder
 import Web3.Internal exposing (unfoldr)
 
 
-create : Maybe String -> Task Error Account
+-- create
+-- add
+-- remove
+-- save
+-- load
+-- encrypt
+-- decrypt
+-- clear
+
+
+create : Task Error (Dict Int Account)
 create =
-    createMany 1
+    createMany 1 Nothing
 
 
-createMany : Int -> Maybe String -> Task Error Account
+createWithEntropy : String -> Task Error (Dict Int Account)
+createWithEntropy entropy =
+    createMany 1 (Just entropy)
+
+
+createMany : Int -> Maybe String -> Task Error (Dict Int Account)
 createMany count maybeEntropy =
     let
         entropy =
@@ -37,13 +54,30 @@ createMany count maybeEntropy =
         Web3.toTask
             { method = "eth.accounts.wallet.create"
             , params = Encode.list ([ Encode.int count ] ++ entropy)
-            , expect = expectJson accountDecoder
+            , expect = expectJson (Decode.succeed ())
             , callType = Sync
             , applyScope = Nothing
             }
+            |> Task.andThen (\_ -> list)
 
 
-load : String -> Task Error ()
+add : Account -> Task Error (Dict Int Account)
+add account =
+    let
+        (PrivateKey privateKey) =
+            account.privateKey
+    in
+        Web3.toTask
+            { method = "eth.accounts.wallet.load"
+            , params = Encode.list [ Encode.string privateKey ]
+            , expect = expectJson (Decode.succeed ())
+            , callType = CustomSync "null"
+            , applyScope = Just "web3.eth.accounts.wallet"
+            }
+            |> Task.andThen (\_ -> list)
+
+
+load : String -> Task Error (Dict Int Account)
 load password =
     Web3.toTask
         { method = "eth.accounts.wallet.load"
@@ -52,21 +86,22 @@ load password =
         , callType = CustomSync "null"
         , applyScope = Just "web3.eth.accounts.wallet"
         }
+        |> Task.andThen (\_ -> list)
 
 
-list : String -> Task Error (Dict Int Account)
-list password =
+list : Task Error (Dict Int Account)
+list =
     let
         waitToLoad count =
             if count == 0 then
-                Task.fail (Error "Error: Zero wallets loaded, try increasing retry time to allow longer decryption")
+                Task.fail
+                    (Error "Error: Zero wallets loaded, try increasing retry time to allow longer decryption")
             else
                 Task.succeed count
     in
-        load password
-            |> Task.andThen (\_ -> count)
+        count
             |> Task.andThen (waitToLoad >> retryThrice)
-            |> Task.andThen listByInt
+            |> Task.andThen listThisMany
 
 
 count : Task Error Int
@@ -91,8 +126,8 @@ getByIndex index =
         }
 
 
-listByInt : Int -> Task Error (Dict Int Account)
-listByInt count =
+listThisMany : Int -> Task Error (Dict Int Account)
+listThisMany count =
     let
         countUpFrom : Int -> List Int
         countUpFrom =

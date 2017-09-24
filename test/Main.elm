@@ -9,20 +9,9 @@ import Config exposing (..)
 import Pages.Home as Home exposing (Msg(..))
 import Pages.Utils as Utils
 import Pages.Accounts as Accounts
+import Pages.Wallet as Wallet
 import Web3.Types exposing (..)
 import Web3.Eth
-
-
--- import Web3
--- import Html.Events exposing (onClick)
--- import Dict exposing (Dict)
--- import BigInt exposing (BigInt)
--- import Web3.Utils
--- import Web3.Eth.Contract as Contract
--- import Web3.Eth.Accounts as Accounts
--- import Web3.Eth.Wallet as Wallet
--- import TestContract as TC
--- import Helpers exposing (Config, retryThrice)
 
 
 main : Program Never Model Msg
@@ -41,6 +30,7 @@ type alias Model =
     , homeModel : Home.Model
     , utilsModel : Utils.Model
     , accountsModel : Accounts.Model
+    , walletModel : Wallet.Model
     , error : Maybe Error
     }
 
@@ -52,6 +42,7 @@ init =
     , homeModel = Home.init
     , utilsModel = Utils.init
     , accountsModel = Accounts.init
+    , walletModel = Wallet.init
     , error = Nothing
     }
         ! [ Task.attempt EstablishNetworkId (retryThrice Web3.Eth.getId) ]
@@ -89,8 +80,11 @@ viewPage model =
         Accounts ->
             Accounts.view model.accountsModel |> Element.map AccountsMsg
 
+        Wallet ->
+            Wallet.view model.walletModel |> Element.map WalletMsg
+
         _ ->
-            text <| "No tests at " ++ toString model.currentPage ++ " yet"
+            column None [ verticalCenter, center, width fill ] [ text "Testing123" ]
 
 
 drawer : Element Styles Variations Msg
@@ -112,6 +106,7 @@ type Msg
     | HomeMsg Home.Msg
     | UtilsMsg Utils.Msg
     | AccountsMsg Accounts.Msg
+    | WalletMsg Wallet.Msg
     | SetPage Page
 
 
@@ -140,13 +135,6 @@ update msg model =
             in
                 { model | homeModel = subModel } ! [ Cmd.map HomeMsg subCmd ]
 
-        AccountsMsg subMsg ->
-            let
-                ( subModel, subCmd ) =
-                    Accounts.update model.config subMsg model.accountsModel
-            in
-                { model | accountsModel = subModel } ! [ Cmd.map AccountsMsg subCmd ]
-
         UtilsMsg subMsg ->
             let
                 ( subModel, subCmd ) =
@@ -154,28 +142,22 @@ update msg model =
             in
                 { model | utilsModel = subModel } ! [ Cmd.map UtilsMsg subCmd ]
 
-        SetPage page ->
+        AccountsMsg subMsg ->
             let
-                cmds =
-                    case page of
-                        Home ->
-                            []
-
-                        Utils ->
-                            []
-
-                        Accounts ->
-                            []
-
-                        _ ->
-                            []
+                ( subModel, subCmd ) =
+                    Accounts.update model.config subMsg model.accountsModel
             in
-                { model | currentPage = page } ! cmds
+                { model | accountsModel = subModel } ! [ Cmd.map AccountsMsg subCmd ]
 
+        WalletMsg subMsg ->
+            let
+                ( subModel, subCmd ) =
+                    Wallet.update model.config subMsg model.walletModel
+            in
+                { model | walletModel = subModel } ! [ Cmd.map WalletMsg subCmd ]
 
-
--- UtilsMsg subMsg ->
---     toPage Utils UtilsMsg Utils.update subMsg model.utilsModel
+        SetPage page ->
+            { model | currentPage = page } ! []
 
 
 subscriptions : Model -> Sub Msg
