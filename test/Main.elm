@@ -119,14 +119,19 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         EstablishNetworkId result ->
-            case result of
-                Ok networkId ->
-                    update (SetPage Accounts)
-                        { model | config = getConfig <| getNetwork networkId }
+            let
+                ( newModel, newCmds ) =
+                    update (SetPage Accounts) model
+            in
+                case result of
+                    Ok networkId ->
+                        { newModel | config = getConfig <| getNetwork networkId }
+                            ! ([ newCmds, Cmd.map AccountsMsg Accounts.initCreateAccount ]
+                                ++ (Utils.testCommands model.config |> List.map (Cmd.map UtilsMsg))
+                              )
 
-                Err err ->
-                    update (SetPage Accounts)
-                        { model | error = Just err }
+                    Err err ->
+                        { newModel | error = Just err } ! []
 
         HomeMsg subMsg ->
             let
@@ -157,10 +162,10 @@ update msg model =
                             []
 
                         Utils ->
-                            (Utils.testCommands model.config |> List.map (Cmd.map UtilsMsg))
+                            []
 
                         Accounts ->
-                            [ Cmd.map AccountsMsg Accounts.initCreateAccount ]
+                            []
 
                         _ ->
                             []

@@ -56,9 +56,3 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     model ! []
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.batch
-        []

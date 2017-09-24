@@ -23,6 +23,7 @@ type Styles
     | TestName
     | TestResponse
     | TestPassed
+    | VerticalBar
 
 
 type Variations
@@ -42,9 +43,10 @@ stylesheet =
             , style TextField [ Border.dotted, Border.all 0.5 ]
             , style TestTitle [ Border.bottom 0.5, Font.size 20, Font.bold, Font.lineHeight 1.5 ]
             , style TestRow [ Border.bottom 1, Border.right 1, helvetica, Font.size 12, Font.lineHeight 1.2 ]
-            , style TestName []
+            , style TestName [ Font.size 16, Font.lineHeight 1.5 ]
             , style TestResponse []
             , style TestPassed [ variation Pass [ Color.text Color.green ], variation Fail [ Color.text Color.red ] ]
+            , style VerticalBar [ Border.right 1, Border.dotted ]
             ]
 
 

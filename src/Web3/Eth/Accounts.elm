@@ -3,7 +3,6 @@ module Web3.Eth.Accounts
         ( create
         , createWithEntropy
         , signTransaction
-        , signTransactionAtChain
         , hashMessage
         , sign
         , recoverTx
@@ -57,21 +56,6 @@ signTransaction { privateKey } txParams =
         }
 
 
-signTransactionAtChain : Int -> Account -> TxParams -> Task Error SignedTx
-signTransactionAtChain chainId { privateKey } txParams =
-    Web3.toTask
-        { method = "eth.accounts.signTransaction"
-        , params =
-            Encode.list
-                [ encodeTxParams txParams
-                , Encode.string (privateKeyToString privateKey)
-                ]
-        , expect = expectJson signedTxDecoder
-        , callType = Sync
-        , applyScope = Just "web3.eth.accounts"
-        }
-
-
 hashMessage : String -> Task Error Sha3
 hashMessage message =
     Web3.toTask
@@ -79,7 +63,7 @@ hashMessage message =
         , params = Encode.list [ Encode.string message ]
         , expect = expectJson sha3Decoder
         , callType = Sync
-        , applyScope = Nothing
+        , applyScope = Just "web3.eth.accounts"
         }
 
 
@@ -111,7 +95,7 @@ recoverTx { messageHash, v, r, s } =
                 ]
         , expect = expectJson addressDecoder
         , callType = Sync
-        , applyScope = Nothing
+        , applyScope = Just "web3.eth.accounts"
         }
 
 
@@ -128,7 +112,7 @@ recoverMsg { messageHash, v, r, s } =
                 ]
         , expect = expectJson addressDecoder
         , callType = Sync
-        , applyScope = Nothing
+        , applyScope = Just "web3.eth.accounts"
         }
 
 
@@ -143,7 +127,7 @@ encrypt { privateKey } password =
                 ]
         , expect = expectJson keystoreDecoder
         , callType = Sync
-        , applyScope = Nothing
+        , applyScope = Just "web3.eth.accounts"
         }
 
 
@@ -158,5 +142,5 @@ decrypt keystore password =
                 ]
         , expect = expectJson accountDecoder
         , callType = Sync
-        , applyScope = Nothing
+        , applyScope = Just "web3.eth.accounts"
         }

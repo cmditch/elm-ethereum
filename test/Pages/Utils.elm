@@ -188,9 +188,3 @@ update config msg model =
 
             RightPadHexCustom funcName result ->
                 updateModel 24 funcName result ! []
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.batch
-        []

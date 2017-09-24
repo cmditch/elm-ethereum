@@ -190,7 +190,7 @@ cryptoDecoder =
 
         kdfparamsDecoder =
             decode (\dklen salt n r p -> { dklen = dklen, salt = salt, n = n, r = r, p = p })
-                |> required "iv" int
+                |> required "dklen" int
                 |> required "salt" string
                 |> required "n" int
                 |> required "r" int

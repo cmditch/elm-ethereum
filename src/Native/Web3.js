@@ -34,18 +34,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                     elmCallback(r);
                 };
 
-                function checkForWarning(r)
-                {
-                    try
-                    {
-                        console.log("LOOKING FOR ERROR:  ", response._fulfillmentHandler0) 
-                        // return callback(fail( web3Error(response._fulfillmentHandler0.message) ));
-                    } catch(e) {}
-                }
-
                 var response = eval(evalString);
-                console.log("LOGGING RESPONSE:  ", response);
-                checkForWarning(response);
 
                 if (callType === "Sync" || callType === "Getter")
                 {
