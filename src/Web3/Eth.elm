@@ -395,9 +395,10 @@ defaultTxParams =
     , to = Nothing
     , value = Nothing
     , data = Nothing
-    , gas = Nothing
+    , gas = 21000
     , gasPrice = Just 8000000000
     , nonce = Nothing
+    , chainId = Just 1
     }
 
 

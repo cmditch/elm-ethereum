@@ -16,7 +16,7 @@ import Task exposing (Task)
 import Json.Encode as Encode
 import Web3
 import Web3.Decoders exposing (..)
-import Web3.Encoders exposing (encodeKeystore, encodeTxParams, encodeCustomTxParams)
+import Web3.Encoders exposing (encodeKeystore, encodeTxParams)
 import Web3.Types exposing (..)
 
 
@@ -63,7 +63,7 @@ signTransactionAtChain chainId { privateKey } txParams =
         { method = "eth.accounts.signTransaction"
         , params =
             Encode.list
-                [ encodeCustomTxParams [ ( "chainId", Just <| Encode.int chainId ) ] txParams
+                [ encodeTxParams txParams
                 , Encode.string (privateKeyToString privateKey)
                 ]
         , expect = expectJson signedTxDecoder

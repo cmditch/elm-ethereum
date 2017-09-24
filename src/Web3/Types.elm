@@ -136,16 +136,16 @@ type alias TxParams =
     { from : Maybe Address
     , to : Maybe Address
     , value : Maybe BigInt
-    , gas : Maybe Int
+    , gas : Int
     , data : Maybe Hex
     , gasPrice : Maybe Int
+    , chainId : Maybe Int
     , nonce : Maybe Int
     }
 
 
 type alias SignedTx =
-    { message : Maybe String
-    , messageHash : Sha3
+    { messageHash : Sha3
     , r : Hex
     , s : Hex
     , v : Hex

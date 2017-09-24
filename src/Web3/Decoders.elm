@@ -155,7 +155,6 @@ accountDecoder =
 signedTxDecoder : Decoder SignedTx
 signedTxDecoder =
     decode SignedTx
-        |> custom (maybe (field "message" string))
         |> required "messageHash" sha3Decoder
         |> required "r" hexDecoder
         |> required "s" hexDecoder

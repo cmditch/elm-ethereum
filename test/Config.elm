@@ -78,11 +78,25 @@ defaultTxParams =
     { from = Just (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7")
     , to = Just (Address "0xd8b0990c007ba1ad97b37c001d1f87044312162e")
     , value = Just (BigInt.fromInt 42424242)
-    , gas = Just 123132123
+    , gas = 123132123
     , data = Just (Hex "0x23123123123123123")
     , gasPrice = Just 132123123
     , nonce = Just 2
+    , chainId = Just 1
     }
+
+
+
+-- defaultTxParams : TxParams
+-- defaultTxParams =
+--     { from = Nothing
+--     , to = Nothing
+--     , value = Nothing
+--     , gas = Just 123123
+--     , data = Nothing
+--     , gasPrice = Nothing
+--     , nonce = Nothing
+--     }
 
 
 mainnetConfig : Config

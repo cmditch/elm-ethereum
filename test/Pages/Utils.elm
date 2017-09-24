@@ -10,19 +10,6 @@ import Web3.Types exposing (..)
 import Element.Attributes exposing (..)
 
 
--- import Element.Events exposing (..)
--- import Style exposing (..)
--- import Color
--- import Style.Color as Color
--- import BigInt exposing (BigInt)
--- import Web3
--- import Web3.Eth
--- import Web3.Eth.Contract as Contract
--- import Web3.Eth.Accounts as Accounts
--- import Web3.Eth.Wallet as Wallet
--- import TestContract as TC
-
-
 init : Model
 init =
     { tests = Nothing

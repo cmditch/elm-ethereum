@@ -11,20 +11,6 @@ import Element.Events exposing (..)
 import Element.Input as Input exposing (Text)
 
 
--- import BigInt exposing (BigInt)
--- import Web3.Utils
--- import Style exposing (..)
--- import Color
--- import Style.Color as Color
--- import BigInt exposing (BigInt)
--- import Web3
--- import Web3.Eth
--- import Web3.Eth.Contract as Contract
--- import Web3.Eth.Accounts as Accounts
--- import Web3.Eth.Wallet as Wallet
--- import TestContract as TC
-
-
 init : Model
 init =
     { newAccount = Nothing
@@ -119,7 +105,7 @@ viewNewAccount model =
                 Nothing ->
                     row TestRow [] []
 
-                Just { message, messageHash, r, s, v, rawTransaction } ->
+                Just { messageHash, r, s, v, rawTransaction } ->
                     row TestRow
                         [ spacing 20, paddingXY 20 13 ]
                         [ column None [ verticalCenter ] [ button None [] (text "Sign Tx") ]
@@ -127,8 +113,7 @@ viewNewAccount model =
                             []
                             [ column None
                                 []
-                                [ text ("Message: " ++ (toString message))
-                                , text ("MessageHash: " ++ (toString messageHash))
+                                [ text ("MessageHash: " ++ (toString messageHash))
                                 , text ("r: " ++ (toString r))
                                 , text ("s: " ++ (toString s))
                                 , text ("v: " ++ (toString v))

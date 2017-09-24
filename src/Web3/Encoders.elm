@@ -11,7 +11,7 @@ module Web3.Encoders
         , addressMaybeMap
         , listOfMaybesToVal
         , encodeBytes
-        , encodeCustomTxParams
+          -- , encodeCustomTxParams
         )
 
 import Web3.Types exposing (..)
@@ -21,30 +21,33 @@ import Json.Encode as Encode exposing (Value, string, int, null, list, object)
 
 
 encodeTxParams : TxParams -> Value
-encodeTxParams { from, to, value, gas, data, gasPrice, nonce } =
+encodeTxParams { from, to, value, gas, data, gasPrice, nonce, chainId } =
     listOfMaybesToVal
         [ ( "from", Maybe.map string (addressMaybeMap from) )
         , ( "to", Maybe.map string (addressMaybeMap to) )
         , ( "value", Maybe.map (BigInt.toString >> string) value )
-        , ( "gas", Maybe.map int gas )
+        , ( "gas", Maybe.map int (Just gas) )
         , ( "data", Maybe.map string (hexMaybeMap data) )
         , ( "gasPrice", Maybe.map int gasPrice )
         , ( "nonce", Maybe.map int nonce )
+        , ( "chainId", Maybe.map int chainId )
         ]
 
 
-encodeCustomTxParams : List ( String, Maybe Value ) -> TxParams -> Value
-encodeCustomTxParams customFields { from, to, value, gas, data, gasPrice, nonce } =
-    listOfMaybesToVal <|
-        [ ( "from", Maybe.map string (addressMaybeMap from) )
-        , ( "to", Maybe.map string (addressMaybeMap to) )
-        , ( "value", Maybe.map (BigInt.toString >> string) value )
-        , ( "gas", Maybe.map int gas )
-        , ( "data", Maybe.map string (hexMaybeMap data) )
-        , ( "gasPrice", Maybe.map int gasPrice )
-        , ( "nonce", Maybe.map int nonce )
-        ]
-            ++ customFields
+
+-- encodeCustomTxParams : List ( String, Maybe Value ) -> TxParams -> Value
+-- encodeCustomTxParams customFields { from, to, value, gas, data, gasPrice, nonce, chainId } =
+--     listOfMaybesToVal <|
+--         [ ( "from", Maybe.map string (addressMaybeMap from) )
+--         , ( "to", Maybe.map string (addressMaybeMap to) )
+--         , ( "value", Maybe.map (BigInt.toString >> string) value )
+--         , ( "gas", Maybe.map int (Just gas) )
+--         , ( "data", Maybe.map string (hexMaybeMap data) )
+--         , ( "gasPrice", Maybe.map int gasPrice )
+--         , ( "nonce", Maybe.map int nonce )
+--         , ( "chainId", Maybe.map int chainId )
+--         ]
+--             ++ customFields
 
 
 encodeFilterParams : FilterParams -> Value
