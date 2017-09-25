@@ -14,6 +14,8 @@ init : Model
 init =
     { wallet = Dict.empty
     , walletCount = 0
+    , saveStatus = ""
+    , loadStatus = ""
     , error = Nothing
     }
 
@@ -21,6 +23,8 @@ init =
 type alias Model =
     { wallet : Dict Int Account
     , walletCount : Int
+    , saveStatus : String
+    , loadStatus : String
     , error : Maybe Error
     }
 
@@ -49,7 +53,7 @@ viewAccountTests model =
 
         viewWallet =
             row TestRow
-                [ spacing 20, paddingXY 20 13, scrollbars, maxHeight (px 200) ]
+                [ spacing 20, paddingXY 20 13, scrollbars ]
                 [ column None
                     [ spacing 15 ]
                     [ button None [ onClick InitCreate, width (px 230) ] (text "Create Account") ]
@@ -71,13 +75,18 @@ viewAccountTests model =
 
         viewWalletCount =
             viewTestRow "Wallet Count" [ text <| toString model.walletCount ]
-    in
-        case Dict.isEmpty model.wallet of
-            True ->
-                [ createWallet ]
 
-            False ->
-                [ viewWallet, viewWalletCount ]
+        saveWallet =
+            viewTestRow "Save Wallet" [ button None [ onClick InitSave, width (px 230) ] (text "Save Wallet"), text model.saveStatus ]
+
+        loadWallet =
+            viewTestRow "Load Wallet" [ button None [ onClick InitLoad, width (px 230) ] (text "Load Wallet"), text model.loadStatus ]
+    in
+        [ viewWalletCount
+        , saveWallet
+        , loadWallet
+        , viewWallet
+        ]
 
 
 titleRow : Model -> List (Element Styles Variations Msg)
@@ -109,8 +118,13 @@ view model =
 type Msg
     = InitCreate
     | InitCreateMany Int
+    | InitSave
+      -- | ExecuteSave
+    | InitLoad
+      -- | ExecuteLoad
     | WalletDict (Result Error (Dict Int Account))
     | Length (Result Error Int)
+    | Save (Result Error Bool)
 
 
 update : Config -> Msg -> Model -> ( Model, Cmd Msg )
@@ -122,13 +136,25 @@ update config msg model =
         InitCreateMany num ->
             model ! []
 
+        InitSave ->
+            -- update config ExecuteSave
+            { model | saveStatus = "Saving wallet...." } ! [ Task.attempt Save (Wallet.save "qwerty") ]
+
+        -- ExecuteSave ->
+        --     model ! [ Task.attempt Save (Process.sleep 100 |> Task.andThen (\_ -> Wallet.save "qwerty")) ]
+        InitLoad ->
+            { model | loadStatus = "Loading wallet...." } ! [ Task.attempt WalletDict (Wallet.load "qwerty") ]
+
+        --
+        -- ExecuteLoad ->
+        --     model ! []
         WalletDict result ->
             case result of
                 Err err ->
                     { model | error = Just err } ! []
 
                 Ok wallet ->
-                    { model | wallet = wallet } ! [ Task.attempt Length Wallet.length ]
+                    { model | wallet = wallet, loadStatus = "" } ! [ Task.attempt Length Wallet.length ]
 
         Length result ->
             case result of
@@ -137,3 +163,11 @@ update config msg model =
 
                 Ok length ->
                     { model | walletCount = length } ! []
+
+        Save result ->
+            case result of
+                Err err ->
+                    { model | error = Just err, saveStatus = "Error Saving Wallet" } ! []
+
+                Ok saveStatus ->
+                    { model | saveStatus = "Success Saving Wallet!!" } ! []

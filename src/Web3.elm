@@ -4,6 +4,7 @@ module Web3
         , toTask
         , retry
         , retryThrice
+        , delayExecution
         , Retry
         )
 
@@ -119,6 +120,12 @@ retry { attempts, sleep } web3Task =
                     else
                         Task.fail x
                 )
+
+
+delayExecution : Task x a -> Task x a
+delayExecution task =
+    -- sleep allows time for model/view to update before "blocking task" begins
+    Process.sleep 50 |> Task.andThen (\_ -> task)
 
 
 retryThrice : Task Error a -> Task Error a

@@ -129,6 +129,7 @@ encrypt { privateKey } password =
         , callType = Sync
         , applyScope = Just "web3.eth.accounts"
         }
+        |> Web3.delayExecution
 
 
 decrypt : Keystore -> String -> Task Error Account
@@ -144,3 +145,4 @@ decrypt keystore password =
         , callType = Sync
         , applyScope = Just "web3.eth.accounts"
         }
+        |> Web3.delayExecution

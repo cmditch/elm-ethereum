@@ -123,7 +123,7 @@ update msg model =
                 case result of
                     Ok networkId ->
                         { newModel | config = getConfig <| getNetwork networkId }
-                            ! [ newCmds, Cmd.map WalletMsg Wallet.initCreateAccount ]
+                            ! [ newCmds ]
 
                     Err err ->
                         { newModel | error = Just err } ! []

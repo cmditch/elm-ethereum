@@ -3,6 +3,7 @@ module Web3.Eth.Wallet
         ( create
         , createWithEntropy
         , createMany
+        , save
         , load
         , list
         , length
@@ -13,8 +14,8 @@ module Web3.Eth.Wallet
 import Task exposing (Task)
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (maybe)
-import Web3 exposing (toTask, retryThrice)
 import Dict exposing (Dict)
+import Web3 exposing (toTask, retryThrice)
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (expectJson, expectInt, expectBool, accountDecoder)
 import Web3.Internal exposing (unfoldr)
@@ -71,9 +72,21 @@ add (PrivateKey privateKey) =
         |> Task.andThen (\_ -> list)
 
 
+save : String -> Task Error Bool
+save password =
+    Web3.toTask
+        { method = "eth.accounts.wallet.save"
+        , params = Encode.list [ Encode.string password ]
+        , expect = expectBool
+        , callType = Sync
+        , applyScope = Just "web3.eth.accounts.wallet"
+        }
+        |> Web3.delayExecution
+
+
 load : String -> Task Error (Dict Int Account)
 load password =
-    Web3.toTask
+    (Web3.toTask
         { method = "eth.accounts.wallet.load"
         , params = Encode.list [ Encode.string password ]
         , expect = expectJson (Decode.succeed ())
@@ -81,6 +94,8 @@ load password =
         , applyScope = Just "web3.eth.accounts.wallet"
         }
         |> Task.andThen (\_ -> list)
+    )
+        |> Web3.delayExecution
 
 
 list : Task Error (Dict Int Account)
