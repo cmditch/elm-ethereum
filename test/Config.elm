@@ -44,7 +44,7 @@ stylesheet =
             , style TestTitle [ Border.bottom 0.5, Font.size 20, Font.bold, Font.lineHeight 1.5 ]
             , style TestRow [ Border.bottom 1, Border.right 1, helvetica, Font.size 12, Font.lineHeight 1.2 ]
             , style TestName [ Font.size 16, Font.lineHeight 1.5 ]
-            , style TestResponse []
+            , style TestResponse [ Font.size 16, Font.lineHeight 1.5 ]
             , style TestPassed [ variation Pass [ Color.text Color.green ], variation Fail [ Color.text Color.red ] ]
             , style VerticalBar [ Border.right 1, Border.dotted ]
             ]
@@ -201,3 +201,8 @@ resultToTask result =
 (?=) : Maybe a -> a -> a
 (?=) a b =
     Maybe.withDefault b a
+
+
+zip : List a -> List b -> List ( a, b )
+zip =
+    List.map2 (,)

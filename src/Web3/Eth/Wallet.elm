@@ -5,7 +5,7 @@ module Web3.Eth.Wallet
         , createMany
         , load
         , list
-        , count
+        , length
         , getByIndex
         , listThisMany
         )
@@ -20,11 +20,9 @@ import Web3.Decoders exposing (expectJson, expectInt, expectBool, accountDecoder
 import Web3.Internal exposing (unfoldr)
 
 
--- create
 -- add
 -- remove
 -- save
--- load
 -- encrypt
 -- decrypt
 -- clear
@@ -55,26 +53,22 @@ createMany count maybeEntropy =
             { method = "eth.accounts.wallet.create"
             , params = Encode.list ([ Encode.int count ] ++ entropy)
             , expect = expectJson (Decode.succeed ())
-            , callType = Sync
-            , applyScope = Nothing
-            }
-            |> Task.andThen (\_ -> list)
-
-
-add : Account -> Task Error (Dict Int Account)
-add account =
-    let
-        (PrivateKey privateKey) =
-            account.privateKey
-    in
-        Web3.toTask
-            { method = "eth.accounts.wallet.load"
-            , params = Encode.list [ Encode.string privateKey ]
-            , expect = expectJson (Decode.succeed ())
             , callType = CustomSync "null"
             , applyScope = Just "web3.eth.accounts.wallet"
             }
             |> Task.andThen (\_ -> list)
+
+
+add : PrivateKey -> Task Error (Dict Int Account)
+add (PrivateKey privateKey) =
+    Web3.toTask
+        { method = "eth.accounts.wallet.add"
+        , params = Encode.list [ Encode.string privateKey ]
+        , expect = expectJson (Decode.succeed ())
+        , callType = CustomSync "null"
+        , applyScope = Just "web3.eth.accounts.wallet"
+        }
+        |> Task.andThen (\_ -> list)
 
 
 load : String -> Task Error (Dict Int Account)
@@ -91,21 +85,12 @@ load password =
 
 list : Task Error (Dict Int Account)
 list =
-    let
-        waitToLoad count =
-            if count == 0 then
-                Task.fail
-                    (Error "Error: Zero wallets loaded, try increasing retry time to allow longer decryption")
-            else
-                Task.succeed count
-    in
-        count
-            |> Task.andThen (waitToLoad >> retryThrice)
-            |> Task.andThen listThisMany
+    retryWalletLoad
+        |> Task.andThen listThisMany
 
 
-count : Task Error Int
-count =
+length : Task Error Int
+length =
     Web3.toTask
         { method = "eth.accounts.wallet.length"
         , params = Encode.list []
@@ -126,11 +111,15 @@ getByIndex index =
         }
 
 
+
+-- Internal
+
+
 listThisMany : Int -> Task Error (Dict Int Account)
-listThisMany count =
+listThisMany walletLength =
     let
-        countUpFrom : Int -> List Int
-        countUpFrom =
+        countDownFrom : Int -> List Int
+        countDownFrom =
             unfoldr
                 (\n ->
                     if n < 0 then
@@ -157,7 +146,21 @@ listThisMany count =
         maybeAccountsToDictOfAccounts =
             Dict.fromList << List.foldl filterMaybes []
     in
-        countUpFrom (count - 1)
+        countDownFrom (walletLength - 1)
             |> List.map toTaskOFIndexAccountTuple
             |> Task.sequence
             |> Task.map maybeAccountsToDictOfAccounts
+
+
+retryWalletLoad : Task Error Int
+retryWalletLoad =
+    let
+        failIfZero count =
+            if count == 0 then
+                Task.fail
+                    (Error "Wallet empty")
+            else
+                Task.succeed count
+    in
+        Web3.retry { sleep = 0.5, attempts = 10 } (length |> Task.andThen failIfZero)
+            |> Task.onError (\_ -> Task.succeed 0)

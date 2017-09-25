@@ -84,7 +84,9 @@ viewPage model =
             Wallet.view model.walletModel |> Element.map WalletMsg
 
         _ ->
-            column None [ verticalCenter, center, width fill ] [ text "Testing123" ]
+            column None
+                [ verticalCenter, center, width fill ]
+                [ text <| "No tests for " ++ toString model.currentPage ++ " yet." ]
 
 
 drawer : Element Styles Variations Msg
@@ -116,14 +118,12 @@ update msg model =
         EstablishNetworkId result ->
             let
                 ( newModel, newCmds ) =
-                    update (SetPage Accounts) model
+                    update (SetPage Wallet) model
             in
                 case result of
                     Ok networkId ->
                         { newModel | config = getConfig <| getNetwork networkId }
-                            ! ([ newCmds, Cmd.map AccountsMsg Accounts.initCreateAccount ]
-                                ++ (Utils.testCommands model.config |> List.map (Cmd.map UtilsMsg))
-                              )
+                            ! [ newCmds, Cmd.map WalletMsg Wallet.initCreateAccount ]
 
                     Err err ->
                         { newModel | error = Just err } ! []

@@ -3,65 +3,60 @@ module Pages.Wallet exposing (..)
 import Element exposing (..)
 import Config exposing (..)
 import Task exposing (Task)
+import Dict exposing (Dict)
 import Web3.Types exposing (..)
 import Element.Attributes exposing (..)
-import Web3.Eth.Accounts as Accounts
 import Web3.Eth.Wallet as Wallet
 import Element.Events exposing (..)
 
 
 init : Model
 init =
-    { newAccount = Nothing
+    { wallet = Dict.empty
+    , walletCount = 0
     , error = Nothing
     }
 
 
 type alias Model =
-    { newAccount : Maybe Account
+    { wallet : Dict Int Account
+    , walletCount : Int
     , error : Maybe Error
     }
 
 
 initCreateAccount : Cmd Msg
 initCreateAccount =
-    Task.attempt Create Accounts.create
-
-
-viewTest : Test -> Element Styles Variations Msg
-viewTest test =
-    row TestRow
-        [ spacing 20, paddingXY 20 20 ]
-        [ column TestPassed [ vary Pass test.passed, vary Fail (not test.passed) ] [ text <| toString test.passed ]
-        , column TestName [ paddingXY 20 0 ] [ text test.name ]
-        , column TestResponse [ attribute "title" test.response, maxWidth <| percent 70 ] [ text test.response ]
-        ]
+    Task.attempt WalletDict Wallet.create
 
 
 viewAccountTests : Model -> List (Element Styles Variations Msg)
 viewAccountTests model =
     let
-        createAccount =
+        createWallet =
             row TestRow
                 [ spacing 20, paddingXY 20 20 ]
-                [ column None [] [ button None [ onClick InitCreate ] (text "Create") ]
-                ]
+                [ column None [] [ button None [ onClick InitCreate ] (text "Create") ] ]
 
-        viewAccount account =
+        viewAccount ( index, account ) =
             row TestResponse
                 [ verticalCenter ]
-                [ column None
-                    [ spacing 10 ]
+                [ text <| toString index
+                , column None
+                    [ spacing 3, padding 15 ]
                     [ text <| toString account.address, text <| toString account.privateKey ]
                 ]
 
-        viewNewAccount account =
+        viewWallet =
             row TestRow
-                [ spacing 20, paddingXY 20 13, xScrollbar ]
+                [ spacing 20, paddingXY 20 13, scrollbars, maxHeight (px 200) ]
                 [ column None
-                    [ verticalCenter, spacing 15 ]
-                    [ button None [ onClick InitCreate ] (text "Create Account") ]
-                , viewAccount account
+                    [ spacing 15 ]
+                    [ button None [ onClick InitCreate, width (px 230) ] (text "Create Account") ]
+                , column None [] <|
+                    (zip (Dict.keys model.wallet) (Dict.values model.wallet)
+                        |> List.map viewAccount
+                    )
                 ]
 
         viewTestRow name elements =
@@ -69,15 +64,20 @@ viewAccountTests model =
                 [ spacing 20, paddingXY 20 0 ]
                 [ column TestName [ verticalCenter, minWidth (px 180), paddingXY 0 15 ] [ text name ]
                 , column VerticalBar [] []
-                , row TestResponse [ verticalCenter, paddingXY 0 10, xScrollbar ] [ column None [ spacing 5 ] elements ]
+                , row TestResponse
+                    [ verticalCenter, paddingXY 0 10, xScrollbar ]
+                    [ column TestResponse [ spacing 5, padding 10 ] elements ]
                 ]
-    in
-        case model.newAccount of
-            Nothing ->
-                [ createAccount ]
 
-            Just account ->
-                [ viewNewAccount account ]
+        viewWalletCount =
+            viewTestRow "Wallet Count" [ text <| toString model.walletCount ]
+    in
+        case Dict.isEmpty model.wallet of
+            True ->
+                [ createWallet ]
+
+            False ->
+                [ viewWallet, viewWalletCount ]
 
 
 titleRow : Model -> List (Element Styles Variations Msg)
@@ -108,20 +108,32 @@ view model =
 
 type Msg
     = InitCreate
-    | Create (Result Error Account)
+    | InitCreateMany Int
+    | WalletDict (Result Error (Dict Int Account))
+    | Length (Result Error Int)
 
 
 update : Config -> Msg -> Model -> ( Model, Cmd Msg )
 update config msg model =
     case msg of
         InitCreate ->
-            model ! [ Task.attempt Create Accounts.create ]
+            model ! [ Task.attempt WalletDict Wallet.create ]
 
-        Create result ->
+        InitCreateMany num ->
+            model ! []
+
+        WalletDict result ->
             case result of
                 Err err ->
                     { model | error = Just err } ! []
 
-                Ok account ->
-                    { model | newAccount = Just account }
-                        ! []
+                Ok wallet ->
+                    { model | wallet = wallet } ! [ Task.attempt Length Wallet.length ]
+
+        Length result ->
+            case result of
+                Err err ->
+                    { model | error = Just err } ! []
+
+                Ok length ->
+                    { model | walletCount = length } ! []

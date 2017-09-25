@@ -20,7 +20,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 var callType = request.callType.ctor;
                 function elmCallback(r)
                 {
-                    var result = request.expect.responseToResult(JSON.stringify(r));
+                    var result = request.expect.responseToResult( JSON.stringify(r) );
                     switch (result.ctor)
                     {
                         case "Ok": return callback(succeed( result._0 ));
@@ -30,7 +30,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
                 function web3Callback(e,r)
                 {
-                    if (e) { return callback(fail( web3Error(e.toString()) )) };
+                    if (e) { return callback(fail( web3Error(e.message) ))};
                     elmCallback(r);
                 };
 
@@ -48,7 +48,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             catch(e)
             {
                 console.log(e);
-                return callback(fail( web3Error(e.toString()) ));
+                return callback(fail( web3Error(e.message) ));
             }
         });
     };

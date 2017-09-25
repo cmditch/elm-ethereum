@@ -44,16 +44,6 @@ initCreateAccount =
     Task.attempt Create Accounts.create
 
 
-viewTest : Test -> Element Styles Variations Msg
-viewTest test =
-    row TestRow
-        [ spacing 20, paddingXY 20 20 ]
-        [ column TestPassed [ vary Pass test.passed, vary Fail (not test.passed) ] [ text <| toString test.passed ]
-        , column TestName [ paddingXY 20 0 ] [ text test.name ]
-        , column TestResponse [ attribute "title" test.response, maxWidth <| percent 70 ] [ text test.response ]
-        ]
-
-
 viewAccountTests : Model -> List (Element Styles Variations Msg)
 viewAccountTests model =
     let
@@ -67,7 +57,7 @@ viewAccountTests model =
         createAccount =
             row TestRow
                 [ spacing 20, paddingXY 20 20 ]
-                [ column None [] [ button None [ onClick InitCreate ] (text "Create") ]
+                [ column None [] [ button None [ onClick InitCreate, width (px 230) ] (text "Create Account") ]
                 ]
 
         viewAccount account =
@@ -199,7 +189,7 @@ viewAccountTests model =
                     row None [] []
 
                 Just keystore ->
-                    viewTestRow "Recovered Tx Address"
+                    viewTestRow "Encrypted Keystore"
                         [ viewKeystore keystore ]
 
         decryptedKeystore =
@@ -208,7 +198,7 @@ viewAccountTests model =
                     row None [] []
 
                 Just account ->
-                    viewTestRow "Recovered Tx Address"
+                    viewTestRow "Decrypted Keystore"
                         [ viewAccount account ]
     in
         case model.newAccount of
