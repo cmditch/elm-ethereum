@@ -85,8 +85,15 @@ viewPage model =
 
         _ ->
             column None
-                [ verticalCenter, center, width fill ]
-                [ text <| "No tests for " ++ toString model.currentPage ++ " yet." ]
+                [ center, width fill, padding 100 ]
+                [ text <| "No tests for " ++ toString model.currentPage ++ " yet."
+                , decorativeImage Logo [ moveDown 200, height (px 600), width (px 800) ] { src = "../elm-web3-logo.svg" }
+                ]
+
+
+logo : List (Element Styles Variations Msg)
+logo =
+    [ decorativeImage Logo [ alignTop ] { src = "../elm-web3-logo.svg" } ]
 
 
 drawer : Element Styles Variations Msg
@@ -100,7 +107,7 @@ drawer =
     in
         column Drawer
             [ height fill, spacing 10, padding 10, width (px 180) ]
-            (List.map pageButton pages)
+            (logo ++ List.map pageButton pages)
 
 
 type Msg

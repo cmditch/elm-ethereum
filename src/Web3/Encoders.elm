@@ -7,6 +7,7 @@ module Web3.Encoders
         , encodeListBigIntList
         , encodeIntList
         , encodeKeystore
+        , encodeKeystoreList
         , getBlockIdValue
         , addressMaybeMap
         , listOfMaybesToVal
@@ -172,3 +173,8 @@ encodeKeystore keystore =
             , ( "address", string keystore.address )
             , ( "crypto", encodeCrypto keystore.crypto )
             ]
+
+
+encodeKeystoreList : List Keystore -> Value
+encodeKeystoreList keystores =
+    List.map encodeKeystore keystores |> Encode.list

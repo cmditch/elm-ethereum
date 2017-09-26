@@ -223,6 +223,11 @@ type PrivateKey
     = PrivateKey String
 
 
+type WalletIndex
+    = AddressIndex Address
+    | IntIndex Int
+
+
 type alias Account =
     { address : Address
     , privateKey : PrivateKey

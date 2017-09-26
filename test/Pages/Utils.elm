@@ -8,6 +8,7 @@ import BigInt exposing (BigInt)
 import Web3.Utils
 import Web3.Types exposing (..)
 import Element.Attributes exposing (..)
+import Element.Events exposing (onClick)
 
 
 init : Model
@@ -71,12 +72,18 @@ view model =
 
         titleRow =
             [ row TestTitle [ padding 30, center ] [ text "Web3.Utils" ] ]
+
+        testButton =
+            [ row TestRow [ spacing 20, paddingXY 20 20 ] [ button None [ onClick InitTests ] (text "Start Tests") ] ]
     in
-        column None [ width fill, scrollbars ] (titleRow ++ testsTable)
+        column None
+            [ width fill, scrollbars ]
+            (titleRow ++ testButton ++ testsTable)
 
 
 type Msg
-    = RandomHex String (Result Error Hex)
+    = InitTests
+    | RandomHex String (Result Error Hex)
     | Sha3 String (Result Error Sha3)
     | IsHex String (Result Error Bool)
     | IsAddress String (Result Error Bool)
@@ -117,6 +124,9 @@ update config msg model =
                     { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR: " <| toString err), passed = False } }
     in
         case msg of
+            InitTests ->
+                model ! testCommands config
+
             RandomHex funcName result ->
                 updateModel 1 funcName result ! []
 

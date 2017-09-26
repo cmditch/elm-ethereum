@@ -1,14 +1,20 @@
 module Web3.Eth.Wallet
     exposing
-        ( create
-        , createWithEntropy
+        ( list
+        , create
         , createMany
+        , createWithEntropy
+        , createManyWithEntropy
+        , add
+        , remove
+        , clear
+        , encrypt
+        , decrypt
         , save
         , load
-        , list
         , length
         , getByIndex
-        , listThisMany
+        , getKeys
         )
 
 import Task exposing (Task)
@@ -17,30 +23,40 @@ import Json.Decode as Decode exposing (maybe)
 import Dict exposing (Dict)
 import Web3 exposing (toTask, retryThrice)
 import Web3.Types exposing (..)
-import Web3.Decoders exposing (expectJson, expectInt, expectBool, accountDecoder)
-import Web3.Internal exposing (unfoldr)
+import Web3.Encoders exposing (encodeKeystoreList)
+import Web3.Decoders
+    exposing
+        ( expectJson
+        , expectInt
+        , expectBool
+        , accountDecoder
+        , keystoreDecoder
+        )
 
 
--- add
--- remove
--- save
--- encrypt
--- decrypt
--- clear
+list : Task Error (Dict Int Account)
+list =
+    retryWalletLoad
+        |> Task.andThen listWithKeys
 
 
 create : Task Error (Dict Int Account)
 create =
-    createMany 1 Nothing
+    createMany 1
+
+
+createMany : Int -> Task Error (Dict Int Account)
+createMany =
+    createManyWithEntropy Nothing
 
 
 createWithEntropy : String -> Task Error (Dict Int Account)
 createWithEntropy entropy =
-    createMany 1 (Just entropy)
+    createManyWithEntropy (Just entropy) 1
 
 
-createMany : Int -> Maybe String -> Task Error (Dict Int Account)
-createMany count maybeEntropy =
+createManyWithEntropy : Maybe String -> Int -> Task Error (Dict Int Account)
+createManyWithEntropy maybeEntropy count =
     let
         entropy =
             case maybeEntropy of
@@ -72,6 +88,66 @@ add (PrivateKey privateKey) =
         |> Task.andThen (\_ -> list)
 
 
+remove : WalletIndex -> Task Error Bool
+remove index =
+    let
+        id =
+            case index of
+                AddressIndex (Address address) ->
+                    address
+
+                IntIndex int ->
+                    toString int
+    in
+        Web3.toTask
+            { method = "eth.accounts.wallet.remove"
+            , params = Encode.list [ Encode.string id ]
+            , expect = expectBool
+            , callType = Sync
+            , applyScope = Just "web3.eth.accounts.wallet"
+            }
+
+
+clear : Task Error (Dict Int Account)
+clear =
+    (Web3.toTask
+        { method = "eth.accounts.wallet.clear"
+        , params = Encode.list []
+        , expect = expectJson (Decode.succeed ())
+        , callType = CustomSync "null"
+        , applyScope = Just "web3.eth.accounts.wallet"
+        }
+        |> Task.andThen (\_ -> list)
+    )
+        |> Web3.delayExecution
+
+
+encrypt : String -> Task Error (List Keystore)
+encrypt password =
+    Web3.toTask
+        { method = "eth.accounts.wallet.encrypt"
+        , params = Encode.list [ Encode.string password ]
+        , expect = expectJson (Decode.list keystoreDecoder)
+        , callType = Sync
+        , applyScope = Just "web3.eth.accounts.wallet"
+        }
+        |> Web3.delayExecution
+
+
+decrypt : List Keystore -> String -> Task Error (Dict Int Account)
+decrypt keystores password =
+    (Web3.toTask
+        { method = "eth.accounts.wallet.decrypt"
+        , params = Encode.list [ encodeKeystoreList keystores, Encode.string password ]
+        , expect = expectJson (Decode.succeed ())
+        , callType = CustomSync "null"
+        , applyScope = Just "web3.eth.accounts.wallet"
+        }
+        |> Task.andThen (\_ -> list)
+    )
+        |> Web3.delayExecution
+
+
 save : String -> Task Error Bool
 save password =
     Web3.toTask
@@ -98,12 +174,6 @@ load password =
         |> Web3.delayExecution
 
 
-list : Task Error (Dict Int Account)
-list =
-    retryWalletLoad
-        |> Task.andThen listThisMany
-
-
 length : Task Error Int
 length =
     Web3.toTask
@@ -115,37 +185,53 @@ length =
         }
 
 
-getByIndex : Int -> Task Error (Maybe Account)
+getByIndex : WalletIndex -> Task Error (Maybe Account)
 getByIndex index =
-    Web3.toTask
-        { method = "eth.accounts.wallet[" ++ toString index ++ "]"
-        , params = Encode.list []
-        , expect = expectJson (maybe accountDecoder)
-        , callType = Getter
-        , applyScope = Nothing
-        }
+    let
+        id =
+            case index of
+                AddressIndex (Address address) ->
+                    address
+
+                IntIndex int ->
+                    toString int
+    in
+        Web3.toTask
+            { method = "eth.accounts.wallet[" ++ id ++ "]"
+            , params = Encode.list []
+            , expect = expectJson (maybe accountDecoder)
+            , callType = Getter
+            , applyScope = Nothing
+            }
 
 
 
 -- Internal
 
 
-listThisMany : Int -> Task Error (Dict Int Account)
-listThisMany walletLength =
-    let
-        countDownFrom : Int -> List Int
-        countDownFrom =
-            unfoldr
-                (\n ->
-                    if n < 0 then
-                        Nothing
-                    else
-                        Just ( n, n - 1 )
-                )
+getKeys : Task Error (List Int)
+getKeys =
+    Web3.toTask
+        { method = getWalletKeysJs
+        , params = Encode.list []
+        , expect = expectJson (Decode.list Decode.int)
+        , callType = Getter
+        , applyScope = Nothing
+        }
 
+
+getWalletKeysJs : String
+getWalletKeysJs =
+    -- Because `Wallet.remove` can create non sequential list of wallet indexes, we can't simply count down to 0
+    "utils._.map(web3.utils._.filter(web3.utils._.keys(web3.eth.accounts.wallet),function(a){return parseInt(a) < 99999999999}),function(stringyInt){return parseInt(stringyInt)});"
+
+
+listWithKeys : List Int -> Task Error (Dict Int Account)
+listWithKeys keys =
+    let
         toTaskOFIndexAccountTuple : Int -> Task Error ( Int, Maybe Account )
         toTaskOFIndexAccountTuple index =
-            getByIndex index
+            getByIndex (IntIndex index)
                 |> Task.map (\account -> ( index, account ))
 
         filterMaybes : ( Int, Maybe Account ) -> List ( Int, Account ) -> List ( Int, Account )
@@ -161,21 +247,21 @@ listThisMany walletLength =
         maybeAccountsToDictOfAccounts =
             Dict.fromList << List.foldl filterMaybes []
     in
-        countDownFrom (walletLength - 1)
+        keys
             |> List.map toTaskOFIndexAccountTuple
             |> Task.sequence
             |> Task.map maybeAccountsToDictOfAccounts
 
 
-retryWalletLoad : Task Error Int
+retryWalletLoad : Task Error (List Int)
 retryWalletLoad =
     let
-        failIfZero count =
-            if count == 0 then
+        failIfEmpty keys =
+            if List.isEmpty keys then
                 Task.fail
                     (Error "Wallet empty")
             else
-                Task.succeed count
+                Task.succeed keys
     in
-        Web3.retry { sleep = 0.5, attempts = 10 } (length |> Task.andThen failIfZero)
-            |> Task.onError (\_ -> Task.succeed 0)
+        Web3.retry { sleep = 0.5, attempts = 10 } (getKeys |> Task.andThen failIfEmpty)
+            |> Task.onError (\_ -> Task.succeed [])

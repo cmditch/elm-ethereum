@@ -5,7 +5,6 @@ module Web3.Internal
         , expectStringResponse
         , constructOptions
         , decapitalize
-        , unfoldr
         )
 
 import Json.Encode as Encode exposing (Value)
@@ -38,16 +37,6 @@ expectStringResponse =
 decapitalize : String -> String
 decapitalize string =
     (String.left 1 string |> String.toLower) ++ (String.dropLeft 1 string)
-
-
-unfoldr : (b -> Maybe ( a, b )) -> b -> List a
-unfoldr f seed =
-    case f seed of
-        Nothing ->
-            []
-
-        Just ( a, b ) ->
-            a :: unfoldr f b
 
 
 constructOptions : List ( String, Maybe String ) -> String
