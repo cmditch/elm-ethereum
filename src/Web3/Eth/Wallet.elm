@@ -222,8 +222,7 @@ getKeys =
 
 getWalletKeysJs : String
 getWalletKeysJs =
-    -- Because `Wallet.remove` can create non sequential list of wallet indexes, we can't simply count down to 0
-    "utils._.map(web3.utils._.filter(web3.utils._.keys(web3.eth.accounts.wallet),function(a){return parseInt(a) < 99999999999}),function(stringyInt){return parseInt(stringyInt)});"
+    "utils._.keys(web3.eth.accounts.wallet).map(function(n){return parseInt(n)}).filter(function(index){return index < 9e20})"
 
 
 listWithKeys : List Int -> Task Error (Dict Int Account)

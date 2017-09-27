@@ -71,10 +71,16 @@ view model =
                 |> List.map viewTest
 
         titleRow =
-            [ row TestTitle [ padding 30, center ] [ text "Web3.Utils" ] ]
+            [ row TestTitle
+                [ padding 30, center ]
+                [ text "Web3.Utils" ]
+            ]
 
         testButton =
-            [ row TestRow [ spacing 20, paddingXY 20 20 ] [ button None [ onClick InitTests ] (text "Start Tests") ] ]
+            [ row TestRow
+                [ spacing 20, paddingXY 20 20 ]
+                [ button None [ onClick InitTests ] (text "Start Tests") ]
+            ]
     in
         column None
             [ width fill, scrollbars ]

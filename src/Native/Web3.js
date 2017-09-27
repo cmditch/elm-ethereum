@@ -35,7 +35,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 };
 
                 var response = eval(evalString);
-
+                console.log(response);
                 if (callType === "Sync" || callType === "Getter")
                 {
                     elmCallback(response)
