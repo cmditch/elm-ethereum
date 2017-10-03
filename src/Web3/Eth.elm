@@ -182,7 +182,7 @@ getCode =
 getCodeAtBlock : BlockId -> Address -> Task Error Hex
 getCodeAtBlock blockId (Address address) =
     Web3.toTask
-        { method = "eth.getStorageAt"
+        { method = "eth.getCode"
         , params = Encode.list [ Encode.string address, getBlockIdValue blockId ]
         , expect = expectJson hexDecoder
         , callType = Async
@@ -256,34 +256,34 @@ getUncleTxObjs blockId index =
         }
 
 
-getTransaction : TxId -> Task Error TxObj
+getTransaction : TxId -> Task Error (Maybe TxObj)
 getTransaction (TxId txId) =
     Web3.toTask
         { method = "eth.getTransaction"
         , params = Encode.list [ Encode.string txId ]
-        , expect = expectJson txObjDecoder
+        , expect = expectJson (Decode.maybe txObjDecoder)
         , callType = Async
         , applyScope = Nothing
         }
 
 
-getTransactionFromBlock : BlockId -> Int -> Task Error TxObj
+getTransactionFromBlock : BlockId -> Int -> Task Error (Maybe TxObj)
 getTransactionFromBlock blockId index =
     Web3.toTask
         { method = "eth.getTransactionFromBlock"
         , params = Encode.list [ getBlockIdValue blockId, Encode.int index ]
-        , expect = expectJson txObjDecoder
+        , expect = expectJson (Decode.maybe txObjDecoder)
         , callType = Async
         , applyScope = Nothing
         }
 
 
-getTransactionReceipt : TxId -> Task Error TxReceipt
+getTransactionReceipt : TxId -> Task Error (Maybe TxReceipt)
 getTransactionReceipt (TxId txId) =
     Web3.toTask
         { method = "eth.getTransactionReceipt"
         , params = Encode.list [ Encode.string txId ]
-        , expect = expectJson txReceiptDecoder
+        , expect = expectJson (Decode.maybe txReceiptDecoder)
         , callType = Async
         , applyScope = Nothing
         }
@@ -326,19 +326,19 @@ sign : Address -> Hex -> Task Error Hex
 sign (Address address) (Hex data) =
     Web3.toTask
         { method = "eth.sign"
-        , params = Encode.list [ Encode.string address, Encode.string data ]
+        , params = Encode.list [ Encode.string data, Encode.string address ]
         , expect = expectJson hexDecoder
         , callType = Async
         , applyScope = Nothing
         }
 
 
-signTransaction : Address -> TxParams -> Task Error Hex
+signTransaction : Address -> TxParams -> Task Error SignedTx
 signTransaction (Address address) txParams =
     Web3.toTask
         { method = "eth.signTransaction"
         , params = Encode.list [ encodeTxParams txParams, Encode.string address ]
-        , expect = expectJson hexDecoder
+        , expect = expectJson rpcSignedTxDecoder
         , callType = Async
         , applyScope = Nothing
         }
@@ -374,6 +374,7 @@ estimateGas txParams =
 
 getPastLogs : FilterParams -> Task Error (List Log)
 getPastLogs params =
+    -- TODO Something wrong with this function in Web3
     Web3.toTask
         { method = "eth.getPastLogs"
         , params = Encode.list [ encodeFilterParams params ]
@@ -432,7 +433,7 @@ getNetworkType =
 currentProviderUrl : Task Error String
 currentProviderUrl =
     Web3.toTask
-        { method = "eth.currentProvider.connection"
+        { method = "eth.currentProvider.connection.url"
         , params = Encode.list []
         , expect = expectString
         , callType = Getter

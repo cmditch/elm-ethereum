@@ -10,6 +10,7 @@ import Pages.Home as Home exposing (Msg(..))
 import Pages.Utils as Utils
 import Pages.Accounts as Accounts
 import Pages.Wallet as Wallet
+import Pages.Eth as Eth
 import Web3.Types exposing (..)
 import Web3.Eth
 
@@ -31,6 +32,7 @@ type alias Model =
     , utilsModel : Utils.Model
     , accountsModel : Accounts.Model
     , walletModel : Wallet.Model
+    , ethModel : Eth.Model
     , error : Maybe Error
     }
 
@@ -38,11 +40,12 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     { currentPage = Home
-    , config = Config.mainnetConfig
+    , config = Config.ropstenConfig
     , homeModel = Home.init
     , utilsModel = Utils.init
     , accountsModel = Accounts.init
     , walletModel = Wallet.init
+    , ethModel = Eth.init
     , error = Nothing
     }
         ! [ Task.attempt EstablishNetworkId (retryThrice Web3.Eth.getId) ]
@@ -83,6 +86,9 @@ viewPage model =
         Wallet ->
             Wallet.view model.walletModel |> Element.map WalletMsg
 
+        Eth ->
+            Eth.view model.ethModel |> Element.map EthMsg
+
         _ ->
             column None
                 [ center, width fill, padding 100 ]
@@ -116,6 +122,7 @@ type Msg
     | UtilsMsg Utils.Msg
     | AccountsMsg Accounts.Msg
     | WalletMsg Wallet.Msg
+    | EthMsg Eth.Msg
     | SetPage Page
 
 
@@ -125,7 +132,7 @@ update msg model =
         EstablishNetworkId result ->
             let
                 ( newModel, newCmds ) =
-                    update (SetPage Wallet) model
+                    update (SetPage Eth) model
             in
                 case result of
                     Ok networkId ->
@@ -162,6 +169,13 @@ update msg model =
                     Wallet.update model.config subMsg model.walletModel
             in
                 { model | walletModel = subModel } ! [ Cmd.map WalletMsg subCmd ]
+
+        EthMsg subMsg ->
+            let
+                ( subModel, subCmd ) =
+                    Eth.update model.config subMsg model.ethModel
+            in
+                { model | ethModel = subModel } ! [ Cmd.map EthMsg subCmd ]
 
         SetPage page ->
             { model | currentPage = page } ! []

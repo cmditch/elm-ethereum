@@ -81,11 +81,11 @@ type alias Config =
 
 defaultTxParams : TxParams
 defaultTxParams =
-    { from = Just (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7")
+    { from = Just (Address "0xc1675f8bd62c1566627f0b95497871cc43fb2c9a")
     , to = Just (Address "0xd8b0990c007ba1ad97b37c001d1f87044312162e")
     , value = Just (BigInt.fromInt 42424242)
-    , gas = 123132123
-    , data = Just (Hex "0x23123123123123123")
+    , gas = 0
+    , data = Just (Hex "0x121212")
     , gasPrice = Just 132123123
     , nonce = Just 2
     , chainId = Just 1
@@ -119,7 +119,7 @@ mainnetConfig =
         , toBlock = Just (BlockNum 520)
         , topics = Just []
         }
-    , hexData = (Hex "0x123123123")
+    , hexData = (Hex "0x121212")
     }
 
 
@@ -137,7 +137,7 @@ ropstenConfig =
         , toBlock = Just (BlockNum 520)
         , topics = Just []
         }
-    , hexData = (Hex "0x123123123")
+    , hexData = (Hex "0x121212")
     }
 
 
@@ -155,7 +155,7 @@ devNetConfig =
         , toBlock = Just (BlockNum 520)
         , topics = Just []
         }
-    , hexData = (Hex "0x123123123")
+    , hexData = (Hex "0x121212")
     }
 
 
@@ -173,7 +173,7 @@ devNet2Config =
         , toBlock = Just (BlockNum 520)
         , topics = Just []
         }
-    , hexData = (Hex "0x123123123")
+    , hexData = (Hex "0x121212")
     }
 
 

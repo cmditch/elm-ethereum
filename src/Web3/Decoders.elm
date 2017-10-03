@@ -15,6 +15,7 @@ module Web3.Decoders
         , privateKeyDecoder
         , accountDecoder
         , signedTxDecoder
+        , rpcSignedTxDecoder
         , signedMsgDecoder
         , blockNumDecoder
         , networkTypeDecoder
@@ -37,7 +38,7 @@ module Web3.Decoders
 
 import BigInt exposing (BigInt)
 import Json.Decode as Decode exposing (int, list, nullable, string, bool, maybe, field, Decoder)
-import Json.Decode.Pipeline exposing (decode, required, optional, custom)
+import Json.Decode.Pipeline exposing (..)
 import Web3.Types exposing (..)
 import Web3.Internal exposing (expectStringResponse)
 
@@ -160,6 +161,16 @@ signedTxDecoder =
         |> required "s" hexDecoder
         |> required "v" hexDecoder
         |> required "rawTransaction" hexDecoder
+
+
+rpcSignedTxDecoder : Decoder SignedTx
+rpcSignedTxDecoder =
+    decode SignedTx
+        |> requiredAt [ "tx", "hash" ] sha3Decoder
+        |> requiredAt [ "tx", "r" ] hexDecoder
+        |> requiredAt [ "tx", "s" ] hexDecoder
+        |> requiredAt [ "tx", "v" ] hexDecoder
+        |> required "raw" hexDecoder
 
 
 signedMsgDecoder : Decoder SignedMsg
