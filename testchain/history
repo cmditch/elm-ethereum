@@ -1,0 +1,22 @@
+miner.start(1
+)
+miner.start(1)
+web3.eth.personal
+web3.personal
+web3.personal.importRawKey("0xc6d035eabe029996b58ae42a09ad667a07bc01767ddc635c9a32e2723f689196")
+web3.personal.importRawKey("0xc6d035eabe029996b58ae42a09ad667a07bc01767ddc635c9a32e2723f689196", "")
+web3.personal.importRawKey({"version":3,"id":"19ba64ee-cabb-4e0f-b08b-45cee5cf8052","address":"5bdfea38428cdfda7470c7fbd77007125f598d7d","crypto":{"ciphertext":"5e4c38c21bf6ea233f2fc2ff7449668ba7cedfa308f2df37a0014055b2ba7259","cipherparams":{"iv":"9baf5d8946c2ad012bc57d816ea8b231"},"cipher":"aes-128-ctr","kdf":"scrypt","kdfparams":{"dklen":32,"salt":"a67942bba8e9b23213384ba47129c05ae923040e67b95fd0c6957eb05bda218b","n":8192,"r":8,"p":1},"mac":"2b0f4045ad7db29b04407fbb656c36d4ef256cf76ab66bc4e12c223b77442e13"}}, "")
+web3.personal.importRawKey([{"version":3,"id":"19ba64ee-cabb-4e0f-b08b-45cee5cf8052","address":"5bdfea38428cdfda7470c7fbd77007125f598d7d","crypto":{"ciphertext":"5e4c38c21bf6ea233f2fc2ff7449668ba7cedfa308f2df37a0014055b2ba7259","cipherparams":{"iv":"9baf5d8946c2ad012bc57d816ea8b231"},"cipher":"aes-128-ctr","kdf":"scrypt","kdfparams":{"dklen":32,"salt":"a67942bba8e9b23213384ba47129c05ae923040e67b95fd0c6957eb05bda218b","n":8192,"r":8,"p":1},"mac":"2b0f4045ad7db29b04407fbb656c36d4ef256cf76ab66bc4e12c223b77442e13"}}], "")
+web3.personal.importRawKey("0xc6d035eabe029996b58ae42a09ad667a07bc01767ddc635c9a32e2723f689196", "a")
+web3.personal.importRawKey(0xc6d035eabe029996b58ae42a09ad667a07bc01767ddc635c9a32e2723f689196, "a")
+web3.personal.importRawKey("0xc6d035eabe029996b58ae42a09ad667a07bc01767ddc635c9a32e2723f689196", "qwerty")
+web3.personal
+web3.personal.getListWallets
+web3.personal.getListWallets(console.log)
+web3.personal.getListAccounts(console.log)
+web3.eth.coinbase
+miner.start()
+miner.stop()
+miner.start(1)
+miner
+quit

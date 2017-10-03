@@ -79,6 +79,13 @@ type alias Config =
     }
 
 
+defaultAccount : Account
+defaultAccount =
+    { privateKey = PrivateKey ("0x7c78d7be18a10ebc4509119e746bb6c69deb5a071b64032799c670037e1541a5")
+    , address = Address ("0x7900681181e87B926A279769538f5325088eAdc1")
+    }
+
+
 defaultTxParams : TxParams
 defaultTxParams =
     { from = Just (Address "0xc1675f8bd62c1566627f0b95497871cc43fb2c9a")
