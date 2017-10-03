@@ -74,6 +74,8 @@ type alias Config =
     , blockHash : BlockId
     , txId : TxId
     , txParams : TxParams
+    , filterParams : FilterParams
+    , hexData : Hex
     }
 
 
@@ -111,6 +113,13 @@ mainnetConfig =
     , blockHash = BlockHash "0x000997b870b069a5b1857de507103521860590ca747cf16e46ee38ac456d204e"
     , txId = TxId "0x0bb84e278f50d334022a2c239c90f3c186867b0888e989189ac3c19b27c70372"
     , txParams = defaultTxParams
+    , filterParams =
+        { address = Just [ (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7") ]
+        , fromBlock = Just (BlockNum 320)
+        , toBlock = Just (BlockNum 520)
+        , topics = Just []
+        }
+    , hexData = (Hex "0x123123123")
     }
 
 
@@ -122,6 +131,13 @@ ropstenConfig =
     , blockHash = BlockHash "0x1562e2c2506d2cfad8a95ef78fd48b507c3ffa62c44a3fc619facc4af191b3de"
     , txId = TxId "0x444b76b68af09969f46eabbbe60eef38f4b0674c4a7cb2e32c7764096997b916"
     , txParams = defaultTxParams
+    , filterParams =
+        { address = Just [ (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7") ]
+        , fromBlock = Just (BlockNum 320)
+        , toBlock = Just (BlockNum 520)
+        , topics = Just []
+        }
+    , hexData = (Hex "0x123123123")
     }
 
 
@@ -133,6 +149,13 @@ devNetConfig =
     , blockHash = BlockHash "0x231a0c9b49d53f0df6f2d5ce2f9d4cbc73efa0d250e64a395869b484b45687bc"
     , txId = TxId "0x9ce0dc95c47dd98e0de43143e21028de0a73e05cde86b363228a2164d8645bde"
     , txParams = defaultTxParams
+    , filterParams =
+        { address = Just [ (Address "0x853726f791d6fbff51f225587d7fff05ab5930a8") ]
+        , fromBlock = Just (BlockNum 320)
+        , toBlock = Just (BlockNum 520)
+        , topics = Just []
+        }
+    , hexData = (Hex "0x123123123")
     }
 
 
@@ -144,6 +167,13 @@ devNet2Config =
     , blockHash = BlockHash "0xc9ec58770c8c49682d388054e9fa9bc6c51848db1393abb59157e7d629861282"
     , txId = TxId "0x56026ef59e927fd95f781865695b28ff260f70bfb79c8392080f5678b33cf100"
     , txParams = defaultTxParams
+    , filterParams =
+        { address = Just [ (Address "0xd8b0990c007ba1ad97b37c001d1f87044312162e") ]
+        , fromBlock = Just (BlockNum 320)
+        , toBlock = Just (BlockNum 520)
+        , topics = Just []
+        }
+    , hexData = (Hex "0x123123123")
     }
 
 

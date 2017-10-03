@@ -314,6 +314,8 @@ syncStatusDecoder =
         |> required "startingBlock" int
         |> required "currentBlock" int
         |> required "highestBlock" int
+        |> required "knownStates" int
+        |> required "pulledStates" int
 
 
 addressToString : Address -> String

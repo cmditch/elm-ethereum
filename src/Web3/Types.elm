@@ -268,6 +268,8 @@ type alias SyncStatus =
     { startingBlock : Int
     , currentBlock : Int
     , highestBlock : Int
+    , knownStates : Int
+    , pulledStates : Int
     }
 
 

@@ -1,28 +1,41 @@
 module Web3.Eth
     exposing
-        ( isSyncing
+        ( getProtocolVersion
+        , isSyncing
         , getCoinbase
+        , isMining
         , getHashrate
         , getGasPrice
         , getAccounts
-        , isMining
-        , getNetworkType
         , getBlockNumber
         , getBalance
         , getStorageAt
+        , getStorageAtBlock
         , getCode
+        , getCodeAtBlock
+        , getBlockTransactionCount
         , getBlock
         , getBlockTxObjs
-        , getBlockTransactionCount
-        , getUncle
         , getBlockUncleCount
+        , getUncle
+        , getUncleTxObjs
         , getTransaction
-        , estimateGas
+        , getTransactionFromBlock
+        , getTransactionReceipt
+        , getTransactionCount
         , sendTransaction
         , sendSignedTransaction
+        , sign
+        , signTransaction
+        , call
+        , callAtBlock
+        , estimateGas
+        , getPastLogs
         , getId
-        , defaultTxParams
-        , defaultFilterParams
+        , isListening
+        , getPeerCount
+        , getNetworkType
+        , currentProviderUrl
         )
 
 {-| Web3.Eth
@@ -31,11 +44,22 @@ module Web3.Eth
 import Web3
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
-import Web3.Encoders exposing (encodeTxParams, getBlockIdValue, encodeBytes)
+import Web3.Encoders exposing (..)
 import Json.Encode as Encode
 import Json.Decode as Decode
 import Task exposing (Task)
 import BigInt exposing (BigInt)
+
+
+getProtocolVersion : Task Error String
+getProtocolVersion =
+    Web3.toTask
+        { method = "eth.getProtocolVersion"
+        , params = Encode.list []
+        , expect = expectString
+        , callType = Async
+        , applyScope = Nothing
+        }
 
 
 isSyncing : Task Error (Maybe SyncStatus)
@@ -51,9 +75,9 @@ isSyncing =
 
 
 {-
+   isSyncing : Task Error (Maybe SyncStatus)
    Implement within Effect Manager.
    NOTE Doesn't seem to work within MetaMask!
-   isSyncing : Task Error (Maybe SyncStatus)
 -}
 
 
@@ -152,7 +176,7 @@ getStorageAtBlock blockId (Address address) position =
 
 getCode : Address -> Task Error Hex
 getCode =
-    getCodeAtBlock (BlockNum 320)
+    getCodeAtBlock Latest
 
 
 getCodeAtBlock : BlockId -> Address -> Task Error Hex
@@ -161,6 +185,17 @@ getCodeAtBlock blockId (Address address) =
         { method = "eth.getStorageAt"
         , params = Encode.list [ Encode.string address, getBlockIdValue blockId ]
         , expect = expectJson hexDecoder
+        , callType = Async
+        , applyScope = Nothing
+        }
+
+
+getBlockTransactionCount : BlockId -> Task Error Int
+getBlockTransactionCount blockId =
+    Web3.toTask
+        { method = "eth.getBlockTransactionCount"
+        , params = Encode.list [ getBlockIdValue blockId ]
+        , expect = expectInt
         , callType = Async
         , applyScope = Nothing
         }
@@ -188,17 +223,6 @@ getBlockTxObjs blockId =
         }
 
 
-getBlockTransactionCount : BlockId -> Task Error Int
-getBlockTransactionCount blockId =
-    Web3.toTask
-        { method = "eth.getBlockTransactionCount"
-        , params = Encode.list [ getBlockIdValue blockId ]
-        , expect = expectInt
-        , callType = Async
-        , applyScope = Nothing
-        }
-
-
 getBlockUncleCount : BlockId -> Task Error Int
 getBlockUncleCount blockId =
     Web3.toTask
@@ -221,12 +245,12 @@ getUncle blockId index =
         }
 
 
-getUncleTxObjs : BlockId -> Int -> Task Error (Block TxObj)
+getUncleTxObjs : BlockId -> Int -> Task Error (Maybe (Block TxObj))
 getUncleTxObjs blockId index =
     Web3.toTask
         { method = "eth.getUncle"
         , params = Encode.list [ getBlockIdValue blockId, Encode.int index, Encode.bool True ]
-        , expect = expectJson blockTxObjDecoder
+        , expect = expectJson (Decode.maybe blockTxObjDecoder)
         , callType = Async
         , applyScope = Nothing
         }
@@ -265,13 +289,8 @@ getTransactionReceipt (TxId txId) =
         }
 
 
-getTransactionCount : Address -> Task Error Int
-getTransactionCount =
-    getTransactionCountAtBlock Latest
-
-
-getTransactionCountAtBlock : BlockId -> Address -> Task Error Int
-getTransactionCountAtBlock blockId (Address address) =
+getTransactionCount : BlockId -> Address -> Task Error Int
+getTransactionCount blockId (Address address) =
     Web3.toTask
         { method = "eth.getTransactionCount"
         , params = Encode.list [ Encode.string address, getBlockIdValue blockId ]
@@ -303,28 +322,40 @@ sendSignedTransaction (Hex signedData) =
         }
 
 
-sign : Address -> Hex -> Task Error Bytes
+sign : Address -> Hex -> Task Error Hex
 sign (Address address) (Hex data) =
     Web3.toTask
         { method = "eth.sign"
         , params = Encode.list [ Encode.string address, Encode.string data ]
-        , expect = expectJson bytesDecoder
+        , expect = expectJson hexDecoder
         , callType = Async
         , applyScope = Nothing
         }
 
 
-call : TxParams -> Task Error TxId
+signTransaction : Address -> TxParams -> Task Error Hex
+signTransaction (Address address) txParams =
+    Web3.toTask
+        { method = "eth.signTransaction"
+        , params = Encode.list [ encodeTxParams txParams, Encode.string address ]
+        , expect = expectJson hexDecoder
+        , callType = Async
+        , applyScope = Nothing
+        }
+
+
+call : TxParams -> Task Error Hex
 call =
     callAtBlock Latest
 
 
-callAtBlock : BlockId -> TxParams -> Task Error TxId
+callAtBlock : BlockId -> TxParams -> Task Error Hex
 callAtBlock blockId txParams =
+    -- TODO Look into removing 'from' field from TxParams since it's optional all over.
     Web3.toTask
         { method = "eth.call"
         , params = Encode.list [ encodeTxParams txParams, getBlockIdValue blockId ]
-        , expect = expectJson txIdDecoder
+        , expect = expectJson hexDecoder
         , callType = Async
         , applyScope = Nothing
         }
@@ -336,6 +367,17 @@ estimateGas txParams =
         { method = "eth.estimateGas"
         , params = Encode.list [ encodeTxParams txParams ]
         , expect = expectInt
+        , callType = Async
+        , applyScope = Nothing
+        }
+
+
+getPastLogs : FilterParams -> Task Error (List Log)
+getPastLogs params =
+    Web3.toTask
+        { method = "eth.getPastLogs"
+        , params = Encode.list [ encodeFilterParams params ]
+        , expect = expectJson (Decode.list logDecoder)
         , callType = Async
         , applyScope = Nothing
         }
@@ -387,25 +429,12 @@ getNetworkType =
         }
 
 
-{-| Default Parameter Helpers
--}
-defaultTxParams : TxParams
-defaultTxParams =
-    { from = Nothing
-    , to = Nothing
-    , value = Nothing
-    , data = Nothing
-    , gas = 21000
-    , gasPrice = Just 8000000000
-    , nonce = Nothing
-    , chainId = Just 1
-    }
-
-
-defaultFilterParams : FilterParams
-defaultFilterParams =
-    { fromBlock = Nothing
-    , toBlock = Nothing
-    , address = Nothing
-    , topics = Nothing
-    }
+currentProviderUrl : Task Error String
+currentProviderUrl =
+    Web3.toTask
+        { method = "eth.currentProvider.connection"
+        , params = Encode.list []
+        , expect = expectString
+        , callType = Getter
+        , applyScope = Nothing
+        }
