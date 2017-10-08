@@ -56,7 +56,6 @@ type EthNetwork
     = MainNet
     | Ropsten
     | DevNet
-    | DevNet2
     | UnknownNetwork
 
 
@@ -69,6 +68,7 @@ type alias Test =
 
 type alias Config =
     { account : Address
+    , secondaryAccount : Address
     , contract : Address
     , blockNumber : BlockId
     , blockHash : BlockId
@@ -88,33 +88,20 @@ defaultAccount =
 
 defaultTxParams : TxParams
 defaultTxParams =
-    { from = Just (Address "0xc1675f8bd62c1566627f0b95497871cc43fb2c9a")
-    , to = Just (Address "0xd8b0990c007ba1ad97b37c001d1f87044312162e")
+    { to = Just (Address "0x6655bb0986fbdfa897312da56e2634f2aced3adc")
     , value = Just (BigInt.fromInt 42424242)
-    , gas = 0
-    , data = Just (Hex "0x121212")
-    , gasPrice = Just 132123123
-    , nonce = Just 2
-    , chainId = Just 1
+    , gas = 21000
+    , data = Nothing
+    , gasPrice = Nothing
+    , nonce = Just 1
+    , chainId = Nothing
     }
-
-
-
--- defaultTxParams : TxParams
--- defaultTxParams =
---     { from = Nothing
---     , to = Nothing
---     , value = Nothing
---     , gas = Just 123123
---     , data = Nothing
---     , gasPrice = Nothing
---     , nonce = Nothing
---     }
 
 
 mainnetConfig : Config
 mainnetConfig =
     { account = (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7")
+    , secondaryAccount = (Address "0x6655bb0986fbdfa897312da56e2634f2aced3adc")
     , contract = (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7")
     , blockNumber = BlockNum 4182808
     , blockHash = BlockHash "0x000997b870b069a5b1857de507103521860590ca747cf16e46ee38ac456d204e"
@@ -133,6 +120,7 @@ mainnetConfig =
 ropstenConfig : Config
 ropstenConfig =
     { account = (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7")
+    , secondaryAccount = (Address "0x6655bb0986fbdfa897312da56e2634f2aced3adc")
     , contract = (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7")
     , blockNumber = BlockNum 1530779
     , blockHash = BlockHash "0x1562e2c2506d2cfad8a95ef78fd48b507c3ffa62c44a3fc619facc4af191b3de"
@@ -150,7 +138,8 @@ ropstenConfig =
 
 devNetConfig : Config
 devNetConfig =
-    { account = (Address "0x853726f791d6fbff51f225587d7fff05ab5930a8")
+    { account = (Address "0x7900681181e87b926a279769538f5325088eadc1")
+    , secondaryAccount = (Address "0x6655bb0986fbdfa897312da56e2634f2aced3adc")
     , contract = (Address "0x853726f791d6fbff51f225587d7fff05ab5930a8")
     , blockNumber = BlockNum 320
     , blockHash = BlockHash "0x231a0c9b49d53f0df6f2d5ce2f9d4cbc73efa0d250e64a395869b484b45687bc"
@@ -158,24 +147,6 @@ devNetConfig =
     , txParams = defaultTxParams
     , filterParams =
         { address = Just [ (Address "0x853726f791d6fbff51f225587d7fff05ab5930a8") ]
-        , fromBlock = Just (BlockNum 320)
-        , toBlock = Just (BlockNum 520)
-        , topics = Just []
-        }
-    , hexData = (Hex "0x121212")
-    }
-
-
-devNet2Config : Config
-devNet2Config =
-    { account = (Address "0xd8b0990c007ba1ad97b37c001d1f87044312162e")
-    , contract = (Address "0xd8b0990c007ba1ad97b37c001d1f87044312162e")
-    , blockNumber = BlockNum 320
-    , blockHash = BlockHash "0xc9ec58770c8c49682d388054e9fa9bc6c51848db1393abb59157e7d629861282"
-    , txId = TxId "0x56026ef59e927fd95f781865695b28ff260f70bfb79c8392080f5678b33cf100"
-    , txParams = defaultTxParams
-    , filterParams =
-        { address = Just [ (Address "0xd8b0990c007ba1ad97b37c001d1f87044312162e") ]
         , fromBlock = Just (BlockNum 320)
         , toBlock = Just (BlockNum 520)
         , topics = Just []
@@ -193,11 +164,8 @@ getNetwork id =
         2 ->
             Ropsten
 
-        42513 ->
+        23 ->
             DevNet
-
-        42512 ->
-            DevNet2
 
         _ ->
             UnknownNetwork
@@ -214,9 +182,6 @@ getConfig ethNetwork =
 
         DevNet ->
             devNetConfig
-
-        DevNet2 ->
-            devNet2Config
 
         UnknownNetwork ->
             devNetConfig

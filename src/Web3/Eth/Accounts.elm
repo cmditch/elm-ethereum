@@ -42,12 +42,12 @@ createWithEntropy entropy =
 
 
 signTransaction : Account -> TxParams -> Task Error SignedTx
-signTransaction { privateKey } txParams =
+signTransaction { address, privateKey } txParams =
     Web3.toTask
         { method = "eth.accounts.signTransaction"
         , params =
             Encode.list
-                [ encodeTxParams txParams
+                [ encodeTxParams (Just address) txParams
                 , Encode.string (privateKeyToString privateKey)
                 ]
         , expect = expectJson signedTxDecoder

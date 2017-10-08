@@ -190,45 +190,45 @@ getCodeAtBlock blockId (Address address) =
         }
 
 
-getBlockTransactionCount : BlockId -> Task Error Int
+getBlockTransactionCount : BlockId -> Task Error (Maybe Int)
 getBlockTransactionCount blockId =
     Web3.toTask
         { method = "eth.getBlockTransactionCount"
         , params = Encode.list [ getBlockIdValue blockId ]
-        , expect = expectInt
+        , expect = expectJson (Decode.maybe Decode.int)
         , callType = Async
         , applyScope = Nothing
         }
 
 
-getBlock : BlockId -> Task Error (Block TxId)
+getBlock : BlockId -> Task Error (Maybe (Block TxId))
 getBlock blockId =
     Web3.toTask
         { method = "eth.getBlock"
         , params = Encode.list [ getBlockIdValue blockId, Encode.bool False ]
-        , expect = expectJson blockTxIdDecoder
+        , expect = expectJson (Decode.maybe blockTxIdDecoder)
         , callType = Async
         , applyScope = Nothing
         }
 
 
-getBlockTxObjs : BlockId -> Task Error (Block TxObj)
+getBlockTxObjs : BlockId -> Task Error (Maybe (Block TxObj))
 getBlockTxObjs blockId =
     Web3.toTask
         { method = "eth.getBlock"
         , params = Encode.list [ getBlockIdValue blockId, Encode.bool True ]
-        , expect = expectJson blockTxObjDecoder
+        , expect = expectJson (Decode.maybe blockTxObjDecoder)
         , callType = Async
         , applyScope = Nothing
         }
 
 
-getBlockUncleCount : BlockId -> Task Error Int
+getBlockUncleCount : BlockId -> Task Error (Maybe Int)
 getBlockUncleCount blockId =
     Web3.toTask
         { method = "eth.getBlockUncleCount"
         , params = Encode.list [ getBlockIdValue blockId ]
-        , expect = expectInt
+        , expect = expectJson (Decode.maybe Decode.int)
         , callType = Async
         , applyScope = Nothing
         }
@@ -289,22 +289,22 @@ getTransactionReceipt (TxId txId) =
         }
 
 
-getTransactionCount : BlockId -> Address -> Task Error Int
+getTransactionCount : BlockId -> Address -> Task Error (Maybe Int)
 getTransactionCount blockId (Address address) =
     Web3.toTask
         { method = "eth.getTransactionCount"
         , params = Encode.list [ Encode.string address, getBlockIdValue blockId ]
-        , expect = expectInt
+        , expect = expectJson (Decode.maybe Decode.int)
         , callType = Async
         , applyScope = Nothing
         }
 
 
-sendTransaction : TxParams -> Task Error TxId
-sendTransaction txParams =
+sendTransaction : Address -> TxParams -> Task Error TxId
+sendTransaction from txParams =
     Web3.toTask
         { method = "eth.sendTransaction"
-        , params = Encode.list [ encodeTxParams txParams ]
+        , params = Encode.list [ encodeTxParams (Just from) txParams ]
         , expect = expectJson txIdDecoder
         , callType = Async
         , applyScope = Nothing
@@ -334,27 +334,31 @@ sign (Address address) (Hex data) =
 
 
 signTransaction : Address -> TxParams -> Task Error SignedTx
-signTransaction (Address address) txParams =
+signTransaction address txParams =
     Web3.toTask
         { method = "eth.signTransaction"
-        , params = Encode.list [ encodeTxParams txParams, Encode.string address ]
+        , params =
+            Encode.list
+                [ encodeTxParams (Just address) txParams
+                , Encode.string (addressToString address)
+                ]
         , expect = expectJson rpcSignedTxDecoder
         , callType = Async
         , applyScope = Nothing
         }
 
 
-call : TxParams -> Task Error Hex
+call : Maybe Address -> TxParams -> Task Error Hex
 call =
     callAtBlock Latest
 
 
-callAtBlock : BlockId -> TxParams -> Task Error Hex
-callAtBlock blockId txParams =
+callAtBlock : BlockId -> Maybe Address -> TxParams -> Task Error Hex
+callAtBlock blockId from txParams =
     -- TODO Look into removing 'from' field from TxParams since it's optional all over.
     Web3.toTask
         { method = "eth.call"
-        , params = Encode.list [ encodeTxParams txParams, getBlockIdValue blockId ]
+        , params = Encode.list [ encodeTxParams from txParams, getBlockIdValue blockId ]
         , expect = expectJson hexDecoder
         , callType = Async
         , applyScope = Nothing
@@ -365,7 +369,7 @@ estimateGas : TxParams -> Task Error Int
 estimateGas txParams =
     Web3.toTask
         { method = "eth.estimateGas"
-        , params = Encode.list [ encodeTxParams txParams ]
+        , params = Encode.list [ encodeTxParams Nothing txParams ]
         , expect = expectInt
         , callType = Async
         , applyScope = Nothing

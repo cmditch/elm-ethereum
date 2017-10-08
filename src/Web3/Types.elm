@@ -133,8 +133,7 @@ type alias TxReceipt =
 
 
 type alias TxParams =
-    { from : Maybe Address
-    , to : Maybe Address
+    { to : Maybe Address
     , value : Maybe BigInt
     , gas : Int
     , data : Maybe Hex

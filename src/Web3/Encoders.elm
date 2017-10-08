@@ -9,7 +9,6 @@ module Web3.Encoders
         , encodeKeystore
         , encodeKeystoreList
         , getBlockIdValue
-        , addressMaybeMap
         , listOfMaybesToVal
         , encodeBytes
           -- , encodeCustomTxParams
@@ -21,14 +20,14 @@ import BigInt exposing (BigInt)
 import Json.Encode as Encode exposing (Value, string, int, null, list, object)
 
 
-encodeTxParams : TxParams -> Value
-encodeTxParams { from, to, value, gas, data, gasPrice, nonce, chainId } =
+encodeTxParams : Maybe Address -> TxParams -> Value
+encodeTxParams from { to, value, gas, data, gasPrice, nonce, chainId } =
     listOfMaybesToVal
-        [ ( "from", Maybe.map string (addressMaybeMap from) )
-        , ( "to", Maybe.map string (addressMaybeMap to) )
+        [ ( "from", Maybe.map (addressToString >> string) from )
+        , ( "to", Maybe.map (addressToString >> string) to )
         , ( "value", Maybe.map (BigInt.toString >> string) value )
         , ( "gas", Maybe.map int (Just gas) )
-        , ( "data", Maybe.map string (hexMaybeMap data) )
+        , ( "data", Maybe.map (hexToString >> string) data )
         , ( "gasPrice", Maybe.map int gasPrice )
         , ( "nonce", Maybe.map int nonce )
         , ( "chainId", Maybe.map int chainId )
@@ -115,16 +114,6 @@ encodeListBigIntList =
 encodeIntList : List Int -> Value
 encodeIntList =
     List.map int >> list
-
-
-hexMaybeMap : Maybe Hex -> Maybe String
-hexMaybeMap =
-    Maybe.map hexToString
-
-
-addressMaybeMap : Maybe Address -> Maybe String
-addressMaybeMap =
-    Maybe.map addressToString
 
 
 intMaybeMap : Maybe Int -> Maybe String
