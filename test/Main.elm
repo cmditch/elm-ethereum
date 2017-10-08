@@ -11,6 +11,7 @@ import Pages.Utils as Utils
 import Pages.Accounts as Accounts
 import Pages.Wallet as Wallet
 import Pages.Eth as Eth
+import Pages.Contract as Contract
 import Web3.Types exposing (..)
 import Web3.Eth
 
@@ -33,6 +34,7 @@ type alias Model =
     , accountsModel : Accounts.Model
     , walletModel : Wallet.Model
     , ethModel : Eth.Model
+    , contractModel : Contract.Model
     , error : Maybe Error
     }
 
@@ -46,6 +48,7 @@ init =
     , accountsModel = Accounts.init
     , walletModel = Wallet.init
     , ethModel = Eth.init
+    , contractModel = Contract.init
     , error = Nothing
     }
         ! [ Task.attempt EstablishNetworkId (retryThrice Web3.Eth.getId) ]
@@ -89,6 +92,9 @@ viewPage model =
         Eth ->
             Eth.view model.ethModel |> Element.map EthMsg
 
+        Contract ->
+            Contract.view model.contractModel |> Element.map ContractMsg
+
         _ ->
             column None
                 [ center, width fill, padding 100 ]
@@ -123,6 +129,7 @@ type Msg
     | AccountsMsg Accounts.Msg
     | WalletMsg Wallet.Msg
     | EthMsg Eth.Msg
+    | ContractMsg Contract.Msg
     | SetPage Page
 
 
@@ -132,7 +139,7 @@ update msg model =
         EstablishNetworkId result ->
             let
                 ( newModel, newCmds ) =
-                    update (SetPage Eth) model
+                    update (SetPage Contract) model
             in
                 case result of
                     Ok networkId ->
@@ -176,6 +183,13 @@ update msg model =
                     Eth.update model.config subMsg model.ethModel
             in
                 { model | ethModel = subModel } ! [ Cmd.map EthMsg subCmd ]
+
+        ContractMsg subMsg ->
+            let
+                ( subModel, subCmd ) =
+                    Contract.update model.config subMsg model.contractModel
+            in
+                { model | contractModel = subModel } ! [ Cmd.map ContractMsg subCmd ]
 
         SetPage page ->
             { model | currentPage = page } ! []

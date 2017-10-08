@@ -140,10 +140,10 @@ devNetConfig : Config
 devNetConfig =
     { account = (Address "0x7900681181e87b926a279769538f5325088eadc1")
     , secondaryAccount = (Address "0x6655bb0986fbdfa897312da56e2634f2aced3adc")
-    , contract = (Address "0x853726f791d6fbff51f225587d7fff05ab5930a8")
+    , contract = (Address "0x4bf52d0989ef11d2a5c99d7f7e442fc208813121")
     , blockNumber = BlockNum 320
     , blockHash = BlockHash "0x231a0c9b49d53f0df6f2d5ce2f9d4cbc73efa0d250e64a395869b484b45687bc"
-    , txId = TxId "0x9ce0dc95c47dd98e0de43143e21028de0a73e05cde86b363228a2164d8645bde"
+    , txId = TxId "0xbd40b560ac9999751ff6d5125a399a74f0ed192b1dc4273911078b3696fe2503"
     , txParams = defaultTxParams
     , filterParams =
         { address = Just [ (Address "0x853726f791d6fbff51f225587d7fff05ab5930a8") ]

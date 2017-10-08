@@ -277,7 +277,7 @@ toWei unit amount =
                 Nothing ->
                     Err (Error "There was an error calculating toWei result. However, the fault is not yours; please report this bug on github.")
     else
-        Err (Error "Malformed number string passed to `toWei` methodtion.")
+        Err (Error "Malformed number string passed to `toWei` method.")
 
 
 fromWei : EthUnit -> BigInt -> String
