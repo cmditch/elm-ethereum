@@ -212,17 +212,12 @@ getByIndex index =
 getKeys : Task Error (List Int)
 getKeys =
     Web3.toTask
-        { method = getWalletKeysJs
+        { method = "eth.accounts.wallet._currentIndexes"
         , params = Encode.list []
         , expect = expectJson (Decode.list Decode.int)
-        , callType = Getter
-        , applyScope = Nothing
+        , callType = Sync
+        , applyScope = Just "web3.eth.accounts.wallet"
         }
-
-
-getWalletKeysJs : String
-getWalletKeysJs =
-    "utils._.keys(web3.eth.accounts.wallet).map(function(n){return parseInt(n)}).filter(function(index){return index < 9e20})"
 
 
 listWithKeys : List Int -> Task Error (Dict Int Account)
