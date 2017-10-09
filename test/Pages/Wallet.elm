@@ -298,7 +298,7 @@ update config msg model =
 
         InitLoad ->
             { model | loadStatus = "Loading wallet...." }
-                ! [ Task.attempt List (Wallet.load "qwerty") ]
+                ! [ Task.attempt List (Wallet.load "qwerty" |> Task.andThen (\_ -> Wallet.list)) ]
 
         List result ->
             case result of
@@ -364,5 +364,4 @@ update config msg model =
 
 clearAlerts : Cmd Msg
 clearAlerts =
-    Task.perform ClearAlerts
-        (Process.sleep 3000 |> Task.andThen (\_ -> Task.succeed ()))
+    Task.perform ClearAlerts (Process.sleep 3000)

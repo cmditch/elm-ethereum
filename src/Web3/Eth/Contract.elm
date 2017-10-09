@@ -6,42 +6,18 @@ module Web3.Eth.Contract
         , estimateContractGas
         , encodeMethodABI
         , encodeContractABI
-        , watch
-        , sentry
-        , reset
-        , stopWatching
-        , pollContract
         , Params
         )
 
 -- import Web3.Internal exposing (Request)
 
-import Web3 exposing (Retry)
 import Web3.Internal exposing (EventRequest, constructOptions, decapitalize)
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
-import Web3.EM exposing (eventSentry, watchEvent, stopWatchingEvent)
 import BigInt exposing (BigInt)
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
 import Task exposing (Task)
-
-
-{-
-   Types
--}
-
-
-type alias Params a =
-    { abi : Abi
-    , gasPrice : Maybe BigInt
-    , gas : Maybe Int
-    , data : Maybe Hex
-    , params : List Value
-    , methodName : Maybe String
-    , decoder : Decoder a
-    }
-
 
 
 {-
@@ -120,42 +96,39 @@ estimateContractGas params =
 {-
    Contract Events
 -}
-
-
-watch : String -> EventRequest -> Cmd msg
-watch name eventRequest =
-    Web3.EM.watchEvent name eventRequest
-
-
-stopWatching : String -> Cmd msg
-stopWatching name =
-    Web3.EM.stopWatchingEvent name
-
-
-sentry : String -> (String -> msg) -> Sub msg
-sentry eventId toMsg =
-    Web3.EM.eventSentry eventId toMsg
-
-
-reset : Cmd msg
-reset =
-    Web3.EM.reset
-
-
-pollContract : Retry -> TxId -> Task Error ContractInfo
-pollContract retryParams (TxId txId) =
-    -- TODO This could be made more general. pollMinedTx
-    Web3.toTask
-        { method = "eth.getTransactionReceipt"
-        , params = Encode.list [ Encode.string txId ]
-        , expect = expectJson contractInfoDecoder
-        , callType = Async
-        , applyScope = Nothing
-        }
-        |> Web3.retry retryParams
-
-
-
+--
+-- watch : String -> EventRequest -> Cmd msg
+-- watch name eventRequest =
+--     Web3.EM.watchEvent name eventRequest
+--
+--
+-- stopWatching : String -> Cmd msg
+-- stopWatching name =
+--     Web3.EM.stopWatchingEvent name
+--
+--
+-- sentry : String -> (String -> msg) -> Sub msg
+-- sentry eventId toMsg =
+--     Web3.EM.eventSentry eventId toMsg
+--
+--
+-- reset : Cmd msg
+-- reset =
+--     Web3.EM.reset
+--
+--
+-- pollContract : Retry -> TxId -> Task Error ContractInfo
+-- pollContract retryParams (TxId txId) =
+--     -- TODO This could be made more general. pollMinedTx
+--     Web3.toTask
+--         { method = "eth.getTransactionReceipt"
+--         , params = Encode.list [ Encode.string txId ]
+--         , expect = expectJson contractInfoDecoder
+--         , callType = Async
+--         , applyScope = Nothing
+--         }
+--         |> Web3.retry retryParams
+--
 -- Internal
 
 
@@ -175,6 +148,17 @@ type ContractAction
     = Methods MethodAction String
     | Events
     | Deploy MethodAction
+
+
+type alias Params a =
+    { abi : Abi
+    , gasPrice : Maybe BigInt
+    , gas : Maybe Int
+    , data : Maybe Hex
+    , params : List Value
+    , methodName : Maybe String
+    , decoder : Decoder a
+    }
 
 
 type alias RawParams a =
@@ -236,7 +220,7 @@ constructEval { gas, gasPrice, data } contractMethod =
 
         options =
             "{ from: request.from, "
-                ++ constructOptions [ ( "data", gas_ ), ( "gasPrice", gasPrice_ ), ( "data", data_ ) ]
+                ++ constructOptions [ ( "gas", gas_ ), ( "gasPrice", gasPrice_ ), ( "data", data_ ) ]
                 ++ "}"
 
         base =
@@ -255,7 +239,7 @@ constructEval { gas, gasPrice, data } contractMethod =
                 base
                     ++ ".methods['"
                     ++ methodName
-                    ++ "'].apply(null, request.params)."
+                    ++ "'].apply(web3.eth.Contract, request.params)."
                     ++ (toString callType |> decapitalize)
                     ++ callbackIfAsync callType
 

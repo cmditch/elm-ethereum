@@ -58,8 +58,8 @@ bytecode_ =
 returnsOneNamed : BigInt -> BigInt -> Contract.Params BigInt
 returnsOneNamed a b =
     { abi = abi_
-    , gasPrice = Nothing
-    , gas = Nothing
+    , gasPrice = Just (BigInt.fromInt 300000000)
+    , gas = Just 3000000
     , methodName = Just "returnsOneNamed(uint256,uint256)"
     , data = Nothing
     , params = [ Encode.string (BigInt.toString a), Encode.string (BigInt.toString b) ]
@@ -70,8 +70,8 @@ returnsOneNamed a b =
 returnsOneUnnamed : BigInt -> BigInt -> Contract.Params BigInt
 returnsOneUnnamed a b =
     { abi = abi_
-    , gasPrice = Nothing
-    , gas = Nothing
+    , gasPrice = Just (BigInt.fromInt 300000000)
+    , gas = Just 3000000
     , methodName = Just "returnsOneUnnamed(uint256,uint256)"
     , data = Nothing
     , params = [ Encode.string (BigInt.toString a), Encode.string (BigInt.toString b) ]
@@ -88,8 +88,8 @@ returnsTwoNamed a b =
                 |> required "someString" string
     in
         { abi = abi_
-        , gasPrice = Nothing
-        , gas = Nothing
+        , gasPrice = Just (BigInt.fromInt 300000000)
+        , gas = Just 300000
         , methodName = Just "returnsTwoNamed(uint256,uint256)"
         , data = Nothing
         , params = [ Encode.string (BigInt.toString a), Encode.string (BigInt.toString b) ]
@@ -97,17 +97,17 @@ returnsTwoNamed a b =
         }
 
 
-returnsTwoUnnamed : BigInt -> BigInt -> Contract.Params { v0 : String, v1 : String }
+returnsTwoUnnamed : BigInt -> BigInt -> Contract.Params { v0 : BigInt, v1 : String }
 returnsTwoUnnamed a b =
     let
         decoder =
             decode (\v0 v1 -> { v0 = v0, v1 = v1 })
-                |> required "0" string
+                |> required "0" bigIntDecoder
                 |> required "1" string
     in
         { abi = abi_
-        , gasPrice = Nothing
-        , gas = Nothing
+        , gasPrice = Just (BigInt.fromInt 300000000)
+        , gas = Just 3000000
         , methodName = Just "returnsTwoUnnamed(uint256,uint256)"
         , data = Nothing
         , params = [ Encode.string (BigInt.toString a), Encode.string (BigInt.toString b) ]

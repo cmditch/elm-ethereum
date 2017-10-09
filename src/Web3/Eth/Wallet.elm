@@ -160,7 +160,7 @@ save password =
         |> Web3.delayExecution
 
 
-load : String -> Task Error (Dict Int Account)
+load : String -> Task Error ()
 load password =
     (Web3.toTask
         { method = "eth.accounts.wallet.load"
@@ -169,7 +169,6 @@ load password =
         , callType = CustomSync "null"
         , applyScope = Just "web3.eth.accounts.wallet"
         }
-        |> Task.andThen (\_ -> list)
     )
         |> Web3.delayExecution
 

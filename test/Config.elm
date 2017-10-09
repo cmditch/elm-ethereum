@@ -138,7 +138,8 @@ ropstenConfig =
 
 devNetConfig : Config
 devNetConfig =
-    { account = (Address "0x7900681181e87b926a279769538f5325088eadc1")
+    -- { account = (Address "0x7900681181e87b926a279769538f5325088eadc1")
+    { account = (Address "0x0212010e3F64a56FD6d7E33Db01279055B553BED")
     , secondaryAccount = (Address "0x6655bb0986fbdfa897312da56e2634f2aced3adc")
     , contract = (Address "0x4bf52d0989ef11d2a5c99d7f7e442fc208813121")
     , blockNumber = BlockNum 320

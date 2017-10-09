@@ -14,6 +14,7 @@ import Pages.Eth as Eth
 import Pages.Contract as Contract
 import Web3.Types exposing (..)
 import Web3.Eth
+import Web3.Eth.Wallet as EthWallet
 
 
 main : Program Never Model Msg
@@ -131,6 +132,7 @@ type Msg
     | EthMsg Eth.Msg
     | ContractMsg Contract.Msg
     | SetPage Page
+    | NoOpTask (Result Error ())
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -144,7 +146,7 @@ update msg model =
                 case result of
                     Ok networkId ->
                         { newModel | config = getConfig <| getNetwork networkId }
-                            ! [ newCmds ]
+                            ! [ newCmds, Task.attempt NoOpTask (EthWallet.load "qwerty") ]
 
                     Err err ->
                         { newModel | error = Just err } ! []
@@ -193,6 +195,9 @@ update msg model =
 
         SetPage page ->
             { model | currentPage = page } ! []
+
+        NoOpTask _ ->
+            model ! []
 
 
 subscriptions : Model -> Sub Msg
