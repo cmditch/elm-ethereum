@@ -114,7 +114,7 @@ txReceiptDecoder =
         |> required "blockNumber" int
         |> required "gasUsed" int
         |> required "cumulativeGasUsed" int
-        |> required "contractAddress" string
+        |> custom (maybe (field "contractAddress" addressDecoder))
         |> required "logs" (list logDecoder)
 
 

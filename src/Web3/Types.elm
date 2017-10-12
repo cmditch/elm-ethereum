@@ -127,7 +127,7 @@ type alias TxReceipt =
     , blockNumber : Int
     , gasUsed : Int
     , cumulativeGasUsed : Int
-    , contractAddress : String
+    , contractAddress : Maybe Address
     , logs : List Log
     }
 

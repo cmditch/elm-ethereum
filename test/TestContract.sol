@@ -7,7 +7,7 @@ contract TestContract {
   address public owner;
   uint[4] public uintArray = [123123123123123, 23, 42, 120];
 
-  event Add(address indexed mathematician, int intLog);
+  event Add(address indexed mathematician, int anInt);
   event Subtract(address indexed professor, uint numberz, int aPrime);
   event UintArray(uint[4] uintArrayLog);
 
@@ -31,6 +31,11 @@ contract TestContract {
 
   function returnsTwoUnnamed(uint a, uint b) constant returns (uint, string) {
     return (a + b, "This is a test");
+  }
+
+  function triggerEvent(int anInt) returns (string) {
+    Add(msg.sender, anInt);
+    return "This should have triggered a log event";
   }
 
   function kill () {

@@ -33,11 +33,6 @@ testCommands config =
     , Task.attempt (CallReturnsOneUnnamed "returnsOneUnnamed.call") (Contract.call config.contract <| TC.returnsOneUnnamed (BigInt.fromInt 30) (BigInt.fromInt 12))
     , Task.attempt (CallReturnsTwoNamed "returnsTwoNamed.call") (Contract.call config.contract <| TC.returnsTwoNamed (BigInt.fromInt 400) (BigInt.fromInt 20))
     , Task.attempt (CallReturnsTwoUnnamed "returnsTwoUnnamed.call") (Contract.call config.contract <| TC.returnsTwoUnnamed (BigInt.fromInt 4000) (BigInt.fromInt 4000))
-
-    -- , Task.attempt (SendReturnsOneNamed "returnsOneNamed.send") (Contract.send config.account config.contract <| TC.returnsOneNamed (BigInt.fromInt 12) (BigInt.fromInt 11))
-    -- , Task.attempt (SendReturnsOneUnnamed "returnsOneUnnamed.send") (Process.sleep 3000 |> Task.andThen (\_ -> (Contract.send config.account config.contract <| TC.returnsOneUnnamed (BigInt.fromInt 30) (BigInt.fromInt 12))))
-    -- , Task.attempt (SendReturnsTwoNamed "returnsTwoNamed.send") (Contract.send config.account config.contract <| TC.returnsTwoNamed (BigInt.fromInt 400) (BigInt.fromInt 20))
-    -- , Task.attempt (SendReturnsTwoUnnamed "returnsTwoUnnamed.send") (Contract.send config.account config.contract <| TC.returnsTwoUnnamed bigBigNumber bigBigNumber)
     , Task.attempt (EstimateContractABI "estimateContractABI") (TC.encodeContractABI (BigInt.fromInt 23) "Testing123")
     , Task.attempt (EstimateContractGas "estimateContractGas") (TC.estimateContractGas (BigInt.fromInt 23) "Testing123")
     ]
@@ -73,6 +68,7 @@ view model =
                 [ spacing 20, paddingXY 20 20 ]
                 [ button None [ onClick InitTests ] (text "Start Tests")
                 , button None [ onClick InitReturnsTwoNamed ] (text "Send Tx")
+                , button None [ onClick InitDeploy ] (text "Deploy Contract")
                 ]
             ]
     in
@@ -82,15 +78,17 @@ view model =
 
 
 type Msg
-    = InitTests
+    = InitDeploy
+    | ContractDeployInfo String (Result Error ContractInfo)
+    | InitReturnsTwoNamed
+    | ReturnsTwoUnnamedResponse String (Result Error TxId)
+    | InitTests
     | EstimateContractABI String (Result Error Hex)
     | EstimateContractGas String (Result Error Int)
     | CallReturnsOneNamed String (Result Error BigInt)
     | CallReturnsOneUnnamed String (Result Error BigInt)
     | CallReturnsTwoNamed String (Result Error { someUint : BigInt, someString : String })
     | CallReturnsTwoUnnamed String (Result Error { v0 : BigInt, v1 : String })
-    | InitReturnsTwoNamed
-    | ReturnsTwoUnnamedResponse String (Result Error TxId)
 
 
 update : Config -> Msg -> Model -> ( Model, Cmd Msg )
@@ -108,6 +106,15 @@ update config msg model =
                     { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR: " <| toString err), passed = False } }
     in
         case msg of
+            InitDeploy ->
+                model
+                    ! [ Task.attempt (ContractDeployInfo "contract.deploy")
+                            (TC.deploy config.account Nothing (BigInt.fromInt 23) "testing123")
+                      ]
+
+            ContractDeployInfo funcName result ->
+                updateModel 1 funcName result ! []
+
             InitReturnsTwoNamed ->
                 model
                     ! [ Task.attempt
@@ -116,7 +123,7 @@ update config msg model =
                       ]
 
             ReturnsTwoUnnamedResponse funcName result ->
-                updateModel 1 funcName result ! []
+                updateModel 2 funcName result ! []
 
             InitTests ->
                 model ! testCommands config
