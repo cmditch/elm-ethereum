@@ -76,7 +76,7 @@ createManyWithEntropy maybeEntropy count =
             |> Task.andThen (\_ -> list)
 
 
-add : PrivateKey -> Task Error (Dict Int Account)
+add : PrivateKey -> Task Error ()
 add (PrivateKey privateKey) =
     Web3.toTask
         { method = "eth.accounts.wallet.add"
@@ -85,7 +85,6 @@ add (PrivateKey privateKey) =
         , callType = CustomSync "null"
         , applyScope = Just "web3.eth.accounts.wallet"
         }
-        |> Task.andThen (\_ -> list)
 
 
 remove : WalletIndex -> Task Error Bool

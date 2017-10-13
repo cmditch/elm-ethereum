@@ -12,7 +12,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function toTask(evalString, request) {
-        console.log(evalString, request);
+        console.log(evalString, request, JSON.stringify(request));
         return nativeBinding(function(callback)
         {
             try

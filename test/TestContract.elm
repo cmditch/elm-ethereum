@@ -24,46 +24,53 @@ type alias Constructor =
 deploy : Address -> Maybe BigInt -> BigInt -> String -> Task Error ContractInfo
 deploy from value constructorInt_ constructorString_ =
     let
-        failIfNothing maybeVal error =
+        buildAndDeployTx : Task Error TxId
+        buildAndDeployTx =
+            estimateContractGas constructorInt_ constructorString_
+                |> Task.andThen
+                    (\gasCost ->
+                        encodeContractABI constructorInt_ constructorString_
+                            |> Task.andThen
+                                (\data ->
+                                    Eth.sendTransaction from
+                                        { to = Nothing
+                                        , value = value
+                                        , gas = gasCost
+                                        , data = Just data
+                                        , gasPrice = Just 10000000000
+                                        , chainId = Nothing
+                                        , nonce = Nothing
+                                        }
+                                )
+                    )
+
+        failIfNothing : Error -> Maybe a -> Task Error a
+        failIfNothing error maybeVal =
             case maybeVal of
                 Nothing ->
                     Task.fail error
 
-                Just txReceipt ->
-                    Task.succeed txReceipt
-    in
-        estimateContractGas constructorInt_ constructorString_
-            |> Task.andThen
-                (\gasCost ->
-                    encodeContractABI constructorInt_ constructorString_
-                        |> Task.andThen
-                            (\data ->
-                                Eth.sendTransaction from
-                                    { to = Nothing
-                                    , value = value
-                                    , gas = gasCost + 753410 -- TODO WTF
-                                    , data = Just data
-                                    , gasPrice = Just gasCost
-                                    , chainId = Nothing
-                                    , nonce = Nothing
-                                    }
-                            )
-                )
-            |> Task.andThen Eth.getTransactionReceipt
-            |> Task.andThen
-                (\maybeTxReceipt ->
-                    Web3.retry { attempts = 30, sleep = 3 }
-                        (failIfNothing maybeTxReceipt (Error "No Tx Receipt still. Mining error. Network Congestion?"))
-                )
-            |> Task.andThen
-                (\receipt ->
-                    case receipt.contractAddress of
-                        Nothing ->
-                            Task.fail (Error "No contract address in Tx Receipt. This error should never happen...")
+                Just a ->
+                    Task.succeed a
 
-                        Just contractAddress ->
-                            Task.succeed { txId = receipt.transactionHash, address = contractAddress }
-                )
+        waitForTxReceipt : TxId -> Task Error TxReceipt
+        waitForTxReceipt txId =
+            Eth.getTransactionReceipt txId
+                |> Task.andThen (failIfNothing (Error "No Tx Receipt still. Mining error. Network Congestion?"))
+                |> Web3.retry { attempts = 30, sleep = 3 }
+
+        returnContractInfo : TxReceipt -> Task Error ContractInfo
+        returnContractInfo txReceipt =
+            case txReceipt.contractAddress of
+                Nothing ->
+                    Task.fail (Error "No contract address in Tx Receipt. This error should never happen...")
+
+                Just contractAddress ->
+                    Task.succeed { txId = txReceipt.transactionHash, address = contractAddress }
+    in
+        buildAndDeployTx
+            |> Task.andThen waitForTxReceipt
+            |> Task.andThen returnContractInfo
 
 
 encodeContractABI : BigInt -> String -> Task Error Hex

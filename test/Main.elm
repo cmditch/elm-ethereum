@@ -146,7 +146,7 @@ update msg model =
                 case result of
                     Ok networkId ->
                         { newModel | config = getConfig <| getNetwork networkId }
-                            ! [ newCmds, Task.attempt NoOpTask (EthWallet.load "qwerty") ]
+                            ! [ newCmds, Task.attempt NoOpTask (EthWallet.add <| PrivateKey "0x7123d83b9d4314a91a5ea62d3678576d10352f538aaa2dc34ded3725c80740d8") ]
 
                     Err err ->
                         { newModel | error = Just err } ! []
