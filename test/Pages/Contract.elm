@@ -67,7 +67,8 @@ view model =
             [ row TestRow
                 [ spacing 20, paddingXY 20 20 ]
                 [ button None [ onClick InitTests ] (text "Start Tests")
-                , button None [ onClick InitReturnsTwoNamed ] (text "Send Tx")
+                , button None [ onClick InitEventOnce ] (text "Watch Event Once")
+                , button None [ onClick InitMethodSend ] (text "Send Tx")
                 , button None [ onClick InitDeploy ] (text "Deploy Contract")
                 ]
             ]
@@ -80,8 +81,10 @@ view model =
 type Msg
     = InitDeploy
     | ContractDeployInfo String (Result Error ContractInfo)
-    | InitReturnsTwoNamed
-    | ReturnsTwoUnnamedResponse String (Result Error TxId)
+    | InitMethodSend
+    | MethodSendResponse String (Result Error TxId)
+    | InitEventOnce
+    | EventInfo String (Result Error (EventLog { mathematician : Address, anInt : BigInt }))
     | InitTests
     | EstimateContractABI String (Result Error Hex)
     | EstimateContractGas String (Result Error Int)
@@ -115,14 +118,24 @@ update config msg model =
             ContractDeployInfo funcName result ->
                 updateModel 1 funcName result ! []
 
-            InitReturnsTwoNamed ->
+            InitMethodSend ->
                 model
                     ! [ Task.attempt
-                            (ReturnsTwoUnnamedResponse "returnsTwoNamed.send")
-                            (Contract.send config.account config.contract <| TC.returnsTwoNamed (BigInt.fromInt 400) (BigInt.fromInt 20))
+                            (MethodSendResponse "triggerEvent.send")
+                            (Contract.send config.account config.contract <| TC.triggerEvent (BigInt.fromInt 400))
                       ]
 
-            ReturnsTwoUnnamedResponse funcName result ->
+            MethodSendResponse funcName result ->
+                updateModel 3 funcName result ! []
+
+            InitEventOnce ->
+                model
+                    ! [ Task.attempt
+                            (EventInfo "contract.once('Add')")
+                            (Contract.once config.contract TC.eventAdd)
+                      ]
+
+            EventInfo funcName result ->
                 updateModel 2 funcName result ! []
 
             InitTests ->

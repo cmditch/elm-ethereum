@@ -6,6 +6,7 @@ module Web3.Eth.Contract
         , estimateContractGas
         , encodeMethodABI
         , encodeContractABI
+        , once
         , Params
         )
 
@@ -31,7 +32,7 @@ call (Address contractAddress) params =
         rawParams =
             defaultRawParams params
     in
-        toTask (constructEval params <| Methods Call rawParams.method)
+        toTask (constructEval params <| Methods Call)
             { rawParams | contractAddress = contractAddress }
 
 
@@ -41,7 +42,7 @@ send (Address from) (Address contractAddress) params =
         rawParams =
             defaultRawParams params
     in
-        toTask (constructEval params <| Methods Send rawParams.method)
+        toTask (constructEval params <| Methods Send)
             { rawParams
                 | expect = expectJson txIdDecoder
                 , from = from
@@ -55,7 +56,7 @@ estimateMethodGas (Address contractAddress) params =
         rawParams =
             defaultRawParams params
     in
-        toTask (constructEval params <| Methods EstimateGas rawParams.method)
+        toTask (constructEval params <| Methods EstimateGas)
             { rawParams
                 | expect = expectInt
                 , contractAddress = contractAddress
@@ -68,7 +69,7 @@ encodeMethodABI params =
         rawParams =
             defaultRawParams params
     in
-        toTask (constructEval params <| Methods EncodeABI rawParams.method)
+        toTask (constructEval params <| Methods EncodeABI)
             { rawParams
                 | expect = expectJson hexDecoder
                 , callType = Sync
@@ -93,9 +94,23 @@ estimateContractGas params =
 
 
 -- deploy : Params -> Task Error Address
+--
 {-
    Contract Events
 -}
+
+
+once : Address -> Params (EventLog a) -> Task Error (EventLog a)
+once (Address contractAddress) params =
+    let
+        rawParams =
+            defaultRawParams params
+    in
+        toTask (constructEval params Once)
+            { rawParams | contractAddress = contractAddress }
+
+
+
 --
 -- watch : String -> EventRequest -> Cmd msg
 -- watch name eventRequest =
@@ -145,9 +160,9 @@ type MethodAction
 
 
 type ContractAction
-    = Methods MethodAction String
-    | Events
+    = Methods MethodAction
     | Deploy MethodAction
+    | Once
 
 
 type alias Params a =
@@ -235,20 +250,27 @@ constructEval { gas, gasPrice, data } contractMethod =
                     "(web3Callback)"
     in
         case contractMethod of
-            Methods callType methodName ->
+            Methods callType ->
                 base
-                    ++ ".methods['"
-                    ++ methodName
-                    ++ "'].apply(web3.eth.Contract, request.params)."
+                    ++ ".methods[request.method].apply(web3.eth.Contract, request.params)."
                     ++ (toString callType |> decapitalize)
                     ++ callbackIfAsync callType
 
             Deploy callType ->
                 base
-                    ++ ".deploy({arguments: request.params })."
+                    ++ ".deploy({arguments: request.params})."
                     ++ (toString callType |> decapitalize)
                     ++ callbackIfAsync callType
 
-            Events ->
-                base
-                    ++ "//under construction//"
+            Once ->
+                let
+                    contract =
+                        "var contract = " ++ base ++ ";"
+
+                    callOnce =
+                        " return contract.once.apply(contract, [request.method].concat(request.params).concat([web3Callback]) )"
+                in
+                    "(function (){"
+                        ++ contract
+                        ++ callOnce
+                        ++ "})()"

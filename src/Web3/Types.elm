@@ -184,16 +184,17 @@ type alias FilterParams =
 
 type alias EventLog a =
     { address : Address
-    , args : a
-    , blockHash :
-        Maybe String
-
-    -- TODO Possible to make BlockId?
+    , blockHash : Maybe String -- Make BlockId?
     , blockNumber : Maybe Int
-    , event : String
-    , logIndex : Maybe Int
     , transactionHash : TxId
     , transactionIndex : Int
+    , logIndex : Maybe Int
+    , removed : Bool
+    , id : String
+    , returnValues : a
+    , event : String
+    , signature : Maybe Hex
+    , raw : { data : Hex, topics : List Hex }
     }
 
 
