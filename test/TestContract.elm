@@ -113,9 +113,10 @@ triggerEvent a =
 {-
    Events
 -}
+-- eventAdd : Contract.Params (EventLog { mathematician : Address, anInt : BigInt })
 
 
-eventAdd : Contract.Params (EventLog { mathematician : Address, anInt : BigInt })
+eventAdd : (String -> msg) -> Address -> Cmd msg
 eventAdd =
     let
         returnValuesDecoder =
@@ -123,14 +124,7 @@ eventAdd =
                 |> required "mathematician" addressDecoder
                 |> required "anInt" bigIntDecoder
     in
-        { abi = abi_
-        , gasPrice = Just (BigInt.fromInt 300000000)
-        , gas = Just 3000000
-        , methodName = Just "Add"
-        , data = Nothing
-        , params = []
-        , decoder = eventLogDecoder returnValuesDecoder
-        }
+        Contract.once abi_ "Add"
 
 
 

@@ -85,7 +85,8 @@ type Msg
     | InitMethodSend
     | MethodSendResponse String (Result Error TxId)
     | InitEventOnce
-    | EventInfo String (Result Error (EventLog { mathematician : Address, anInt : BigInt }))
+      -- | EventInfo String (Result Error (EventLog { mathematician : Address, anInt : BigInt }))
+    | EventInfo String String
     | InitTests
     | EstimateContractABI String (Result Error Hex)
     | EstimateContractGas String (Result Error Int)
@@ -132,13 +133,10 @@ update config msg model =
 
             InitEventOnce ->
                 model
-                    ! [ Task.attempt
-                            (EventInfo "contract.once('Add')")
-                            (Contract.once config.contract TC.eventAdd)
-                      ]
+                    ! [ (TC.eventAdd (EventInfo "contract.once('Add')") config.contract) ]
 
             EventInfo funcName result ->
-                updateModel 2 funcName result ! []
+                updateModel 2 funcName (Ok result) ! []
 
             InitTests ->
                 model ! testCommands config

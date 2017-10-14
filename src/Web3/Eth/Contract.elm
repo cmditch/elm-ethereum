@@ -1,4 +1,5 @@
-module Web3.Eth.Contract
+effect module Web3.Eth.Contract
+    where { command = MyCmd, subscription = MySub }
     exposing
         ( call
         , send
@@ -16,6 +17,7 @@ import Web3.Internal exposing (EventRequest, constructOptions, decapitalize)
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
 import BigInt exposing (BigInt)
+import Dict exposing (Dict)
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
 import Task exposing (Task)
@@ -93,57 +95,159 @@ estimateContractGas params =
 
 
 
--- deploy : Params -> Task Error Address
---
 {-
-   Contract Events
+   Effect Manager
 -}
+-- COMMANDS
 
 
-once : Address -> Params (EventLog a) -> Task Error (EventLog a)
-once (Address contractAddress) params =
+type MyCmd msg
+    = Once String String (String -> msg) String
+
+
+cmdMap : (a -> b) -> MyCmd a -> MyCmd b
+cmdMap tagger cmd =
+    case cmd of
+        Once abi eventName toAppMsg address ->
+            Once abi eventName (toAppMsg >> tagger) address
+
+
+once : Abi -> String -> (String -> msg) -> Address -> Cmd msg
+once (Abi abi) eventName toAppMsg (Address address) =
+    command <| Once abi eventName toAppMsg address
+
+
+
+-- SUBSCRIPTIONS
+
+
+type MySub msg
+    = EventSentry String (String -> msg)
+
+
+subMap : (a -> b) -> MySub a -> MySub b
+subMap method (EventSentry name toMsg) =
+    EventSentry name (toMsg >> method)
+
+
+eventSentry : String -> (String -> msg) -> Sub msg
+eventSentry eventId toMsg =
+    subscription (EventSentry eventId toMsg)
+
+
+
+-- MANAGER
+
+
+type Contract
+    = Contract
+
+
+type alias State msg =
+    { subs : SubsDict msg
+    , contracts : ContractsDict
+    }
+
+
+type alias SubsDict msg =
+    Dict.Dict String (List (String -> msg))
+
+
+type alias ContractsDict =
+    Dict.Dict String Contract
+
+
+init : Task Never (State msg)
+init =
+    Task.succeed (State Dict.empty Dict.empty)
+
+
+onEffects : Platform.Router msg Msg -> List (MyCmd msg) -> List (MySub msg) -> State msg -> Task Never (State msg)
+onEffects router cmds subs state =
     let
-        rawParams =
-            defaultRawParams params
+        sendMessages =
+            sendMessagesHelp router cmds state.contracts
+
+        newSubs =
+            -- buildSubsDict subs
+            Dict.empty
     in
-        toTask (constructEval params Once)
-            { rawParams | contractAddress = contractAddress }
+        sendMessages
+            |> Task.andThen (\web3EventDict -> State newSubs web3EventDict |> Task.succeed)
+
+
+sendMessagesHelp : Platform.Router msg Msg -> List (MyCmd msg) -> ContractsDict -> Task Never ContractsDict
+sendMessagesHelp router cmds contractsDict =
+    case cmds of
+        [] ->
+            Task.succeed contractsDict
+
+        (Once abi eventName toMsg address) :: rest ->
+            case Dict.get address contractsDict of
+                Just contract ->
+                    watchEventOnce router contract eventName toMsg
+                        |> Task.andThen (\_ -> sendMessagesHelp router rest contractsDict)
+
+                Nothing ->
+                    createContract abi address
+                        |> Task.andThen (\contract -> Task.succeed (Dict.insert address contract contractsDict))
+                        |> Task.andThen
+                            (\newContractsDict ->
+                                sendMessagesHelp router ((Once abi eventName toMsg address) :: rest) newContractsDict
+                            )
+
+
+createContract : String -> String -> Task Never Contract
+createContract =
+    Native.Web3.createContract
+
+
+watchEventOnce : Platform.Router msg Msg -> Contract -> String -> (String -> msg) -> Task Never ()
+watchEventOnce router contract eventName toAppMsg =
+    Native.Web3.watchEventOnce
+        contract
+        eventName
+        (\log -> Platform.sendToApp router (toAppMsg log))
 
 
 
 --
--- watch : String -> EventRequest -> Cmd msg
--- watch name eventRequest =
---     Web3.EM.watchEvent name eventRequest
+-- buildSubsDict : List (MySub msg) -> SubsDict msg -> SubsDict msg
+-- buildSubsDict subs dict =
+--     case subs of
+--         [] ->
+--             dict
 --
+--         (EventSentry name toMsg) :: rest ->
+--             buildSubsDict rest (Dict.update name (add toMsg) dict)
 --
--- stopWatching : String -> Cmd msg
--- stopWatching name =
---     Web3.EM.stopWatchingEvent name
+-- add : a -> Maybe (List a) -> Maybe (List a)
+-- add value maybeList =
+--     case maybeList of
+--         Nothing ->
+--             Just [ value ]
 --
---
--- sentry : String -> (String -> msg) -> Sub msg
--- sentry eventId toMsg =
---     Web3.EM.eventSentry eventId toMsg
---
---
--- reset : Cmd msg
--- reset =
---     Web3.EM.reset
---
---
--- pollContract : Retry -> TxId -> Task Error ContractInfo
--- pollContract retryParams (TxId txId) =
---     -- TODO This could be made more general. pollMinedTx
---     Web3.toTask
---         { method = "eth.getTransactionReceipt"
---         , params = Encode.list [ Encode.string txId ]
---         , expect = expectJson contractInfoDecoder
---         , callType = Async
---         , applyScope = Nothing
---         }
---         |> Web3.retry retryParams
---
+--         Just list ->
+--             Just (value :: list)
+
+
+type Msg
+    = RecieveOnce String String
+
+
+onSelfMsg : Platform.Router msg Msg -> Msg -> State msg -> Task Never (State msg)
+onSelfMsg router (RecieveOnce name log) state =
+    -- let
+    --     sends =
+    --         Dict.get name state.subs
+    --             |> Maybe.withDefault []
+    --             |> List.map (\tagger -> Platform.sendToApp router (tagger log))
+    -- in
+    -- Task.sequence sends &>
+    Task.succeed state
+
+
+
 -- Internal
 
 
@@ -162,7 +266,6 @@ type MethodAction
 type ContractAction
     = Methods MethodAction
     | Deploy MethodAction
-    | Once
 
 
 type alias Params a =
@@ -262,15 +365,7 @@ constructEval { gas, gasPrice, data } contractMethod =
                     ++ (toString callType |> decapitalize)
                     ++ callbackIfAsync callType
 
-            Once ->
-                let
-                    contract =
-                        "var contract = " ++ base ++ ";"
 
-                    callOnce =
-                        " return contract.once.apply(contract, [request.method].concat(request.params).concat([web3Callback]) )"
-                in
-                    "(function (){"
-                        ++ contract
-                        ++ callOnce
-                        ++ "})()"
+(&>) : Task a x -> Task a b -> Task a b
+(&>) t1 t2 =
+    t1 |> Task.andThen (\_ -> t2)

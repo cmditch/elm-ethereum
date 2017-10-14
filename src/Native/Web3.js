@@ -54,6 +54,38 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
+    function createContract(abi, address) {
+        return nativeBinding(function(callback)
+        {
+            try
+            {
+                var contract = eval("new web3.eth.Contract(JSON.parse(abi), address)");
+                console.log("CONTRACT CREATED:", contract);
+                return callback(succeed(contract));
+            }
+            catch(e)
+            {
+                console.log(e);
+            }
+        });
+    };
+
+
+    function watchEventOnce(contract, eventName, onMessage) {
+        return nativeBinding(function(callback)
+        {
+            try
+            {
+                contract.once(eventName, function(e,r) { rawSpawn(onMessage(JSON.stringify(r))) });
+                console.log("CONTRACT.ONCE." + eventName + " INITIATED");
+            }
+            catch(e)
+            {
+                console.log(e);
+            }
+        });
+    };
+
     function expectStringResponse(responseToResult) {
         return {
             responseToResult: responseToResult
@@ -63,6 +95,8 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     return {
         toTask: F2(toTask),
+        createContract: F2(createContract),
+        watchEventOnce: F3(watchEventOnce),
         expectStringResponse: expectStringResponse
     };
 
