@@ -97,21 +97,16 @@ returnsTwoUnnamed a b =
         }
 
 
-triggerEvent : BigInt -> Contract.Params { v0 : String }
+triggerEvent : BigInt -> Contract.Params String
 triggerEvent a =
-    let
-        decoder =
-            decode (\v0 -> { v0 = v0 })
-                |> required "0" string
-    in
-        { abi = abi_
-        , gasPrice = Just (BigInt.fromInt 300000000)
-        , gas = Just 3000000
-        , methodName = Just "triggerEvent(int256)"
-        , data = Nothing
-        , params = [ Encode.string (BigInt.toString a) ]
-        , decoder = decoder
-        }
+    { abi = abi_
+    , gasPrice = Just (BigInt.fromInt 300000000)
+    , gas = Just 3000000
+    , methodName = Just "triggerEvent(int256)"
+    , data = Nothing
+    , params = [ Encode.string (BigInt.toString a) ]
+    , decoder = string
+    }
 
 
 

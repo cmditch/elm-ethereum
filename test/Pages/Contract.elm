@@ -33,6 +33,7 @@ testCommands config =
     , Task.attempt (CallReturnsOneUnnamed "returnsOneUnnamed.call") (Contract.call config.contract <| TC.returnsOneUnnamed (BigInt.fromInt 30) (BigInt.fromInt 12))
     , Task.attempt (CallReturnsTwoNamed "returnsTwoNamed.call") (Contract.call config.contract <| TC.returnsTwoNamed (BigInt.fromInt 400) (BigInt.fromInt 20))
     , Task.attempt (CallReturnsTwoUnnamed "returnsTwoUnnamed.call") (Contract.call config.contract <| TC.returnsTwoUnnamed (BigInt.fromInt 4000) (BigInt.fromInt 4000))
+    , Task.attempt (CallTriggerEvent "triggerEvent.call") (Contract.call config.contract <| TC.triggerEvent (BigInt.fromInt 4000))
     , Task.attempt (EstimateContractABI "estimateContractABI") (TC.encodeContractABI (BigInt.fromInt 23) "Testing123")
     , Task.attempt (EstimateContractGas "estimateContractGas") (TC.estimateContractGas (BigInt.fromInt 23) "Testing123")
     ]
@@ -68,7 +69,7 @@ view model =
                 [ spacing 20, paddingXY 20 20 ]
                 [ button None [ onClick InitTests ] (text "Start Tests")
                 , button None [ onClick InitEventOnce ] (text "Watch Event Once")
-                , button None [ onClick InitMethodSend ] (text "Send Tx")
+                , button None [ onClick InitMethodSend ] (text "Send Tx w/ Event")
                 , button None [ onClick InitDeploy ] (text "Deploy Contract")
                 ]
             ]
@@ -92,6 +93,7 @@ type Msg
     | CallReturnsOneUnnamed String (Result Error BigInt)
     | CallReturnsTwoNamed String (Result Error { someUint : BigInt, someString : String })
     | CallReturnsTwoUnnamed String (Result Error { v0 : BigInt, v1 : String })
+    | CallTriggerEvent String (Result Error String)
 
 
 update : Config -> Msg -> Model -> ( Model, Cmd Msg )
@@ -158,3 +160,6 @@ update config msg model =
 
             CallReturnsTwoUnnamed funcName result ->
                 updateModel 140 funcName result ! []
+
+            CallTriggerEvent funcName result ->
+                updateModel 150 funcName result ! []
