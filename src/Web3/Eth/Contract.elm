@@ -18,6 +18,7 @@ import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
 import BigInt exposing (BigInt)
 import Dict exposing (Dict)
+import Process
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
 import Task exposing (Task)
@@ -185,7 +186,7 @@ sendMessagesHelp router cmds contractsDict =
         (Once abi eventName toMsg address) :: rest ->
             case Dict.get address contractsDict of
                 Just contract ->
-                    watchEventOnce router contract eventName toMsg
+                    Process.spawn (watchEventOnce router contract eventName toMsg)
                         |> Task.andThen (\_ -> sendMessagesHelp router rest contractsDict)
 
                 Nothing ->
