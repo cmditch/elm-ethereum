@@ -116,15 +116,26 @@ triggerEvent a =
 -- eventAdd : Contract.Params (EventLog { mathematician : Address, anInt : BigInt })
 
 
-eventAdd : (String -> msg) -> Address -> Cmd msg
-eventAdd =
+onceAllEvents : Address -> (String -> msg) -> Cmd msg
+onceAllEvents =
+    Contract.once abi_ "allEvents"
+
+
+onceAdd : Address -> (String -> msg) -> Cmd msg
+onceAdd =
+    Contract.once abi_ "Add"
+
+
+decodeAdd : String -> Result String (EventLog { mathematician : Address, anInt : BigInt })
+decodeAdd response =
     let
-        returnValuesDecoder =
+        returnValDecoder =
             decode (\mathematician anInt -> { mathematician = mathematician, anInt = anInt })
                 |> required "mathematician" addressDecoder
                 |> required "anInt" bigIntDecoder
     in
-        Contract.once abi_ "Add"
+        response
+            |> Decode.decodeString (eventLogDecoder returnValDecoder)
 
 
 

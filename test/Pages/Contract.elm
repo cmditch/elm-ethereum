@@ -86,7 +86,7 @@ type Msg
     | MethodSendResponse String (Result Error TxId)
     | InitEventOnce
       -- | EventInfo String (Result Error (EventLog { mathematician : Address, anInt : BigInt }))
-    | EventInfo String String
+    | EventInfo String (Result String (EventLog { mathematician : Address, anInt : BigInt }))
     | InitTests
     | EstimateContractABI String (Result Error Hex)
     | EstimateContractGas String (Result Error Int)
@@ -106,10 +106,10 @@ update config msg model =
         updateModel key funcName result =
             case result of
                 Ok val ->
-                    { model | tests = updateTest key (Test funcName (Debug.log "ELM UPDATE OK: " <| toString val) True) }
+                    { model | tests = updateTest key (Test funcName (toString val) True) }
 
                 Err (Error err) ->
-                    { model | tests = updateTest key { name = funcName, response = (Debug.log "ELM UPDATE ERR: " <| toString err), passed = False } }
+                    { model | tests = updateTest key { name = funcName, response = (toString err), passed = False } }
     in
         case msg of
             InitDeploy ->
@@ -133,7 +133,7 @@ update config msg model =
 
             InitEventOnce ->
                 model
-                    ! [ (TC.eventAdd (EventInfo "contract.once('Add')") config.contract) ]
+                    ! [ TC.onceAdd config.contract (TC.decodeAdd >> EventInfo "contract.once('Add')") ]
 
             EventInfo funcName result ->
                 updateModel 2 funcName (Ok result) ! []

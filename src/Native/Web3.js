@@ -12,7 +12,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function toTask(evalString, request) {
-        console.log(evalString, request, JSON.stringify(request));
+        // console.log(evalString, request, JSON.stringify(request));
         return nativeBinding(function(callback)
         {
             try
@@ -35,7 +35,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 };
 
                 var response = eval(evalString);
-                console.log(response);
+                // console.log(response);
                 if (callType === "Sync" || callType === "Getter")
                 {
                     elmCallback(response)
@@ -47,14 +47,14 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             }
             catch(e)
             {
-                console.log(e);
+                // console.log(e);
                 return callback(fail( web3Error(e.message) ));
             }
         });
     };
 
 
-    function createContract(abi, address) {
+    function web3Contract(abi, address) {
         return nativeBinding(function(callback)
         {
             try
@@ -72,18 +72,17 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function watchEventOnce(contract, eventName, onMessage) {
-        return nativeBinding(function(callback)
+        try
         {
-            try
-            {
-                contract.once(eventName, function(e,r) { rawSpawn(onMessage(JSON.stringify(r))) });
-                console.log("CONTRACT.ONCE." + eventName + " INITIATED");
-            }
-            catch(e)
-            {
-                console.log(e);
-            }
-        });
+            contract.once(eventName, function(e,r) {
+                rawSpawn(onMessage(JSON.stringify(r)))
+            });
+            console.log("CONTRACT.ONCE." + eventName + " INITIATED");
+        }
+        catch(e)
+        {
+            console.log(e);
+        }
     };
 
     function expectStringResponse(responseToResult) {
@@ -95,7 +94,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     return {
         toTask: F2(toTask),
-        createContract: F2(createContract),
+        web3Contract: F2(web3Contract),
         watchEventOnce: F3(watchEventOnce),
         expectStringResponse: expectStringResponse
     };

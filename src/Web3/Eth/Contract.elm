@@ -103,19 +103,19 @@ estimateContractGas params =
 
 
 type MyCmd msg
-    = Once String String (String -> msg) String
+    = Once String String String (String -> msg)
 
 
 cmdMap : (a -> b) -> MyCmd a -> MyCmd b
 cmdMap tagger cmd =
     case cmd of
-        Once abi eventName toAppMsg address ->
-            Once abi eventName (toAppMsg >> tagger) address
+        Once abi eventName address toAppMsg ->
+            Once abi eventName address (toAppMsg >> tagger)
 
 
-once : Abi -> String -> (String -> msg) -> Address -> Cmd msg
-once (Abi abi) eventName toAppMsg (Address address) =
-    command <| Once abi eventName toAppMsg address
+once : Abi -> String -> Address -> (String -> msg) -> Cmd msg
+once (Abi abi) eventName (Address address) toAppMsg =
+    command <| Once abi eventName address toAppMsg
 
 
 
@@ -163,6 +163,11 @@ init =
     Task.succeed (State Dict.empty Dict.empty)
 
 
+(&>) : Task a x -> Task a b -> Task a b
+(&>) t1 t2 =
+    t1 |> Task.andThen (\_ -> t2)
+
+
 onEffects : Platform.Router msg Msg -> List (MyCmd msg) -> List (MySub msg) -> State msg -> Task Never (State msg)
 onEffects router cmds subs state =
     let
@@ -183,24 +188,25 @@ sendMessagesHelp router cmds contractsDict =
         [] ->
             Task.succeed contractsDict
 
-        (Once abi eventName toMsg address) :: rest ->
+        (Once abi eventName address toMsg) :: rest ->
             case Dict.get address contractsDict of
                 Just contract ->
                     Process.spawn (watchEventOnce router contract eventName toMsg)
-                        |> Task.andThen (\_ -> sendMessagesHelp router rest contractsDict)
+                        &> sendMessagesHelp router rest contractsDict
 
                 Nothing ->
-                    createContract abi address
-                        |> Task.andThen (\contract -> Task.succeed (Dict.insert address contract contractsDict))
+                    web3Contract abi address
                         |> Task.andThen
-                            (\newContractsDict ->
-                                sendMessagesHelp router ((Once abi eventName toMsg address) :: rest) newContractsDict
+                            (\contract ->
+                                Process.spawn (watchEventOnce router contract eventName toMsg)
+                                    &> Task.succeed (Dict.insert address contract contractsDict)
                             )
+                        |> Task.andThen (\newContractsDict -> sendMessagesHelp router rest newContractsDict)
 
 
-createContract : String -> String -> Task Never Contract
-createContract =
-    Native.Web3.createContract
+web3Contract : String -> String -> Task Never Contract
+web3Contract abi contractAddress =
+    Native.Web3.web3Contract abi contractAddress
 
 
 watchEventOnce : Platform.Router msg Msg -> Contract -> String -> (String -> msg) -> Task Never ()
@@ -365,8 +371,3 @@ constructEval { gas, gasPrice, data } contractMethod =
                     ++ ".deploy({arguments: request.params})."
                     ++ (toString callType |> decapitalize)
                     ++ callbackIfAsync callType
-
-
-(&>) : Task a x -> Task a b -> Task a b
-(&>) t1 t2 =
-    t1 |> Task.andThen (\_ -> t2)
