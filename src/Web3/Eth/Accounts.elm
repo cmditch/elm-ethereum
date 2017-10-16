@@ -14,6 +14,7 @@ module Web3.Eth.Accounts
 import Task exposing (Task)
 import Json.Encode as Encode
 import Web3
+import Web3.Internal as Internal
 import Web3.Decoders exposing (..)
 import Web3.Encoders exposing (encodeKeystore, encodeTxParams)
 import Web3.Types exposing (..)
@@ -21,7 +22,7 @@ import Web3.Types exposing (..)
 
 create : Task Error Account
 create =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.create"
         , params = Encode.list []
         , expect = expectJson accountDecoder
@@ -32,7 +33,7 @@ create =
 
 createWithEntropy : String -> Task Error Account
 createWithEntropy entropy =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.create"
         , params = Encode.list [ Encode.string entropy ]
         , expect = expectJson accountDecoder
@@ -43,7 +44,7 @@ createWithEntropy entropy =
 
 signTransaction : Account -> TxParams -> Task Error SignedTx
 signTransaction { address, privateKey } txParams =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.signTransaction"
         , params =
             Encode.list
@@ -58,7 +59,7 @@ signTransaction { address, privateKey } txParams =
 
 hashMessage : String -> Task Error Sha3
 hashMessage message =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.hashMessage"
         , params = Encode.list [ Encode.string message ]
         , expect = expectJson sha3Decoder
@@ -69,7 +70,7 @@ hashMessage message =
 
 sign : Account -> String -> Task Error SignedMsg
 sign { privateKey } message =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.sign"
         , params =
             Encode.list
@@ -84,7 +85,7 @@ sign { privateKey } message =
 
 recoverTx : SignedTx -> Task Error Address
 recoverTx { messageHash, v, r, s } =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.recover"
         , params =
             Encode.list
@@ -101,7 +102,7 @@ recoverTx { messageHash, v, r, s } =
 
 recoverMsg : SignedMsg -> Task Error Address
 recoverMsg { messageHash, v, r, s } =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.recover"
         , params =
             Encode.list
@@ -118,7 +119,7 @@ recoverMsg { messageHash, v, r, s } =
 
 encrypt : Account -> String -> Task Error Keystore
 encrypt { privateKey } password =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.encrypt"
         , params =
             Encode.list
@@ -134,7 +135,7 @@ encrypt { privateKey } password =
 
 decrypt : Keystore -> String -> Task Error Account
 decrypt keystore password =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.decrypt"
         , params =
             Encode.list

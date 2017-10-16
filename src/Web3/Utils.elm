@@ -33,7 +33,7 @@ import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
 import Web3.Encoders exposing (encodeBytes)
 import Regex
-import Web3 exposing (toTask)
+import Web3.Internal as Internal
 
 
 -- UTIL
@@ -41,7 +41,7 @@ import Web3 exposing (toTask)
 
 randomHex : Int -> Task Error Hex
 randomHex size =
-    toTask
+    Internal.toTask
         { method = "utils.randomHex"
         , params = Encode.list [ Encode.int size ]
         , expect = expectJson hexDecoder
@@ -52,7 +52,7 @@ randomHex size =
 
 sha3 : String -> Task Error Sha3
 sha3 val =
-    toTask
+    Internal.toTask
         { method = "utils.sha3"
         , params = Encode.list [ Encode.string val ]
         , expect = expectJson sha3Decoder
@@ -66,7 +66,7 @@ sha3 val =
 
    soliditySha3 : List SoldiityTypes -> Task Error Sha3
    soliditySha3 solidityTypes =
-       toTask
+       Internal.toTask
            { method = "utils.soliditySha3"
            , params = encodeSolidityTypes solidityTypes
            , expect = expectJson keccakDecoder
@@ -78,7 +78,7 @@ sha3 val =
 
 isHex : String -> Task Error Bool
 isHex val =
-    toTask
+    Internal.toTask
         { method = "utils.isHex"
         , params = Encode.list [ Encode.string val ]
         , expect = expectBool
@@ -89,7 +89,7 @@ isHex val =
 
 isAddress : Address -> Task Error Bool
 isAddress (Address address) =
-    toTask
+    Internal.toTask
         { method = "utils.isAddress"
         , params = Encode.list [ Encode.string address ]
         , expect = expectBool
@@ -100,7 +100,7 @@ isAddress (Address address) =
 
 toChecksumAddress : Address -> Task Error Address
 toChecksumAddress (Address address) =
-    toTask
+    Internal.toTask
         { method = "utils.toChecksumAddress"
         , params = Encode.list [ Encode.string address ]
         , expect = expectJson addressDecoder
@@ -111,7 +111,7 @@ toChecksumAddress (Address address) =
 
 checkAddressChecksum : Address -> Task Error Bool
 checkAddressChecksum (Address address) =
-    toTask
+    Internal.toTask
         { method = "utils.isAddress"
         , params = Encode.list [ Encode.string address ]
         , expect = expectBool
@@ -122,7 +122,7 @@ checkAddressChecksum (Address address) =
 
 toHex : String -> Task Error Hex
 toHex val =
-    toTask
+    Internal.toTask
         { method = "utils.toHex"
         , params = Encode.list [ Encode.string val ]
         , expect = expectJson hexDecoder
@@ -133,7 +133,7 @@ toHex val =
 
 hexToNumberString : Hex -> Task Error String
 hexToNumberString (Hex val) =
-    toTask
+    Internal.toTask
         { method = "utils.hexToNumberString"
         , params = Encode.list [ Encode.string val ]
         , expect = expectString
@@ -144,7 +144,7 @@ hexToNumberString (Hex val) =
 
 hexToNumber : Hex -> Task Error Int
 hexToNumber (Hex val) =
-    toTask
+    Internal.toTask
         { method = "utils.hexToNumber"
         , params = Encode.list [ Encode.string val ]
         , expect = expectInt
@@ -159,7 +159,7 @@ hexToNumber (Hex val) =
 
 numberToHex : Int -> Task Error Hex
 numberToHex number =
-    toTask
+    Internal.toTask
         { method = "utils.numberToHex"
         , params = Encode.list [ Encode.string <| toString number ]
         , expect = expectJson hexDecoder
@@ -170,7 +170,7 @@ numberToHex number =
 
 bigIntToHex : BigInt -> Task Error Hex
 bigIntToHex number =
-    toTask
+    Internal.toTask
         { method = "utils.numberToHex"
         , params = Encode.list [ Encode.string <| BigInt.toString number ]
         , expect = expectJson hexDecoder
@@ -181,7 +181,7 @@ bigIntToHex number =
 
 hexToUtf8 : Hex -> Task Error String
 hexToUtf8 (Hex val) =
-    toTask
+    Internal.toTask
         { method = "utils.hexToUtf8"
         , params = Encode.list [ Encode.string val ]
         , expect = expectString
@@ -192,7 +192,7 @@ hexToUtf8 (Hex val) =
 
 utf8ToHex : String -> Task Error Hex
 utf8ToHex val =
-    toTask
+    Internal.toTask
         { method = "utils.utf8ToHex"
         , params = Encode.list [ Encode.string val ]
         , expect = expectJson hexDecoder
@@ -203,7 +203,7 @@ utf8ToHex val =
 
 hexToAscii : Hex -> Task Error String
 hexToAscii (Hex val) =
-    toTask
+    Internal.toTask
         { method = "utils.hexToAscii"
         , params =
             Encode.list [ Encode.string val ]
@@ -217,7 +217,7 @@ hexToAscii (Hex val) =
 
 asciiToHex : String -> Task Error Hex
 asciiToHex val =
-    toTask
+    Internal.toTask
         { method = "utils.asciiToHex"
         , params = Encode.list [ Encode.string val ]
         , expect = expectJson hexDecoder
@@ -228,7 +228,7 @@ asciiToHex val =
 
 hexToBytes : Hex -> Task Error Bytes
 hexToBytes (Hex hex) =
-    toTask
+    Internal.toTask
         { method = "utils.hexToBytes"
         , params = Encode.list [ Encode.string hex ]
         , expect = expectJson bytesDecoder
@@ -239,7 +239,7 @@ hexToBytes (Hex hex) =
 
 bytesToHex : Bytes -> Task Error Hex
 bytesToHex byteArray =
-    toTask
+    Internal.toTask
         { method = "utils.bytesToHex"
         , params = Encode.list [ encodeBytes byteArray ]
         , expect = expectJson hexDecoder
@@ -323,7 +323,7 @@ rightPadHex =
 
 
 
--- output won't always be hex if no hexy char is provided :\
+-- TODO output won't always be hex if no hexy char is provided :\
 
 
 leftPadHexCustom : Char -> Int -> Hex -> Hex
@@ -341,7 +341,7 @@ leftPadHexCustom char amount (Hex hex) =
 
 
 
--- output won't always be hex if no hexy char is provided :\
+-- TODO output won't always be hex if no hexy char is provided :\
 
 
 rightPadHexCustom : Char -> Int -> Hex -> Hex

@@ -5,8 +5,7 @@ import Web3.Types exposing (..)
 
 defaultTxParams : TxParams
 defaultTxParams =
-    { from = Nothing
-    , to = Nothing
+    { to = Nothing
     , value = Nothing
     , data = Nothing
     , gas = 21000
