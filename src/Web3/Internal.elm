@@ -8,6 +8,7 @@ module Web3.Internal
         )
 
 import Json.Encode as Encode exposing (Value)
+import Native.Web3
 import Web3.Types exposing (..)
 import Task exposing (Task)
 

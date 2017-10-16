@@ -14,6 +14,7 @@ effect module Web3.Eth.Contract
         , Params
         )
 
+import Native.Web3
 import Web3.Internal exposing (constructOptions, decapitalize)
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
