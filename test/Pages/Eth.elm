@@ -34,7 +34,7 @@ testCommands config =
     , Task.attempt (GetGasPrice "getGasPrice") (Web3.Eth.getGasPrice)
     , Task.attempt (GetAccounts "getAccounts") (Web3.Eth.getAccounts)
     , Task.attempt (GetBlockNumber "getBlockNumber") (Web3.Eth.getBlockNumber)
-    , Task.attempt (GetBalance "getBalance") (Web3.Eth.getBalance config.contract)
+    , Task.attempt (GetBalance "getBalance") (Web3.Eth.getBalance config.account)
     , Task.attempt (GetStorageAt "getStorageAt") (Web3.Eth.getStorageAt config.contract 1)
     , Task.attempt (GetStorageAtBlock "getStorageAtBlock") (Web3.Eth.getStorageAtBlock config.blockNumber config.contract 1)
     , Task.attempt (GetCode "getCode") (Web3.Eth.getCode config.contract)

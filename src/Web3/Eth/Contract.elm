@@ -1,4 +1,5 @@
-module Web3.Eth.Contract
+effect module Web3.Eth.Contract
+    where { command = MyCmd, subscription = MySub }
     exposing
         ( call
         , send
@@ -6,42 +7,24 @@ module Web3.Eth.Contract
         , estimateContractGas
         , encodeMethodABI
         , encodeContractABI
-        , watch
-        , sentry
-        , reset
-        , stopWatching
-        , pollContract
+        , subscribe
+        , unsubscribe
+        , eventSentry
+        , once
         , Params
         )
 
 -- import Web3.Internal exposing (Request)
 
-import Web3 exposing (Retry)
 import Web3.Internal exposing (EventRequest, constructOptions, decapitalize)
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
-import Web3.EM exposing (eventSentry, watchEvent, stopWatchingEvent)
 import BigInt exposing (BigInt)
+import Dict exposing (Dict)
+import Process
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
 import Task exposing (Task)
-
-
-{-
-   Types
--}
-
-
-type alias Params a =
-    { abi : Abi
-    , gasPrice : Maybe BigInt
-    , gas : Maybe Int
-    , data : Maybe Hex
-    , params : List Value
-    , methodName : Maybe String
-    , decoder : Decoder a
-    }
-
 
 
 {-
@@ -55,7 +38,7 @@ call (Address contractAddress) params =
         rawParams =
             defaultRawParams params
     in
-        toTask (constructEval params <| Methods Call rawParams.method)
+        toTask (constructEval params <| Methods Call)
             { rawParams | contractAddress = contractAddress }
 
 
@@ -65,7 +48,7 @@ send (Address from) (Address contractAddress) params =
         rawParams =
             defaultRawParams params
     in
-        toTask (constructEval params <| Methods Send rawParams.method)
+        toTask (constructEval params <| Methods Send)
             { rawParams
                 | expect = expectJson txIdDecoder
                 , from = from
@@ -79,7 +62,7 @@ estimateMethodGas (Address contractAddress) params =
         rawParams =
             defaultRawParams params
     in
-        toTask (constructEval params <| Methods EstimateGas rawParams.method)
+        toTask (constructEval params <| Methods EstimateGas)
             { rawParams
                 | expect = expectInt
                 , contractAddress = contractAddress
@@ -92,7 +75,7 @@ encodeMethodABI params =
         rawParams =
             defaultRawParams params
     in
-        toTask (constructEval params <| Methods EncodeABI rawParams.method)
+        toTask (constructEval params <| Methods EncodeABI)
             { rawParams
                 | expect = expectJson hexDecoder
                 , callType = Sync
@@ -115,44 +98,198 @@ estimateContractGas params =
         (defaultRawParams params)
 
 
+once : Address -> Params (EventLog a) -> Task Error (EventLog a)
+once (Address contractAddress) params =
+    let
+        rawParams =
+            defaultRawParams params
+    in
+        toTask (constructEval params Once)
+            { rawParams | contractAddress = contractAddress }
 
--- deploy : Params -> Task Error Address
+
+
 {-
-   Contract Events
+   Effect Manager
+-}
+-- COMMANDS
+
+
+type MyCmd msg
+    = Subscribe String String String String
+    | Unsubscribe String
+
+
+cmdMap : (a -> b) -> MyCmd a -> MyCmd b
+cmdMap _ cmd =
+    case cmd of
+        Subscribe abi eventName address eventId ->
+            Subscribe abi eventName address eventId
+
+        Unsubscribe eventId ->
+            Unsubscribe eventId
+
+
+subscribe : Abi -> String -> ( Address, String ) -> Cmd msg
+subscribe (Abi abi) eventName ( Address address, eventId ) =
+    command <| Subscribe abi eventName address (address ++ eventId)
+
+
+
+{- Combining address and eventId to make eventId more unique,
+   otherwise you could conceivably subscribe to another event
+   with the same name but different address
 -}
 
 
-watch : String -> EventRequest -> Cmd msg
-watch name eventRequest =
-    Web3.EM.watchEvent name eventRequest
+unsubscribe : ( Address, String ) -> Cmd msg
+unsubscribe ( Address address, eventId ) =
+    command <| Unsubscribe (address ++ eventId)
 
 
-stopWatching : String -> Cmd msg
-stopWatching name =
-    Web3.EM.stopWatchingEvent name
+
+-- SUBSCRIPTIONS
 
 
-sentry : String -> (String -> msg) -> Sub msg
-sentry eventId toMsg =
-    Web3.EM.eventSentry eventId toMsg
+type MySub msg
+    = EventSentry String (String -> msg)
 
 
-reset : Cmd msg
-reset =
-    Web3.EM.reset
+subMap : (a -> b) -> MySub a -> MySub b
+subMap method (EventSentry name toMsg) =
+    EventSentry name (toMsg >> method)
 
 
-pollContract : Retry -> TxId -> Task Error ContractInfo
-pollContract retryParams (TxId txId) =
-    -- TODO This could be made more general. pollMinedTx
-    Web3.toTask
-        { method = "eth.getTransactionReceipt"
-        , params = Encode.list [ Encode.string txId ]
-        , expect = expectJson contractInfoDecoder
-        , callType = Async
-        , applyScope = Nothing
-        }
-        |> Web3.retry retryParams
+eventSentry : ( Address, String ) -> (String -> msg) -> Sub msg
+eventSentry ( Address address, eventId ) toMsg =
+    subscription <| EventSentry (address ++ eventId) toMsg
+
+
+
+-- MANAGER
+
+
+type EventEmitter
+    = EventEmitter
+
+
+type alias State msg =
+    { subs : SubsDict msg
+    , eventEmitters : EventEmitterDict
+    }
+
+
+type alias SubsDict msg =
+    Dict.Dict String (List (String -> msg))
+
+
+type alias EventEmitterDict =
+    Dict.Dict String EventEmitter
+
+
+init : Task Never (State msg)
+init =
+    Task.succeed (State Dict.empty Dict.empty)
+
+
+(&>) : Task a x -> Task a b -> Task a b
+(&>) t1 t2 =
+    t1 |> Task.andThen (\_ -> t2)
+
+
+onEffects : Platform.Router msg Msg -> List (MyCmd msg) -> List (MySub msg) -> State msg -> Task Never (State msg)
+onEffects router cmds subs state =
+    let
+        sendMessages =
+            sendMessagesHelp router cmds state.eventEmitters
+
+        newSubs =
+            buildSubsDict subs Dict.empty
+    in
+        sendMessages
+            |> Task.andThen (\newEventEmitters -> State newSubs newEventEmitters |> Task.succeed)
+
+
+sendMessagesHelp : Platform.Router msg Msg -> List (MyCmd msg) -> EventEmitterDict -> Task Never EventEmitterDict
+sendMessagesHelp router cmds eventEmittersDict =
+    case cmds of
+        [] ->
+            Task.succeed eventEmittersDict
+
+        (Subscribe abi eventName address eventId) :: rest ->
+            case Dict.get eventId eventEmittersDict of
+                Just _ ->
+                    sendMessagesHelp router rest eventEmittersDict
+
+                Nothing ->
+                    createEventEmitter abi address eventName
+                        |> Task.andThen
+                            (\eventEmitter ->
+                                (Process.spawn (eventSubscribe router eventEmitter eventId))
+                                    &> Task.succeed (Dict.insert eventId eventEmitter eventEmittersDict)
+                            )
+                        |> Task.andThen (\newEventEmitters -> sendMessagesHelp router rest newEventEmitters)
+
+        (Unsubscribe eventId) :: rest ->
+            case Dict.get eventId eventEmittersDict of
+                Just eventEmitter ->
+                    Process.spawn (eventUnsubscribe eventEmitter)
+                        &> Task.succeed (Dict.remove eventId eventEmittersDict)
+
+                Nothing ->
+                    sendMessagesHelp router rest eventEmittersDict
+
+
+createEventEmitter : String -> String -> String -> Task Never EventEmitter
+createEventEmitter abi address eventName =
+    Native.Web3.createEventEmitter abi address eventName
+
+
+eventSubscribe : Platform.Router msg Msg -> EventEmitter -> String -> Task Never ()
+eventSubscribe router eventEmitter eventId =
+    Native.Web3.eventSubscribe
+        eventEmitter
+        (\log -> Platform.sendToSelf router (RecieveLog eventId log))
+
+
+eventUnsubscribe : EventEmitter -> Task Never ()
+eventUnsubscribe eventEmitter =
+    Native.Web3.eventUnsubscribe eventEmitter
+
+
+buildSubsDict : List (MySub msg) -> SubsDict msg -> SubsDict msg
+buildSubsDict subs dict =
+    case subs of
+        [] ->
+            dict
+
+        (EventSentry eventId toMsg) :: rest ->
+            buildSubsDict rest (Dict.update eventId (add toMsg) dict)
+
+
+add : a -> Maybe (List a) -> Maybe (List a)
+add value maybeList =
+    case maybeList of
+        Nothing ->
+            Just [ value ]
+
+        Just list ->
+            Just (value :: list)
+
+
+type Msg
+    = RecieveLog String String
+
+
+onSelfMsg : Platform.Router msg Msg -> Msg -> State msg -> Task Never (State msg)
+onSelfMsg router (RecieveLog eventId log) state =
+    let
+        sends =
+            Dict.get eventId state.subs
+                |> Maybe.withDefault []
+                |> List.map (\tagger -> Platform.sendToApp router (tagger log))
+    in
+        Process.spawn (Task.sequence sends) &> Task.succeed state
 
 
 
@@ -172,9 +309,20 @@ type MethodAction
 
 
 type ContractAction
-    = Methods MethodAction String
-    | Events
+    = Methods MethodAction
     | Deploy MethodAction
+    | Once
+
+
+type alias Params a =
+    { abi : Abi
+    , gasPrice : Maybe BigInt
+    , gas : Maybe Int
+    , data : Maybe Hex
+    , params : List Value
+    , methodName : Maybe String
+    , decoder : Decoder a
+    }
 
 
 type alias RawParams a =
@@ -236,7 +384,7 @@ constructEval { gas, gasPrice, data } contractMethod =
 
         options =
             "{ from: request.from, "
-                ++ constructOptions [ ( "data", gas_ ), ( "gasPrice", gasPrice_ ), ( "data", data_ ) ]
+                ++ constructOptions [ ( "gas", gas_ ), ( "gasPrice", gasPrice_ ), ( "data", data_ ) ]
                 ++ "}"
 
         base =
@@ -251,20 +399,27 @@ constructEval { gas, gasPrice, data } contractMethod =
                     "(web3Callback)"
     in
         case contractMethod of
-            Methods callType methodName ->
+            Methods callType ->
                 base
-                    ++ ".methods['"
-                    ++ methodName
-                    ++ "'].apply(null, request.params)."
+                    ++ ".methods[request.method].apply(web3.eth.Contract, request.params)."
                     ++ (toString callType |> decapitalize)
                     ++ callbackIfAsync callType
 
             Deploy callType ->
                 base
-                    ++ ".deploy({arguments: request.params })."
+                    ++ ".deploy({arguments: request.params})."
                     ++ (toString callType |> decapitalize)
                     ++ callbackIfAsync callType
 
-            Events ->
-                base
-                    ++ "//under construction//"
+            Once ->
+                let
+                    contract =
+                        "var contract = " ++ base ++ ";"
+
+                    callOnce =
+                        " return contract.once.apply(contract, [request.method].concat(request.params).concat([web3Callback]) )"
+                in
+                    "(function (){"
+                        ++ contract
+                        ++ callOnce
+                        ++ "})()"

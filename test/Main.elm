@@ -14,6 +14,9 @@ import Pages.Eth as Eth
 import Pages.Contract as Contract
 import Web3.Types exposing (..)
 import Web3.Eth
+import Web3.Eth.Wallet as EthWallet
+import Web3.Eth.Contract as EthContract
+import TestContract as TC
 
 
 main : Program Never Model Msg
@@ -115,7 +118,7 @@ drawer =
             [ Home, Utils, Eth, Accounts, Wallet, Contract, Events ]
 
         pageButton page =
-            button None [ onClick <| SetPage page ] (text <| toString page)
+            button Button [ onClick <| SetPage page ] (text <| toString page)
     in
         column Drawer
             [ height fill, spacing 10, padding 10, width (px 180) ]
@@ -131,6 +134,7 @@ type Msg
     | EthMsg Eth.Msg
     | ContractMsg Contract.Msg
     | SetPage Page
+    | NoOpTask (Result Error ())
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -144,7 +148,7 @@ update msg model =
                 case result of
                     Ok networkId ->
                         { newModel | config = getConfig <| getNetwork networkId }
-                            ! [ newCmds ]
+                            ! [ newCmds, Task.attempt NoOpTask (EthWallet.add <| PrivateKey "0x7123d83b9d4314a91a5ea62d3678576d10352f538aaa2dc34ded3725c80740d8") ]
 
                     Err err ->
                         { newModel | error = Just err } ! []
@@ -194,8 +198,14 @@ update msg model =
         SetPage page ->
             { model | currentPage = page } ! []
 
+        NoOpTask _ ->
+            model ! []
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        []
+        [ EthContract.eventSentry
+            ( model.config.contract, "eventWatchTest" )
+            (TC.decodeAdd >> Contract.EventInfo >> ContractMsg)
+        ]

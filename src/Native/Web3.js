@@ -12,7 +12,6 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
 
     function toTask(evalString, request) {
-        console.log(evalString, request);
         return nativeBinding(function(callback)
         {
             try
@@ -35,7 +34,6 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 };
 
                 var response = eval(evalString);
-                console.log(response);
                 if (callType === "Sync" || callType === "Getter")
                 {
                     elmCallback(response)
@@ -47,10 +45,52 @@ var _cmditch$elm_web3$Native_Web3 = function() {
             }
             catch(e)
             {
-                console.log(e);
                 return callback(fail( web3Error(e.message) ));
             }
         });
+    };
+
+
+    function createEventEmitter(abi, address, eventId) {
+        return nativeBinding(function(callback)
+        {
+            try
+            {
+                callback(succeed(
+                    eval("new web3.eth.Contract(JSON.parse(abi), address).events[eventId]()")
+                ));
+            }
+            catch(e)
+            {
+                console.log(e);
+            }
+        });
+    };
+
+
+    function eventSubscribe(eventEmitter, onMessage) {
+        try
+        {
+            eventEmitter.callback = function(error, log) {
+                return rawSpawn(onMessage(JSON.stringify(log)));
+            };
+        }
+        catch(e)
+        {
+            console.log(e);
+        }
+    };
+
+
+    function eventUnsubscribe(eventEmitter) {
+        try
+        {
+            eventEmitter.unsubscribe();
+        }
+        catch(e)
+        {
+            console.log(e);
+        }
     };
 
 
@@ -63,6 +103,9 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     return {
         toTask: F2(toTask),
+        createEventEmitter: F3(createEventEmitter),
+        eventSubscribe: F2(eventSubscribe),
+        eventUnsubscribe: eventUnsubscribe,
         expectStringResponse: expectStringResponse
     };
 

@@ -114,7 +114,7 @@ txReceiptDecoder =
         |> required "blockNumber" int
         |> required "gasUsed" int
         |> required "cumulativeGasUsed" int
-        |> required "contractAddress" string
+        |> custom (maybe (field "contractAddress" addressDecoder))
         |> required "logs" (list logDecoder)
 
 
@@ -134,16 +134,26 @@ logDecoder =
 
 
 eventLogDecoder : Decoder a -> Decoder (EventLog a)
-eventLogDecoder argsDecoder =
-    decode EventLog
-        |> required "address" addressDecoder
-        |> required "args" argsDecoder
-        |> required "blockHash" (nullable string)
-        |> required "blockNumber" (nullable int)
-        |> optional "event" string "Error"
-        |> required "logIndex" (nullable int)
-        |> required "transactionHash" txIdDecoder
-        |> required "transactionIndex" int
+eventLogDecoder returnValuesDecoder =
+    let
+        rawDecoder =
+            decode (\data topics -> { data = data, topics = topics })
+                |> required "data" hexDecoder
+                |> required "topics" (list hexDecoder)
+    in
+        decode EventLog
+            |> required "address" addressDecoder
+            |> required "blockHash" (nullable string)
+            |> required "blockNumber" (nullable int)
+            |> required "transactionHash" txIdDecoder
+            |> required "transactionIndex" int
+            |> required "logIndex" (nullable int)
+            |> required "removed" bool
+            |> required "id" string
+            |> required "returnValues" returnValuesDecoder
+            |> optional "event" string "Are you seeing this? Open github issue plz"
+            |> required "signature" (nullable hexDecoder)
+            |> required "raw" rawDecoder
 
 
 accountDecoder : Decoder Account

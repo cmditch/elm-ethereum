@@ -265,7 +265,9 @@ update config msg model =
         InitAdd ->
             model
                 ! [ Task.attempt List
-                        (Wallet.add <| PrivateKey "0x7123d83b9d4314a91a5ea62d3678576d10352f538aaa2dc34ded3725c80740d8")
+                        (Wallet.add (PrivateKey "0x7123d83b9d4314a91a5ea62d3678576d10352f538aaa2dc34ded3725c80740d8")
+                            |> Task.andThen (\_ -> Wallet.list)
+                        )
                   ]
 
         InitRemove ->
@@ -298,7 +300,7 @@ update config msg model =
 
         InitLoad ->
             { model | loadStatus = "Loading wallet...." }
-                ! [ Task.attempt List (Wallet.load "qwerty") ]
+                ! [ Task.attempt List (Wallet.load "qwerty" |> Task.andThen (\_ -> Wallet.list)) ]
 
         List result ->
             case result of
@@ -364,5 +366,4 @@ update config msg model =
 
 clearAlerts : Cmd Msg
 clearAlerts =
-    Task.perform ClearAlerts
-        (Process.sleep 3000 |> Task.andThen (\_ -> Task.succeed ()))
+    Task.perform ClearAlerts (Process.sleep 3000)
