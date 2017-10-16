@@ -21,7 +21,8 @@ import Task exposing (Task)
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (maybe)
 import Dict exposing (Dict)
-import Web3 exposing (toTask, retryThrice)
+import Web3
+import Web3.Internal as Internal
 import Web3.Types exposing (..)
 import Web3.Encoders exposing (encodeKeystoreList)
 import Web3.Decoders
@@ -66,7 +67,7 @@ createManyWithEntropy maybeEntropy count =
                 Nothing ->
                     []
     in
-        Web3.toTask
+        Internal.toTask
             { method = "eth.accounts.wallet.create"
             , params = Encode.list ([ Encode.int count ] ++ entropy)
             , expect = expectJson (Decode.succeed ())
@@ -78,7 +79,7 @@ createManyWithEntropy maybeEntropy count =
 
 add : PrivateKey -> Task Error ()
 add (PrivateKey privateKey) =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.wallet.add"
         , params = Encode.list [ Encode.string privateKey ]
         , expect = expectJson (Decode.succeed ())
@@ -98,7 +99,7 @@ remove index =
                 IntIndex int ->
                     toString int
     in
-        Web3.toTask
+        Internal.toTask
             { method = "eth.accounts.wallet.remove"
             , params = Encode.list [ Encode.string id ]
             , expect = expectBool
@@ -109,7 +110,7 @@ remove index =
 
 clear : Task Error (Dict Int Account)
 clear =
-    (Web3.toTask
+    (Internal.toTask
         { method = "eth.accounts.wallet.clear"
         , params = Encode.list []
         , expect = expectJson (Decode.succeed ())
@@ -123,7 +124,7 @@ clear =
 
 encrypt : String -> Task Error (List Keystore)
 encrypt password =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.wallet.encrypt"
         , params = Encode.list [ Encode.string password ]
         , expect = expectJson (Decode.list keystoreDecoder)
@@ -135,7 +136,7 @@ encrypt password =
 
 decrypt : List Keystore -> String -> Task Error (Dict Int Account)
 decrypt keystores password =
-    (Web3.toTask
+    (Internal.toTask
         { method = "eth.accounts.wallet.decrypt"
         , params = Encode.list [ encodeKeystoreList keystores, Encode.string password ]
         , expect = expectJson (Decode.succeed ())
@@ -149,7 +150,7 @@ decrypt keystores password =
 
 save : String -> Task Error Bool
 save password =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.wallet.save"
         , params = Encode.list [ Encode.string password ]
         , expect = expectBool
@@ -161,7 +162,7 @@ save password =
 
 load : String -> Task Error ()
 load password =
-    (Web3.toTask
+    (Internal.toTask
         { method = "eth.accounts.wallet.load"
         , params = Encode.list [ Encode.string password ]
         , expect = expectJson (Decode.succeed ())
@@ -174,7 +175,7 @@ load password =
 
 length : Task Error Int
 length =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.wallet.length"
         , params = Encode.list []
         , expect = expectInt
@@ -194,7 +195,7 @@ getByIndex index =
                 IntIndex int ->
                     toString int
     in
-        Web3.toTask
+        Internal.toTask
             { method = "eth.accounts.wallet[" ++ id ++ "]"
             , params = Encode.list []
             , expect = expectJson (maybe accountDecoder)
@@ -209,7 +210,7 @@ getByIndex index =
 
 getKeys : Task Error (List Int)
 getKeys =
-    Web3.toTask
+    Internal.toTask
         { method = "eth.accounts.wallet._currentIndexes"
         , params = Encode.list []
         , expect = expectJson (Decode.list Decode.int)

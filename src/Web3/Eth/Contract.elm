@@ -14,17 +14,40 @@ effect module Web3.Eth.Contract
         , Params
         )
 
--- import Web3.Internal exposing (Request)
-
-import Web3.Internal exposing (EventRequest, constructOptions, decapitalize)
+import Web3.Internal exposing (constructOptions, decapitalize)
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
-import BigInt exposing (BigInt)
-import Dict exposing (Dict)
-import Process
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
+import BigInt exposing (BigInt)
 import Task exposing (Task)
+import Dict exposing (Dict)
+import Process
+
+
+type MethodAction
+    = Send
+    | Call
+    | EstimateGas
+    | EncodeABI
+
+
+type ContractAction
+    = Methods MethodAction
+    | Deploy MethodAction
+    | Once
+
+
+type alias Params a =
+    { abi : Abi
+    , gasPrice : Maybe BigInt
+    , gas : Maybe Int
+    , data : Maybe Hex
+    , params : List Value
+    , methodName : Maybe String
+    , decoder : Decoder a
+    }
+
 
 
 {-
@@ -302,30 +325,6 @@ onSelfMsg router (RecieveLog eventId log) state =
 toTask : String -> RawParams a -> Task Error a
 toTask =
     Native.Web3.toTask
-
-
-type MethodAction
-    = Send
-    | Call
-    | EstimateGas
-    | EncodeABI
-
-
-type ContractAction
-    = Methods MethodAction
-    | Deploy MethodAction
-    | Once
-
-
-type alias Params a =
-    { abi : Abi
-    , gasPrice : Maybe BigInt
-    , gas : Maybe Int
-    , data : Maybe Hex
-    , params : List Value
-    , methodName : Maybe String
-    , decoder : Decoder a
-    }
 
 
 type alias RawParams a =

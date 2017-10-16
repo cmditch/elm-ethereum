@@ -1,7 +1,6 @@
 module Web3
     exposing
         ( version
-        , toTask
         , retry
         , retryThrice
         , delayExecution
@@ -23,14 +22,13 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 
 -}
 
+import Web3.Internal exposing (toTask)
 import Time
 import Process
 import Task exposing (Task)
 import Json.Encode as Encode
-import Native.Web3
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
-import Web3.Internal exposing (Request, EventRequest)
 
 
 -- WEB3
@@ -50,45 +48,6 @@ version =
         , callType = Getter
         , applyScope = Nothing
         }
-
-
-{-|
-
-    Magic happens here
--}
-toTask : Request a -> Task Error a
-toTask request =
-    Native.Web3.toTask (evalHelper request) request
-
-
-evalHelper : Request a -> String
-evalHelper request =
-    let
-        applyScope =
-            case request.applyScope of
-                Just scope ->
-                    scope
-
-                Nothing ->
-                    "null"
-
-        callType =
-            case request.callType of
-                Async ->
-                    ".apply(" ++ applyScope ++ ", request.params.concat(web3Callback))"
-
-                Sync ->
-                    ".apply(" ++ applyScope ++ ", request.params)"
-
-                CustomSync _ ->
-                    ".apply(" ++ applyScope ++ ", request.params)"
-
-                Getter ->
-                    ""
-    in
-        "web3."
-            ++ request.method
-            ++ callType
 
 
 
@@ -124,7 +83,6 @@ retry { attempts, sleep } web3Task =
 
 delayExecution : Task x a -> Task x a
 delayExecution task =
-    -- sleep allows time for model/view to update before "blocking task" begins
     Process.sleep 50 |> Task.andThen (\_ -> task)
 
 
