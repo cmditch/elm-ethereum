@@ -113,20 +113,35 @@ triggerEvent a =
 {-
    Events
 -}
--- eventAdd : Contract.Params (EventLog { mathematician : Address, anInt : BigInt })
+-- onceAllEvents : Address -> (String -> msg) -> Cmd msg
+-- onceAllEvents =
+--     Contract.once abi_ "allEvents"
 
 
-onceAllEvents : Address -> (String -> msg) -> Cmd msg
-onceAllEvents =
-    Contract.once abi_ "allEvents"
+subscribeAdd : ( Address, String ) -> Cmd msg
+subscribeAdd =
+    Contract.subscribe abi_ "Add"
 
 
-onceAdd : Address -> (String -> msg) -> Cmd msg
+onceAdd : Contract.Params (EventLog { mathematician : Address, anInt : BigInt })
 onceAdd =
-    Contract.once abi_ "Add"
+    let
+        returnValuesDecoder =
+            decode (\mathematician anInt -> { mathematician = mathematician, anInt = anInt })
+                |> required "mathematician" addressDecoder
+                |> required "anInt" bigIntDecoder
+    in
+        { abi = abi_
+        , gasPrice = Just (BigInt.fromInt 300000000)
+        , gas = Just 3000000
+        , methodName = Just "Add"
+        , data = Nothing
+        , params = []
+        , decoder = eventLogDecoder returnValuesDecoder
+        }
 
 
-decodeAdd : String -> Result String (EventLog { mathematician : Address, anInt : BigInt })
+decodeAdd : String -> Result Error (EventLog { mathematician : Address, anInt : BigInt })
 decodeAdd response =
     let
         returnValDecoder =
@@ -136,6 +151,7 @@ decodeAdd response =
     in
         response
             |> Decode.decodeString (eventLogDecoder returnValDecoder)
+            |> Result.mapError (\e -> Error e)
 
 
 

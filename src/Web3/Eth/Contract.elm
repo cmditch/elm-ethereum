@@ -7,6 +7,9 @@ effect module Web3.Eth.Contract
         , estimateContractGas
         , encodeMethodABI
         , encodeContractABI
+        , subscribe
+        , unsubscribe
+        , eventSentry
         , once
         , Params
         )
@@ -95,6 +98,16 @@ estimateContractGas params =
         (defaultRawParams params)
 
 
+once : Address -> Params (EventLog a) -> Task Error (EventLog a)
+once (Address contractAddress) params =
+    let
+        rawParams =
+            defaultRawParams params
+    in
+        toTask (constructEval params Once)
+            { rawParams | contractAddress = contractAddress }
+
+
 
 {-
    Effect Manager
@@ -103,19 +116,35 @@ estimateContractGas params =
 
 
 type MyCmd msg
-    = Once String String String (String -> msg)
+    = Subscribe String String String String
+    | Unsubscribe String
 
 
 cmdMap : (a -> b) -> MyCmd a -> MyCmd b
-cmdMap tagger cmd =
+cmdMap _ cmd =
     case cmd of
-        Once abi eventName address toAppMsg ->
-            Once abi eventName address (toAppMsg >> tagger)
+        Subscribe abi eventName address eventId ->
+            Subscribe abi eventName address eventId
+
+        Unsubscribe eventId ->
+            Unsubscribe eventId
 
 
-once : Abi -> String -> Address -> (String -> msg) -> Cmd msg
-once (Abi abi) eventName (Address address) toAppMsg =
-    command <| Once abi eventName address toAppMsg
+subscribe : Abi -> String -> ( Address, String ) -> Cmd msg
+subscribe (Abi abi) eventName ( Address address, eventId ) =
+    command <| Subscribe abi eventName address (address ++ eventId)
+
+
+
+{- Combining address and eventId to make eventId more unique,
+   otherwise you could conceivably subscribe to another event
+   with the same name but different address
+-}
+
+
+unsubscribe : ( Address, String ) -> Cmd msg
+unsubscribe ( Address address, eventId ) =
+    command <| Unsubscribe (address ++ eventId)
 
 
 
@@ -131,22 +160,22 @@ subMap method (EventSentry name toMsg) =
     EventSentry name (toMsg >> method)
 
 
-eventSentry : String -> (String -> msg) -> Sub msg
-eventSentry eventId toMsg =
-    subscription (EventSentry eventId toMsg)
+eventSentry : ( Address, String ) -> (String -> msg) -> Sub msg
+eventSentry ( Address address, eventId ) toMsg =
+    subscription <| EventSentry (address ++ eventId) toMsg
 
 
 
 -- MANAGER
 
 
-type Contract
-    = Contract
+type EventEmitter
+    = EventEmitter
 
 
 type alias State msg =
     { subs : SubsDict msg
-    , contracts : ContractsDict
+    , eventEmitters : EventEmitterDict
     }
 
 
@@ -154,8 +183,8 @@ type alias SubsDict msg =
     Dict.Dict String (List (String -> msg))
 
 
-type alias ContractsDict =
-    Dict.Dict String Contract
+type alias EventEmitterDict =
+    Dict.Dict String EventEmitter
 
 
 init : Task Never (State msg)
@@ -172,86 +201,95 @@ onEffects : Platform.Router msg Msg -> List (MyCmd msg) -> List (MySub msg) -> S
 onEffects router cmds subs state =
     let
         sendMessages =
-            sendMessagesHelp router cmds state.contracts
+            sendMessagesHelp router cmds state.eventEmitters
 
         newSubs =
-            -- buildSubsDict subs
-            Dict.empty
+            buildSubsDict subs Dict.empty
     in
         sendMessages
-            |> Task.andThen (\web3EventDict -> State newSubs web3EventDict |> Task.succeed)
+            |> Task.andThen (\newEventEmitters -> State newSubs newEventEmitters |> Task.succeed)
 
 
-sendMessagesHelp : Platform.Router msg Msg -> List (MyCmd msg) -> ContractsDict -> Task Never ContractsDict
-sendMessagesHelp router cmds contractsDict =
+sendMessagesHelp : Platform.Router msg Msg -> List (MyCmd msg) -> EventEmitterDict -> Task Never EventEmitterDict
+sendMessagesHelp router cmds eventEmittersDict =
     case cmds of
         [] ->
-            Task.succeed contractsDict
+            Task.succeed eventEmittersDict
 
-        (Once abi eventName address toMsg) :: rest ->
-            case Dict.get address contractsDict of
-                Just contract ->
-                    Process.spawn (watchEventOnce router contract eventName toMsg)
-                        &> sendMessagesHelp router rest contractsDict
+        (Subscribe abi eventName address eventId) :: rest ->
+            case Dict.get eventId eventEmittersDict of
+                Just _ ->
+                    sendMessagesHelp router rest eventEmittersDict
 
                 Nothing ->
-                    web3Contract abi address
+                    createEventEmitter abi address eventName
                         |> Task.andThen
-                            (\contract ->
-                                Process.spawn (watchEventOnce router contract eventName toMsg)
-                                    &> Task.succeed (Dict.insert address contract contractsDict)
+                            (\eventEmitter ->
+                                (Process.spawn (eventSubscribe router eventEmitter eventId))
+                                    &> Task.succeed (Dict.insert eventId eventEmitter eventEmittersDict)
                             )
-                        |> Task.andThen (\newContractsDict -> sendMessagesHelp router rest newContractsDict)
+                        |> Task.andThen (\newEventEmitters -> sendMessagesHelp router rest newEventEmitters)
+
+        (Unsubscribe eventId) :: rest ->
+            case Dict.get eventId eventEmittersDict of
+                Just eventEmitter ->
+                    Process.spawn (eventUnsubscribe eventEmitter)
+                        &> Task.succeed (Dict.remove eventId eventEmittersDict)
+
+                Nothing ->
+                    sendMessagesHelp router rest eventEmittersDict
 
 
-web3Contract : String -> String -> Task Never Contract
-web3Contract abi contractAddress =
-    Native.Web3.web3Contract abi contractAddress
+createEventEmitter : String -> String -> String -> Task Never EventEmitter
+createEventEmitter abi address eventName =
+    Native.Web3.createEventEmitter abi address eventName
 
 
-watchEventOnce : Platform.Router msg Msg -> Contract -> String -> (String -> msg) -> Task Never ()
-watchEventOnce router contract eventName toAppMsg =
-    Native.Web3.watchEventOnce
-        contract
-        eventName
-        (\log -> Platform.sendToApp router (toAppMsg log))
+eventSubscribe : Platform.Router msg Msg -> EventEmitter -> String -> Task Never ()
+eventSubscribe router eventEmitter eventId =
+    Native.Web3.eventSubscribe
+        eventEmitter
+        (\log -> Platform.sendToSelf router (RecieveLog eventId log))
 
 
+eventUnsubscribe : EventEmitter -> Task Never ()
+eventUnsubscribe eventEmitter =
+    Native.Web3.eventUnsubscribe eventEmitter
 
---
--- buildSubsDict : List (MySub msg) -> SubsDict msg -> SubsDict msg
--- buildSubsDict subs dict =
---     case subs of
---         [] ->
---             dict
---
---         (EventSentry name toMsg) :: rest ->
---             buildSubsDict rest (Dict.update name (add toMsg) dict)
---
--- add : a -> Maybe (List a) -> Maybe (List a)
--- add value maybeList =
---     case maybeList of
---         Nothing ->
---             Just [ value ]
---
---         Just list ->
---             Just (value :: list)
+
+buildSubsDict : List (MySub msg) -> SubsDict msg -> SubsDict msg
+buildSubsDict subs dict =
+    case subs of
+        [] ->
+            dict
+
+        (EventSentry eventId toMsg) :: rest ->
+            buildSubsDict rest (Dict.update eventId (add toMsg) dict)
+
+
+add : a -> Maybe (List a) -> Maybe (List a)
+add value maybeList =
+    case maybeList of
+        Nothing ->
+            Just [ value ]
+
+        Just list ->
+            Just (value :: list)
 
 
 type Msg
-    = RecieveOnce String String
+    = RecieveLog String String
 
 
 onSelfMsg : Platform.Router msg Msg -> Msg -> State msg -> Task Never (State msg)
-onSelfMsg router (RecieveOnce name log) state =
-    -- let
-    --     sends =
-    --         Dict.get name state.subs
-    --             |> Maybe.withDefault []
-    --             |> List.map (\tagger -> Platform.sendToApp router (tagger log))
-    -- in
-    -- Task.sequence sends &>
-    Task.succeed state
+onSelfMsg router (RecieveLog eventId log) state =
+    let
+        sends =
+            Dict.get eventId state.subs
+                |> Maybe.withDefault []
+                |> List.map (\tagger -> Platform.sendToApp router (tagger log))
+    in
+        Process.spawn (Task.sequence sends) &> Task.succeed state
 
 
 
@@ -273,6 +311,7 @@ type MethodAction
 type ContractAction
     = Methods MethodAction
     | Deploy MethodAction
+    | Once
 
 
 type alias Params a =
@@ -371,3 +410,16 @@ constructEval { gas, gasPrice, data } contractMethod =
                     ++ ".deploy({arguments: request.params})."
                     ++ (toString callType |> decapitalize)
                     ++ callbackIfAsync callType
+
+            Once ->
+                let
+                    contract =
+                        "var contract = " ++ base ++ ";"
+
+                    callOnce =
+                        " return contract.once.apply(contract, [request.method].concat(request.params).concat([web3Callback]) )"
+                in
+                    "(function (){"
+                        ++ contract
+                        ++ callOnce
+                        ++ "})()"

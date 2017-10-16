@@ -16,6 +16,7 @@ import BigInt
 
 type Styles
     = None
+    | Button
     | Logo
     | Drawer
     | TextField
@@ -40,8 +41,9 @@ stylesheet =
     in
         Style.styleSheet
             [ style None []
+            , style Button [ Border.all 1, Color.border Color.grey ]
             , style Logo [ opacity 0.5 ]
-            , style Drawer [ Border.dotted, Border.right 0.5 ]
+            , style Drawer [ Border.dotted, Border.right 1, Color.border Color.grey ]
             , style TextField [ Border.dotted, Border.all 0.5 ]
             , style TestTitle [ Border.bottom 0.5, Font.size 20, Font.bold, Font.lineHeight 1.5 ]
             , style TestRow [ Border.bottom 1, Border.right 1, helvetica, Font.size 12, Font.lineHeight 1.2 ]

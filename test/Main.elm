@@ -15,6 +15,8 @@ import Pages.Contract as Contract
 import Web3.Types exposing (..)
 import Web3.Eth
 import Web3.Eth.Wallet as EthWallet
+import Web3.Eth.Contract as EthContract
+import TestContract as TC
 
 
 main : Program Never Model Msg
@@ -116,7 +118,7 @@ drawer =
             [ Home, Utils, Eth, Accounts, Wallet, Contract, Events ]
 
         pageButton page =
-            button None [ onClick <| SetPage page ] (text <| toString page)
+            button Button [ onClick <| SetPage page ] (text <| toString page)
     in
         column Drawer
             [ height fill, spacing 10, padding 10, width (px 180) ]
@@ -203,4 +205,7 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        []
+        [ EthContract.eventSentry
+            ( model.config.contract, "eventWatchTest" )
+            (TC.decodeAdd >> Contract.EventInfo >> ContractMsg)
+        ]

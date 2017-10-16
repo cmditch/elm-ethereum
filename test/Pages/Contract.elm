@@ -16,6 +16,7 @@ init : Model
 init =
     { tests = Nothing
     , returnsTwoNamedResponse = ""
+    , events = []
     , error = Nothing
     }
 
@@ -23,6 +24,7 @@ init =
 type alias Model =
     { tests : Maybe (Dict Int Test)
     , returnsTwoNamedResponse : String
+    , events : List String
     , error : Maybe Error
     }
 
@@ -43,7 +45,7 @@ viewTest : Test -> Element Styles Variations Msg
 viewTest test =
     row TestRow
         [ spacing 20, paddingXY 20 20 ]
-        [ column TestPassed [ vary Pass test.passed, vary Fail (not test.passed) ] [ text <| toString test.passed ]
+        [ column TestPassed [ vary Pass test.passed, vary Fail (not test.passed), verticalCenter ] [ text <| toString test.passed ]
         , column TestName [ paddingXY 20 0 ] [ text test.name ]
         , column TestResponse [ attribute "title" test.response, maxWidth <| percent 70 ] [ text test.response ]
         ]
@@ -67,16 +69,27 @@ view model =
         testButton =
             [ row TestRow
                 [ spacing 20, paddingXY 20 20 ]
-                [ button None [ onClick InitTests ] (text "Start Tests")
-                , button None [ onClick InitEventOnce ] (text "Watch Event Once")
-                , button None [ onClick InitMethodSend ] (text "Send Tx w/ Event")
-                , button None [ onClick InitDeploy ] (text "Deploy Contract")
+                [ button Button [ onClick InitTests, paddingXY 20 0 ] (text "Start Tests")
+                , button Button [ onClick InitEventOnce, paddingXY 20 0 ] (text "Watch Event Once")
+                , button Button [ onClick InitEventSubscribe, paddingXY 20 0 ] (text "Subscribe")
+                , button Button [ onClick InitEventUnsubscribe, paddingXY 20 0 ] (text "Unsubscribe")
+                , button Button [ onClick InitMethodSend, paddingXY 20 0 ] (text "Send Tx w/ Event")
+                , button Button [ onClick InitDeploy, paddingXY 20 0 ] (text "Deploy Contract")
                 ]
+            ]
+
+        events =
+            [ viewTest
+                (Test
+                    ("Events: " ++ toString (List.length model.events))
+                    (toString model.events)
+                    True
+                )
             ]
     in
         column None
             [ width fill, scrollbars ]
-            (titleRow ++ testButton ++ testsTable)
+            (titleRow ++ testButton ++ events ++ testsTable)
 
 
 type Msg
@@ -85,8 +98,9 @@ type Msg
     | InitMethodSend
     | MethodSendResponse String (Result Error TxId)
     | InitEventOnce
-      -- | EventInfo String (Result Error (EventLog { mathematician : Address, anInt : BigInt }))
-    | EventInfo String (Result String (EventLog { mathematician : Address, anInt : BigInt }))
+    | InitEventSubscribe
+    | InitEventUnsubscribe
+    | EventInfo (Result Error (EventLog { mathematician : Address, anInt : BigInt }))
     | InitTests
     | EstimateContractABI String (Result Error Hex)
     | EstimateContractGas String (Result Error Int)
@@ -101,7 +115,7 @@ update : Config -> Msg -> Model -> ( Model, Cmd Msg )
 update config msg model =
     let
         updateTest key val =
-            (model.tests ?= Dict.empty) |> (Dict.insert key val >> Just)
+            Just <| Dict.insert key val (model.tests ?= Dict.empty)
 
         updateModel key funcName result =
             case result of
@@ -133,10 +147,18 @@ update config msg model =
 
             InitEventOnce ->
                 model
-                    ! [ TC.onceAdd config.contract (TC.decodeAdd >> EventInfo "contract.once('Add')") ]
+                    ! [ Task.attempt EventInfo (Contract.once config.contract TC.onceAdd) ]
 
-            EventInfo funcName result ->
-                updateModel 2 funcName (Ok result) ! []
+            InitEventSubscribe ->
+                model
+                    ! [ TC.subscribeAdd ( config.contract, "eventWatchTest" ) ]
+
+            InitEventUnsubscribe ->
+                model
+                    ! [ Contract.unsubscribe ( config.contract, "eventWatchTest" ) ]
+
+            EventInfo result ->
+                { model | events = toString result :: model.events } ! []
 
             InitTests ->
                 model ! testCommands config
