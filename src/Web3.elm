@@ -22,7 +22,7 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 
 -}
 
-import Web3.Internal exposing (toTask)
+import Web3.Internal as Internal
 import Time
 import Process
 import Task exposing (Task)
@@ -41,7 +41,7 @@ import Web3.Decoders exposing (..)
 -}
 version : Task Error String
 version =
-    toTask
+    Internal.toTask
         { method = "version"
         , params = Encode.list []
         , expect = expectString
