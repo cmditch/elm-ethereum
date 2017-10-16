@@ -94,3 +94,13 @@
 15:52:16.993255 db@open done T·4.109349ms
 15:53:42.227569 db@close closing
 15:53:42.227761 db@close done T·185.414µs
+=============== Oct 16, 2017 (MDT) ===============
+00:03:54.507864 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+00:03:54.508998 version@stat F·[1 1] S·109KiB[243B 109KiB] Sc·[0.25 0.00]
+00:03:54.509063 db@open opening
+00:03:54.509894 journal@recovery F·1
+00:03:54.511904 journal@recovery recovering @21
+00:03:54.513701 memdb@flush created L0@23 N·2 S·243B "Blo..ion,v3661":"Las..der,v3662"
+00:03:54.514641 version@stat F·[2 1] S·110KiB[486B 109KiB] Sc·[0.50 0.00]
+00:03:54.515319 db@janitor F·5 G·0
+00:03:54.515340 db@open done T·6.254071ms

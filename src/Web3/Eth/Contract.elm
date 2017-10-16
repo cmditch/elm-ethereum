@@ -136,9 +136,12 @@ subscribe (Abi abi) eventName ( Address address, eventId ) =
 
 
 
-{- Combining address and eventId to make eventId more unique,
-   otherwise you could conceivably subscribe to another event
-   with the same name but different address
+{-
+   NOTE
+   Combining address and eventId to make eventId more unique,
+   otherwise you could erroneously subscribe to another event
+   with the same name but different address.
+
 -}
 
 
