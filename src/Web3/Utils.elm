@@ -153,8 +153,18 @@ hexToNumber (Hex val) =
         }
 
 
+hexToBigInt : Hex -> Task Error BigInt
+hexToBigInt hexNum =
+    hexToNumberString hexNum
+        |> Task.andThen
+            (\numString ->
+                case BigInt.fromString numString of
+                    Nothing ->
+                        Task.fail (Error <| "Error converting " ++ numString ++ " to BigInt")
 
--- TODO Add support for hexToBigInt
+                    Just bigInt ->
+                        Task.succeed bigInt
+            )
 
 
 numberToHex : Int -> Task Error Hex
