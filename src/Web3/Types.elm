@@ -294,19 +294,6 @@ type Network
 -}
 
 
-type Expect a
-    = Expect
-
-
-type CallType
-    = Sync
-    | Async
-    | Getter
-    | CustomSync String
-
-
-{-| Available ethereum denominations.
--}
 type EthUnit
     = Wei
     | Kwei

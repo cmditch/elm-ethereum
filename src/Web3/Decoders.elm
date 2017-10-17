@@ -40,7 +40,7 @@ import BigInt exposing (BigInt)
 import Json.Decode as Decode exposing (int, list, nullable, string, bool, maybe, field, Decoder)
 import Json.Decode.Pipeline exposing (..)
 import Web3.Types exposing (..)
-import Web3.Internal exposing (expectStringResponse)
+import Web3.Internal exposing (expectStringResponse, Expect)
 
 
 blockDecoder : Decoder a -> Decoder (Block a)

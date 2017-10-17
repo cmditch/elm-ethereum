@@ -15,7 +15,7 @@ defaultTxParams =
     }
 
 
-defaultFilterParams : FilterParams
+defaultFilterParams : LogParams
 defaultFilterParams =
     { fromBlock = Nothing
     , toBlock = Nothing

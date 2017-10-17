@@ -22,7 +22,7 @@ import Json.Encode as Encode
 import Json.Decode as Decode exposing (maybe)
 import Dict exposing (Dict)
 import Web3
-import Web3.Internal as Internal
+import Web3.Internal as Internal exposing (CallType(..))
 import Web3.Types exposing (..)
 import Web3.Encoders exposing (encodeKeystoreList)
 import Web3.Decoders

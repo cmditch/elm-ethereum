@@ -29,13 +29,19 @@ module Web3.Utils
 {-| Web3.Utils contains various helper functions for working with addresses, hex, ascii, etc.
 **Note:** See [here](https://web3js.readthedocs.io/en/1.0/web3-utils.html) for web3.js documentation.
 
+
 # Addresses
+
 @docs isAddress, toChecksumAddress, checkAddressChecksum
 
+
 # Conversions
+
 @docs fromWei, toWei, toHex, hexToNumberString, hexToNumber, numberToHex, bigIntToHex, hexToUtf8, utf8ToHex, hexToAscii, asciiToHex, hexToBytes, bytesToHex, bigIntToWei
 
+
 # Misc
+
 @docs sha3, isHex, randomHex, leftPadHex, rightPadHex, leftPadHexCustom, rightPadHexCustom
 
 -}
@@ -47,7 +53,7 @@ import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
 import Web3.Encoders exposing (encodeBytes)
 import Regex
-import Web3.Internal as Internal
+import Web3.Internal as Internal exposing (CallType(..))
 
 
 -- UTIL

@@ -14,7 +14,7 @@ module Web3.Eth.Accounts
 import Task exposing (Task)
 import Json.Encode as Encode
 import Web3
-import Web3.Internal as Internal
+import Web3.Internal as Internal exposing (CallType(..))
 import Web3.Decoders exposing (..)
 import Web3.Encoders exposing (encodeKeystore, encodeTxParams)
 import Web3.Types exposing (..)
