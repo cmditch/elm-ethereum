@@ -11,7 +11,7 @@
         "./examples/testbox",
         "./test"
     ],
-    "exposed-modules": [],
+    "exposed-modules": ["Web3.Utils"],
     "native-modules": true,
     "dependencies": {
         "elm-lang/core": "5.1.1 <= v < 6.0.0",
