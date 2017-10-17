@@ -50,7 +50,7 @@ encodeTxParams from { to, value, gas, data, gasPrice, nonce, chainId } =
 --             ++ customFields
 
 
-encodeFilterParams : FilterParams -> Value
+encodeFilterParams : LogParams -> Value
 encodeFilterParams { fromBlock, toBlock, address, topics } =
     listOfMaybesToVal
         [ ( "fromBlock", Maybe.map getBlockIdValue fromBlock )

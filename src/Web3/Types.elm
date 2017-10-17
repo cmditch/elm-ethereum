@@ -170,11 +170,18 @@ type alias ContractInfo =
 
 
 {-
-   EVENTS and FILTERS
+   SUBSCRIPTIONS
 -}
 
 
-type alias FilterParams =
+type Subscription
+    = PendingTxs
+    | NewBlocks
+    | Syncing
+    | Logs LogParams
+
+
+type alias LogParams =
     { fromBlock : Maybe BlockId
     , toBlock : Maybe BlockId
     , address : Maybe (List Address)

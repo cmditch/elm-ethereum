@@ -76,7 +76,7 @@ type alias Config =
     , blockHash : BlockId
     , txId : TxId
     , txParams : TxParams
-    , filterParams : FilterParams
+    , filterParams : LogParams
     , hexData : Hex
     }
 
