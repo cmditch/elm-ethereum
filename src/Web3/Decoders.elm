@@ -1,6 +1,7 @@
 module Web3.Decoders
     exposing
         ( blockDecoder
+        , blockHeaderDecoder
         , blockTxIdDecoder
         , blockTxObjDecoder
         , txObjDecoder
@@ -46,20 +47,18 @@ import Web3.Internal exposing (expectStringResponse, Expect)
 blockDecoder : Decoder a -> Decoder (Block a)
 blockDecoder decoder =
     decode Block
-        |> optional "author" (nullable addressDecoder) Nothing
+        |> optional "miner" (nullable addressDecoder) Nothing
         |> required "difficulty" bigIntDecoder
         |> required "extraData" string
         |> required "gasLimit" int
         |> required "gasUsed" int
         |> required "hash" blockHashDecoder
         |> required "logsBloom" string
-        |> required "miner" string
         |> required "mixHash" string
         |> required "nonce" string
         |> required "number" int
         |> required "parentHash" string
         |> required "receiptsRoot" string
-        |> optional "sealFields" (list string) []
         |> required "sha3Uncles" string
         |> required "size" int
         |> required "stateRoot" string
@@ -68,6 +67,27 @@ blockDecoder decoder =
         |> optional "transactions" (list decoder) []
         |> required "transactionsRoot" string
         |> required "uncles" (list string)
+
+
+blockHeaderDecoder : Decoder BlockHeader
+blockHeaderDecoder =
+    decode BlockHeader
+        |> optional "miner" (nullable addressDecoder) Nothing
+        |> required "difficulty" bigIntDecoder
+        |> required "extraData" string
+        |> required "gasLimit" int
+        |> required "gasUsed" int
+        |> required "hash" blockHashDecoder
+        |> required "logsBloom" string
+        |> required "mixHash" string
+        |> required "nonce" string
+        |> required "number" int
+        |> required "parentHash" string
+        |> required "receiptsRoot" string
+        |> required "sha3Uncles" string
+        |> required "stateRoot" string
+        |> required "timestamp" int
+        |> required "transactionsRoot" string
 
 
 blockTxIdDecoder : Decoder (Block TxId)
@@ -122,15 +142,13 @@ logDecoder : Decoder Log
 logDecoder =
     decode Log
         |> required "address" addressDecoder
+        |> required "data" string
+        |> required "topics" (list string)
+        |> required "logIndex" (nullable int)
+        |> required "transactionIndex" int
+        |> required "transactionHash" txIdDecoder
         |> required "blockHash" (nullable string)
         |> required "blockNumber" (nullable int)
-        |> required "data" string
-        |> required "logIndex" (nullable int)
-        |> required "topics" (list string)
-        |> required "transactionHash" txIdDecoder
-        |> required "transactionIndex" int
-        |> required "transactionLogIndex" string
-        |> required "type_" string
 
 
 eventLogDecoder : Decoder a -> Decoder (EventLog a)
@@ -329,7 +347,7 @@ contractInfoDecoder =
         |> required "transactionHash" txIdDecoder
 
 
-syncStatusDecoder : Decoder SyncStatus
+syncStatusDecoder : Decoder (Maybe SyncStatus)
 syncStatusDecoder =
     decode SyncStatus
         |> required "startingBlock" int
@@ -337,6 +355,7 @@ syncStatusDecoder =
         |> required "highestBlock" int
         |> required "knownStates" int
         |> required "pulledStates" int
+        |> maybe
 
 
 addressToString : Address -> String
