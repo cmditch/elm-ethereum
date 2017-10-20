@@ -12,10 +12,12 @@ import Pages.Accounts as Accounts
 import Pages.Wallet as Wallet
 import Pages.Eth as Eth
 import Pages.Contract as Contract
+import Pages.Subscribe as Subscribe
 import Web3.Types exposing (..)
 import Web3.Eth
 import Web3.Eth.Wallet as EthWallet
 import Web3.Eth.Contract as EthContract
+import Web3.Eth.Subscribe as EthSubscribe
 import TestContract as TC
 
 
@@ -38,6 +40,7 @@ type alias Model =
     , walletModel : Wallet.Model
     , ethModel : Eth.Model
     , contractModel : Contract.Model
+    , subscribeModel : Subscribe.Model
     , error : Maybe Error
     }
 
@@ -52,6 +55,7 @@ init =
     , walletModel = Wallet.init
     , ethModel = Eth.init
     , contractModel = Contract.init
+    , subscribeModel = Subscribe.init
     , error = Nothing
     }
         ! [ Task.attempt EstablishNetworkId (retryThrice Web3.Eth.getId) ]
@@ -64,7 +68,7 @@ type Page
     | Accounts
     | Wallet
     | Contract
-    | Events
+    | Subscribe
 
 
 view : Model -> Html Msg
@@ -98,6 +102,9 @@ viewPage model =
         Contract ->
             Contract.view model.contractModel |> Element.map ContractMsg
 
+        Subscribe ->
+            Subscribe.view model.subscribeModel |> Element.map SubscribeMsg
+
         _ ->
             column None
                 [ center, width fill, padding 100 ]
@@ -115,7 +122,7 @@ drawer : Element Styles Variations Msg
 drawer =
     let
         pages =
-            [ Home, Utils, Eth, Accounts, Wallet, Contract, Events ]
+            [ Home, Utils, Eth, Accounts, Wallet, Contract, Subscribe ]
 
         pageButton page =
             button Button [ onClick <| SetPage page ] (text <| toString page)
@@ -133,6 +140,7 @@ type Msg
     | WalletMsg Wallet.Msg
     | EthMsg Eth.Msg
     | ContractMsg Contract.Msg
+    | SubscribeMsg Subscribe.Msg
     | SetPage Page
     | NoOpTask (Result Error ())
 
@@ -143,7 +151,7 @@ update msg model =
         EstablishNetworkId result ->
             let
                 ( newModel, newCmds ) =
-                    update (SetPage Contract) model
+                    update (SetPage Subscribe) model
             in
                 case result of
                     Ok networkId ->
@@ -195,6 +203,13 @@ update msg model =
             in
                 { model | contractModel = subModel } ! [ Cmd.map ContractMsg subCmd ]
 
+        SubscribeMsg subMsg ->
+            let
+                ( subModel, subCmd ) =
+                    Subscribe.update model.config subMsg model.subscribeModel
+            in
+                { model | subscribeModel = subModel } ! [ Cmd.map SubscribeMsg subCmd ]
+
         SetPage page ->
             { model | currentPage = page } ! []
 
@@ -208,4 +223,7 @@ subscriptions model =
         [ EthContract.eventSentry
             ( model.config.contract, "eventWatchTest" )
             (TC.decodeAdd >> Contract.EventInfo >> ContractMsg)
+        , EthSubscribe.newBlockHeaders (Subscribe.GetLatestBlocks >> SubscribeMsg)
+        , EthSubscribe.pendingTxs (Subscribe.GetLatestTxs >> SubscribeMsg)
+        , EthSubscribe.syncing (Subscribe.GetSyncing >> SubscribeMsg)
         ]

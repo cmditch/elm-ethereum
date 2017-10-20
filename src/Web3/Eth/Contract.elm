@@ -269,7 +269,7 @@ sendMessagesHelp router cmds eventEmittersDict =
 
 createEventEmitter : String -> String -> String -> Task Never EventEmitter
 createEventEmitter abi address eventName =
-    Native.Web3.createEventEmitter abi address eventName
+    Native.Web3.createContractEventEmitter abi address eventName
 
 
 eventSubscribe : Platform.Router msg Msg -> EventEmitter -> String -> Task Never ()

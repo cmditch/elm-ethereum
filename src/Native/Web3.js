@@ -1,6 +1,3 @@
-// elm-web3 native module
-// Warning: Here be dragons. Modify this file carefully.
-
 var _cmditch$elm_web3$Native_Web3 = function() {
 
     var web3Error = function(e) { return {ctor: "Error", _0: e} };
@@ -51,7 +48,7 @@ var _cmditch$elm_web3$Native_Web3 = function() {
     };
 
 
-    function createEventEmitter(abi, address, eventId) {
+    function createContractEventEmitter(abi, address, eventId) {
         return nativeBinding(function(callback)
         {
             try
@@ -59,6 +56,24 @@ var _cmditch$elm_web3$Native_Web3 = function() {
                 callback(succeed(
                     eval("new web3.eth.Contract(JSON.parse(abi), address).events[eventId]()")
                 ));
+            }
+            catch(e)
+            {
+                console.log(e);
+            }
+        });
+    };
+
+
+    function createEventEmitter(subType, options) {
+        return nativeBinding(function(callback)
+        {
+            try
+            {   // Only "logs" subscription type needs options object
+                var params = options ? "(subType, options)" : "(subType)";
+                var emitter = eval("web3.eth.subscribe" + params);
+                callback(succeed(emitter));
+
             }
             catch(e)
             {
@@ -93,6 +108,16 @@ var _cmditch$elm_web3$Native_Web3 = function() {
         }
     };
 
+    function clearAllSubscriptions(bool) {
+        try
+        {   // TODO Web3 function doesn't work???
+            eval("web3.eth.clearSubscriptions(bool)");
+        }
+        catch(e)
+        {
+            console.log(e);
+        }
+    };
 
     function expectStringResponse(responseToResult) {
         return {
@@ -103,9 +128,11 @@ var _cmditch$elm_web3$Native_Web3 = function() {
 
     return {
         toTask: F2(toTask),
-        createEventEmitter: F3(createEventEmitter),
+        createContractEventEmitter: F3(createContractEventEmitter),
+        createEventEmitter: F2(createEventEmitter),
         eventSubscribe: F2(eventSubscribe),
         eventUnsubscribe: eventUnsubscribe,
+        clearAllSubscriptions: clearAllSubscriptions,
         expectStringResponse: expectStringResponse
     };
 
