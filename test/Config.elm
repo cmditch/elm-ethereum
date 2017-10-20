@@ -110,10 +110,10 @@ mainnetConfig =
     , txId = TxId "0x0bb84e278f50d334022a2c239c90f3c186867b0888e989189ac3c19b27c70372"
     , txParams = defaultTxParams
     , filterParams =
-        { address = Just [ (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7") ]
-        , fromBlock = Just (BlockNum 320)
-        , toBlock = Just (BlockNum 520)
-        , topics = Just []
+        { address = [ Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7" ]
+        , fromBlock = BlockNum 320
+        , toBlock = BlockNum 520
+        , topics = []
         }
     , hexData = (Hex "0x121212")
     }
@@ -129,10 +129,10 @@ ropstenConfig =
     , txId = TxId "0x444b76b68af09969f46eabbbe60eef38f4b0674c4a7cb2e32c7764096997b916"
     , txParams = defaultTxParams
     , filterParams =
-        { address = Just [ (Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7") ]
-        , fromBlock = Just (BlockNum 320)
-        , toBlock = Just (BlockNum 520)
-        , topics = Just []
+        { address = [ Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7" ]
+        , fromBlock = BlockNum 320
+        , toBlock = BlockNum 520
+        , topics = []
         }
     , hexData = (Hex "0x121212")
     }
@@ -148,10 +148,10 @@ devNetConfig =
     , txId = TxId "0xbd40b560ac9999751ff6d5125a399a74f0ed192b1dc4273911078b3696fe2503"
     , txParams = defaultTxParams
     , filterParams =
-        { address = Just [ (Address "0x853726f791d6fbff51f225587d7fff05ab5930a8") ]
-        , fromBlock = Just (BlockNum 320)
-        , toBlock = Just (BlockNum 520)
-        , topics = Just []
+        { address = [ Address "0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7" ]
+        , fromBlock = BlockNum 320
+        , toBlock = BlockNum 520
+        , topics = []
         }
     , hexData = (Hex "0x121212")
     }
