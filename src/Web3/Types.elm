@@ -57,20 +57,18 @@ type BlockId
 
 
 type alias Block a =
-    { author : Maybe Address
+    { miner : Maybe Address
     , difficulty : BigInt
     , extraData : String
     , gasLimit : Int
     , gasUsed : Int
     , hash : BlockId
     , logsBloom : String
-    , miner : String
     , mixHash : String
     , nonce : String
     , number : Int
     , parentHash : String
     , receiptsRoot : String
-    , sealFields : List String
     , sha3Uncles : String
     , size : Int
     , stateRoot : String
@@ -79,6 +77,26 @@ type alias Block a =
     , transactions : List a
     , transactionsRoot : String
     , uncles : List String
+    }
+
+
+type alias BlockHeader =
+    { miner : Maybe Address
+    , difficulty : BigInt
+    , extraData : String
+    , gasLimit : Int
+    , gasUsed : Int
+    , hash : BlockId
+    , logsBloom : String
+    , mixHash : String
+    , nonce : String
+    , number : Int
+    , parentHash : String
+    , receiptsRoot : String
+    , sha3Uncles : String
+    , stateRoot : String
+    , timestamp : Int
+    , transactionsRoot : String
     }
 
 
@@ -170,15 +188,26 @@ type alias ContractInfo =
 
 
 {-
-   EVENTS and FILTERS
+   SUBSCRIPTIONS
 -}
 
 
-type alias FilterParams =
-    { fromBlock : Maybe BlockId
-    , toBlock : Maybe BlockId
-    , address : Maybe (List Address)
-    , topics : Maybe (List (Maybe String))
+type alias EventId =
+    String
+
+
+type Subscription
+    = PendingTxs
+    | NewBlockHeaders
+    | Syncing
+    | Logs LogParams EventId
+
+
+type alias LogParams =
+    { fromBlock : BlockId
+    , toBlock : BlockId
+    , address : List Address
+    , topics : List (Maybe (List String))
     }
 
 
@@ -199,17 +228,14 @@ type alias EventLog a =
 
 
 type alias Log =
-    -- TODO Log { type_ } field is an elm keyword... remedy?
     { address : Address
+    , data : String
+    , topics : List String
+    , logIndex : Maybe Int
+    , transactionIndex : Int
+    , transactionHash : TxId
     , blockHash : Maybe String
     , blockNumber : Maybe Int
-    , data : String
-    , logIndex : Maybe Int
-    , topics : List String
-    , transactionHash : TxId
-    , transactionIndex : Int
-    , transactionLogIndex : String
-    , type_ : String
     }
 
 
@@ -287,19 +313,6 @@ type Network
 -}
 
 
-type Expect a
-    = Expect
-
-
-type CallType
-    = Sync
-    | Async
-    | Getter
-    | CustomSync String
-
-
-{-| Available ethereum denominations.
--}
 type EthUnit
     = Wei
     | Kwei

@@ -1,6 +1,8 @@
 module Web3.Internal
     exposing
         ( Request
+        , Expect
+        , CallType(..)
         , expectStringResponse
         , constructOptions
         , decapitalize
@@ -20,6 +22,17 @@ type alias Request a =
     , callType : CallType
     , applyScope : Maybe String
     }
+
+
+type Expect a
+    = Expect
+
+
+type CallType
+    = Sync
+    | Async
+    | Getter
+    | CustomSync String
 
 
 decapitalize : String -> String

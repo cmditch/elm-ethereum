@@ -22,7 +22,7 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 
 -}
 
-import Web3.Internal as Internal
+import Web3.Internal as Internal exposing (CallType(..))
 import Time
 import Process
 import Task exposing (Task)

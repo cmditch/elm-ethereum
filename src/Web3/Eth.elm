@@ -41,7 +41,7 @@ module Web3.Eth
 {-| Web3.Eth
 -}
 
-import Web3.Internal as Internal
+import Web3.Internal as Internal exposing (CallType(..))
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
 import Web3.Encoders exposing (..)
@@ -67,7 +67,7 @@ isSyncing =
     Internal.toTask
         { method = "eth.isSyncing"
         , params = Encode.list []
-        , expect = expectJson (Decode.maybe syncStatusDecoder)
+        , expect = expectJson syncStatusDecoder
         , callType = Async
         , applyScope = Nothing
         }
@@ -376,7 +376,7 @@ estimateGas txParams =
         }
 
 
-getPastLogs : FilterParams -> Task Error (List Log)
+getPastLogs : LogParams -> Task Error (List Log)
 getPastLogs params =
     -- TODO Something wrong with this function in Web3
     Internal.toTask

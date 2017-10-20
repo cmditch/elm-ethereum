@@ -26,6 +26,26 @@ module Web3.Utils
         , rightPadHexCustom
         )
 
+{-| Web3.Utils contains various helper functions for working with addresses, hex, ascii, etc.
+**Note:** See [here](https://web3js.readthedocs.io/en/1.0/web3-utils.html) for web3.js documentation.
+
+
+# Addresses
+
+@docs isAddress, toChecksumAddress, checkAddressChecksum
+
+
+# Conversions
+
+@docs fromWei, toWei, toHex, hexToNumberString, hexToNumber, numberToHex, bigIntToHex, hexToUtf8, utf8ToHex, hexToAscii, asciiToHex, hexToBytes, bytesToHex, bigIntToWei
+
+
+# Misc
+
+@docs sha3, isHex, randomHex, leftPadHex, rightPadHex, leftPadHexCustom, rightPadHexCustom
+
+-}
+
 import BigInt exposing (BigInt)
 import Task exposing (Task)
 import Json.Encode as Encode
@@ -33,12 +53,17 @@ import Web3.Types exposing (..)
 import Web3.Decoders exposing (..)
 import Web3.Encoders exposing (encodeBytes)
 import Regex
-import Web3.Internal as Internal
+import Web3.Internal as Internal exposing (CallType(..))
 
 
 -- UTIL
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 randomHex : Int -> Task Error Hex
 randomHex size =
     Internal.toTask
@@ -50,6 +75,11 @@ randomHex size =
         }
 
 
+{-| Hash a given string with Keccak256 variation of Sha3
+
+    sha3 "Use Keccak for indigestion" == "0xc5a43ed1619a2850c9523be603f62c8b068c881258e4b484167c35cbf955b5fe"
+
+-}
 sha3 : String -> Task Error Sha3
 sha3 val =
     Internal.toTask
@@ -76,6 +106,14 @@ sha3 val =
 -}
 
 
+{-| Check if a given string is valid hex
+
+    isHex "0x" == True
+    isHex "1234" == False
+    isHex "0x1234" == True
+    isHex "0x1h" == False
+
+-}
 isHex : String -> Task Error Bool
 isHex val =
     Internal.toTask
@@ -87,6 +125,14 @@ isHex val =
         }
 
 
+{-| Check if a given address is valid.
+
+    isAddress (Address "0x") == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+**Note:** This function should not really be needed, but is included to wrap web3.js.
+Everything wrapped in the opaque `Address` type should be a valid address.
+
+-}
 isAddress : Address -> Task Error Bool
 isAddress (Address address) =
     Internal.toTask
@@ -98,6 +144,11 @@ isAddress (Address address) =
         }
 
 
+{-| Convert an address
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 toChecksumAddress : Address -> Task Error Address
 toChecksumAddress (Address address) =
     Internal.toTask
@@ -109,6 +160,11 @@ toChecksumAddress (Address address) =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 checkAddressChecksum : Address -> Task Error Bool
 checkAddressChecksum (Address address) =
     Internal.toTask
@@ -120,6 +176,11 @@ checkAddressChecksum (Address address) =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 toHex : String -> Task Error Hex
 toHex val =
     Internal.toTask
@@ -131,6 +192,11 @@ toHex val =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 hexToNumberString : Hex -> Task Error String
 hexToNumberString (Hex val) =
     Internal.toTask
@@ -142,6 +208,11 @@ hexToNumberString (Hex val) =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 hexToNumber : Hex -> Task Error Int
 hexToNumber (Hex val) =
     Internal.toTask
@@ -153,6 +224,11 @@ hexToNumber (Hex val) =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 hexToBigInt : Hex -> Task Error BigInt
 hexToBigInt hexNum =
     hexToNumberString hexNum
@@ -167,6 +243,11 @@ hexToBigInt hexNum =
             )
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 numberToHex : Int -> Task Error Hex
 numberToHex number =
     Internal.toTask
@@ -178,6 +259,11 @@ numberToHex number =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 bigIntToHex : BigInt -> Task Error Hex
 bigIntToHex number =
     Internal.toTask
@@ -189,6 +275,11 @@ bigIntToHex number =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 hexToUtf8 : Hex -> Task Error String
 hexToUtf8 (Hex val) =
     Internal.toTask
@@ -200,6 +291,11 @@ hexToUtf8 (Hex val) =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 utf8ToHex : String -> Task Error Hex
 utf8ToHex val =
     Internal.toTask
@@ -211,6 +307,11 @@ utf8ToHex val =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 hexToAscii : Hex -> Task Error String
 hexToAscii (Hex val) =
     Internal.toTask
@@ -225,6 +326,11 @@ hexToAscii (Hex val) =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 asciiToHex : String -> Task Error Hex
 asciiToHex val =
     Internal.toTask
@@ -236,6 +342,11 @@ asciiToHex val =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 hexToBytes : Hex -> Task Error Bytes
 hexToBytes (Hex hex) =
     Internal.toTask
@@ -247,6 +358,11 @@ hexToBytes (Hex hex) =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 bytesToHex : Bytes -> Task Error Hex
 bytesToHex byteArray =
     Internal.toTask
@@ -258,6 +374,11 @@ bytesToHex byteArray =
         }
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 toWei : EthUnit -> String -> Result Error BigInt
 toWei unit amount =
     -- check to make sure input string is formatted correctly, should never error in here.
@@ -290,6 +411,11 @@ toWei unit amount =
         Err (Error "Malformed number string passed to `toWei` method.")
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 fromWei : EthUnit -> BigInt -> String
 fromWei unit amount =
     let
@@ -311,6 +437,11 @@ fromWei unit amount =
                 (\i -> "")
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 bigIntToWei : EthUnit -> BigInt -> BigInt
 bigIntToWei unit amount =
     List.repeat (decimalShift unit) (BigInt.fromInt 10)
@@ -322,11 +453,21 @@ bigIntToWei unit amount =
 --unitMap TODO Is this needed?
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 leftPadHex : Hex -> Hex
 leftPadHex =
     leftPadHexCustom '0' 32
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 rightPadHex : Hex -> Hex
 rightPadHex =
     rightPadHexCustom '0' 32
@@ -336,6 +477,11 @@ rightPadHex =
 -- TODO output won't always be hex if no hexy char is provided :\
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 leftPadHexCustom : Char -> Int -> Hex -> Hex
 leftPadHexCustom char amount (Hex hex) =
     let
@@ -354,6 +500,11 @@ leftPadHexCustom char amount (Hex hex) =
 -- TODO output won't always be hex if no hexy char is provided :\
 
 
+{-| Generate a random hex number of a given length
+
+    randomHex 32 == "0x80c729025c32243f6b71b449f423e579b35b9d79edb6f871d3399ce3d7c536"
+
+-}
 rightPadHexCustom : Char -> Int -> Hex -> Hex
 rightPadHexCustom char amount (Hex hex) =
     String.padRight (amount + 2) char hex
