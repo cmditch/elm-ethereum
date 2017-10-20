@@ -1,6 +1,7 @@
 module Web3.Decoders
     exposing
-        ( blockDecoder
+        ( decodeWeb3String
+        , blockDecoder
         , blockHeaderDecoder
         , blockTxIdDecoder
         , blockTxObjDecoder
@@ -42,6 +43,11 @@ import Json.Decode as Decode exposing (int, list, nullable, string, bool, maybe,
 import Json.Decode.Pipeline exposing (..)
 import Web3.Types exposing (..)
 import Web3.Internal exposing (expectStringResponse, Expect)
+
+
+decodeWeb3String : Decoder a -> String -> Result Error a
+decodeWeb3String decoder =
+    Decode.decodeString decoder >> Result.mapError Error
 
 
 blockDecoder : Decoder a -> Decoder (Block a)

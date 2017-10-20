@@ -192,11 +192,15 @@ type alias ContractInfo =
 -}
 
 
+type alias EventId =
+    String
+
+
 type Subscription
     = PendingTxs
     | NewBlockHeaders
     | Syncing
-    | Logs LogParams
+    | Logs LogParams EventId
 
 
 type alias LogParams =

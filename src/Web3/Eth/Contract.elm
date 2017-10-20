@@ -140,7 +140,7 @@ once (Address contractAddress) params =
 
 
 type MyCmd msg
-    = Subscribe String String String String
+    = Subscribe String String String EventId
     | Unsubscribe String
 
 
@@ -154,7 +154,7 @@ cmdMap _ cmd =
             Unsubscribe eventId
 
 
-subscribe : Abi -> String -> ( Address, String ) -> Cmd msg
+subscribe : Abi -> String -> ( Address, EventId ) -> Cmd msg
 subscribe (Abi abi) eventName ( Address address, eventId ) =
     command <| Subscribe abi eventName address (address ++ eventId)
 
@@ -169,7 +169,7 @@ subscribe (Abi abi) eventName ( Address address, eventId ) =
 -}
 
 
-unsubscribe : ( Address, String ) -> Cmd msg
+unsubscribe : ( Address, EventId ) -> Cmd msg
 unsubscribe ( Address address, eventId ) =
     command <| Unsubscribe (address ++ eventId)
 
@@ -179,15 +179,15 @@ unsubscribe ( Address address, eventId ) =
 
 
 type MySub msg
-    = EventSentry String (String -> msg)
+    = EventSentry EventId (String -> msg)
 
 
 subMap : (a -> b) -> MySub a -> MySub b
-subMap method (EventSentry name toMsg) =
-    EventSentry name (toMsg >> method)
+subMap method (EventSentry eventId toMsg) =
+    EventSentry eventId (toMsg >> method)
 
 
-eventSentry : ( Address, String ) -> (String -> msg) -> Sub msg
+eventSentry : ( Address, EventId ) -> (String -> msg) -> Sub msg
 eventSentry ( Address address, eventId ) toMsg =
     subscription <| EventSentry (address ++ eventId) toMsg
 
@@ -207,11 +207,11 @@ type alias State msg =
 
 
 type alias SubsDict msg =
-    Dict.Dict String (List (String -> msg))
+    Dict.Dict EventId (List (String -> msg))
 
 
 type alias EventEmitterDict =
-    Dict.Dict String EventEmitter
+    Dict.Dict EventId EventEmitter
 
 
 init : Task Never (State msg)

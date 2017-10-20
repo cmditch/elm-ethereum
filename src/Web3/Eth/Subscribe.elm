@@ -1,18 +1,12 @@
 effect module Web3.Eth.Subscribe where { command = MyCmd, subscription = MySub } exposing (..)
 
 import Web3.Types exposing (..)
+import Web3.Decoders exposing (decodeWeb3String, txObjDecoder, blockHeaderDecoder, syncStatusDecoder)
 import Task exposing (Task)
 import Dict exposing (Dict)
 import Process
 
 
--- Effect Manager
--- type Subscription
---     = PendingTxs
---     | NewBlockHeaders
---     | Syncing
---     | Logs LogParams
---
 -- MANAGER COMMANDS
 
 
@@ -35,24 +29,14 @@ cmdMap _ cmd =
             ClearSubscriptions
 
 
-pendingTransactions : Cmd msg
-pendingTransactions =
-    command <| Subscribe PendingTxs
+start : Subscription -> Cmd msg
+start subType =
+    command <| Subscribe subType
 
 
-newBlockHeaders : Cmd msg
-newBlockHeaders =
-    command <| Subscribe NewBlockHeaders
-
-
-syncing : Cmd msg
-syncing =
-    command <| Subscribe Syncing
-
-
-logs : LogParams -> Cmd msg
-logs params =
-    command <| Subscribe (Logs params)
+stop : Subscription -> Cmd msg
+stop subType =
+    command <| Unsubscribe subType
 
 
 clearSubscriptions : Cmd msg
@@ -73,13 +57,32 @@ subMap tagger (EventSentry subType toMsg) =
     EventSentry subType (toMsg >> tagger)
 
 
-eventSentry : Subscription -> (String -> msg) -> Sub msg
-eventSentry subType toMsg =
-    subscription <| EventSentry subType toMsg
+pendingTxs : (Result Error TxObj -> msg) -> Sub msg
+pendingTxs toMsg =
+    subscription <| EventSentry PendingTxs (decodeWeb3String txObjDecoder >> toMsg)
 
 
+newBlockHeaders : (Result Error BlockHeader -> msg) -> Sub msg
+newBlockHeaders toMsg =
+    subscription <| EventSentry NewBlockHeaders (decodeWeb3String blockHeaderDecoder >> toMsg)
 
--- MANAGER
+
+syncing : (Result Error (Maybe SyncStatus) -> msg) -> Sub msg
+syncing toMsg =
+    subscription <| EventSentry Syncing (decodeWeb3String syncStatusDecoder >> toMsg)
+
+
+logs : (String -> msg) -> EventId -> Sub msg
+logs toMsg eventId =
+    let
+        unUsedParams =
+            { fromBlock = Latest
+            , toBlock = Latest
+            , address = []
+            , topics = []
+            }
+    in
+        subscription <| EventSentry (Logs unUsedParams eventId) toMsg
 
 
 type EventEmitter
@@ -114,7 +117,7 @@ onEffects : Platform.Router msg Msg -> List (MyCmd msg) -> List (MySub msg) -> S
 onEffects router cmds subs state =
     let
         sendMessages =
-            sendMessagesHelp router cmds state.eventEmitters
+            sendMessagesHelp router state.eventEmitters cmds
 
         newSubs =
             buildSubsDict subs Dict.empty
@@ -123,61 +126,108 @@ onEffects router cmds subs state =
             |> Task.andThen (\newEventEmitters -> State newSubs newEventEmitters |> Task.succeed)
 
 
-sendMessagesHelp : Platform.Router msg Msg -> List (MyCmd msg) -> EventEmitterDict -> Task Never EventEmitterDict
-sendMessagesHelp router cmds eventEmittersDict =
-    case cmds of
+sendMessagesHelp : Platform.Router msg Msg -> EventEmitterDict -> List (MyCmd msg) -> Task Never EventEmitterDict
+sendMessagesHelp router eventEmittersDict cmds =
+    let
+        subHelp =
+            subscribeHelp router eventEmittersDict cmds
+
+        unsubHelp =
+            unsubscribeHelp router eventEmittersDict cmds
+    in
+        case cmds of
+            [] ->
+                Task.succeed eventEmittersDict
+
+            (Subscribe subType) :: rest ->
+                subHelp subType
+
+            (Unsubscribe subType) :: rest ->
+                unsubHelp subType
+
+            ClearSubscriptions :: rest ->
+                clearSubs &> Task.succeed Dict.empty
+
+
+
+-- TODO clear subscriptions myself or use the web3 function?
+-- if I do it myself, it will not clear contract subscriptions
+-- unless I bring the merge the contract effect manager in here
+
+
+subscribeHelp : Platform.Router msg Msg -> EventEmitterDict -> List (MyCmd msg) -> Subscription -> Task Never EventEmitterDict
+subscribeHelp router eventEmittersDict cmds subType =
+    case subType of
         _ ->
-            Task.succeed eventEmittersDict
+            case Dict.get (subToEventId subType) eventEmittersDict of
+                Just _ ->
+                    sendMessagesHelp router eventEmittersDict cmds
+
+                Nothing ->
+                    createEventEmitter subType
+                        |> Task.andThen
+                            (\eventEmitter ->
+                                (Process.spawn (eventSubscribe router eventEmitter (subToEventId subType)))
+                                    &> Task.succeed (Dict.insert (subToEventId subType) eventEmitter eventEmittersDict)
+                            )
+                        |> Task.andThen (\newEventEmitters -> sendMessagesHelp router newEventEmitters cmds)
 
 
+unsubscribeHelp : Platform.Router msg Msg -> EventEmitterDict -> List (MyCmd msg) -> Subscription -> Task Never EventEmitterDict
+unsubscribeHelp router eventEmittersDict cmds subType =
+    case subType of
+        _ ->
+            case Dict.get (subToEventId subType) eventEmittersDict of
+                Just eventEmitter ->
+                    eventUnsubscribe eventEmitter
+                        &> Task.succeed (Dict.remove (subToEventId subType) eventEmittersDict)
+                        |> Task.andThen (\newEventEmitters -> sendMessagesHelp router newEventEmitters cmds)
 
--- (Subscribe abi eventName address eventId) :: rest ->
---     case Dict.get eventId eventEmittersDict of
---         Just _ ->
---             sendMessagesHelp router rest eventEmittersDict
---
---         Nothing ->
---             createEventEmitter abi address eventName
---                 |> Task.andThen
---                     (\eventEmitter ->
---                         (Process.spawn (eventSubscribe router eventEmitter eventId))
---                             &> Task.succeed (Dict.insert eventId eventEmitter eventEmittersDict)
---                     )
---                 |> Task.andThen (\newEventEmitters -> sendMessagesHelp router rest newEventEmitters)
---
--- (Unsubscribe eventId) :: rest ->
---     case Dict.get eventId eventEmittersDict of
---         Just eventEmitter ->
---             Process.spawn (eventUnsubscribe eventEmitter)
---                 &> Task.succeed (Dict.remove eventId eventEmittersDict)
---
---         Nothing ->
---             sendMessagesHelp router rest eventEmittersDict
-{-
-
-   web3.eth.subscribe("pendingTransactions")
-   web3.eth.subscribe("newBlockHeaders")
-   web3.eth.subscribe("syncing")
-   web3.eth.subscribe("logs", options)
-
--}
+                Nothing ->
+                    sendMessagesHelp router eventEmittersDict cmds
 
 
-createEventEmitter : String -> String -> String -> Task Never EventEmitter
-createEventEmitter abi address eventName =
-    Native.Web3.createEventEmitter abi address eventName
+subToEventId : Subscription -> EventId
+subToEventId subType =
+    case subType of
+        PendingTxs ->
+            "pendingTransactions"
+
+        NewBlockHeaders ->
+            "newBlockHeaders"
+
+        Syncing ->
+            "syncing"
+
+        Logs _ eventId ->
+            eventId
+
+
+createEventEmitter : Subscription -> Task Never EventEmitter
+createEventEmitter subType =
+    case subType of
+        Logs logParams _ ->
+            Native.Subscribe.createEventEmitter "logs" {}
+
+        _ ->
+            Native.Subscribe.createEventEmitter (subToEventId subType)
 
 
 eventSubscribe : Platform.Router msg Msg -> EventEmitter -> String -> Task Never ()
 eventSubscribe router eventEmitter eventId =
-    Native.Web3.eventSubscribe
+    Native.Subscribe.eventSubscribe
         eventEmitter
         (\log -> Platform.sendToSelf router (RecieveLog eventId log))
 
 
 eventUnsubscribe : EventEmitter -> Task Never ()
 eventUnsubscribe eventEmitter =
-    Native.Web3.eventUnsubscribe eventEmitter
+    Native.Subscribe.eventUnsubscribe eventEmitter
+
+
+clearSubs : Task Never ()
+clearSubs =
+    Native.Subscribe.clearSubscriptions
 
 
 buildSubsDict : List (MySub msg) -> SubsDict msg -> SubsDict msg
@@ -215,39 +265,3 @@ onSelfMsg router (RecieveLog eventId log) state =
                 |> List.map (\tagger -> Platform.sendToApp router (tagger log))
     in
         Process.spawn (Task.sequence sends) &> Task.succeed state
-
-
-
---- Working out the API
--- InitEventSubscribe ->
---     model
---         ! [ TC.subscribeAdd ( config.contract, "eventWatchTest" ) ]
---
--- InitEventUnsubscribe ->
---     model
---         ! [ Contract.unsubscribe ( config.contract, "eventWatchTest" ) ]
---
--- InitPendingTxSubscribe ->
---     model
---         ! [ Subscribe.start PendingTxs  ]
---
--- InitPendingTxUnsubscribe ->
---     model
---         ! [ Subscribe.stop PendingTxs ]
---
--- InitCustomSubscribe ->
---     model
---         ! [ Subscribe.start (Logs logParams "id1") ]
---
--- InitCustomUnsubscribe ->
---     model
---         ! [ Subscribe.stop (Logs logParams "id1") ]
---
---
--- subscriptions : Model -> Sub Msg
--- subscriptions model =
---     Sub.batch
---         [ Subscribe.pendingTxs ReceiveMeLatestTxs
---         , Subscribe.blockHeaders ReceiveMeBlocks
---         , Subscribe.logs
---         ]
