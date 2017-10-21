@@ -99,9 +99,9 @@ view model =
         testButtons =
             [ row TestRow
                 [ spacing 20, paddingXY 20 20 ]
-                [ button Button [ onClick InitTests ] (text "Start Tests")
-                , button Button [ onClick InitSendTransaction ] (text "Send Tx")
-                , button Button [ onClick InitSendSignedTransaction ] (text "Send Signed Tx")
+                [ button Button [ onClick InitTests, paddingXY 20 0 ] (text "Start Tests")
+                , button Button [ onClick InitSendTransaction, paddingXY 20 0 ] (text "Send Tx")
+                , button Button [ onClick InitSendSignedTransaction, paddingXY 20 0 ] (text "Send Signed Tx")
                 ]
             ]
     in

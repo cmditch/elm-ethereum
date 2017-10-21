@@ -79,7 +79,7 @@ view model =
         testButton =
             [ row TestRow
                 [ spacing 20, paddingXY 20 20 ]
-                [ button Button [ onClick InitTests ] (text "Start Tests") ]
+                [ button Button [ onClick InitTests, paddingXY 20 0 ] (text "Start Tests") ]
             ]
     in
         column None

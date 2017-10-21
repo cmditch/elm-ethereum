@@ -97,14 +97,14 @@ viewAccountTests model =
         list =
             viewTestRow "List Wallet"
                 [ button Button
-                    [ onClick InitList, width (px 230) ]
+                    [ onClick InitList, width (px 230), paddingXY 20 0 ]
                     (text "List")
                 ]
 
         create =
             viewTestRow "Create Random Account"
                 [ button Button
-                    [ onClick InitCreate, width (px 230) ]
+                    [ onClick InitCreate, width (px 230), paddingXY 20 0 ]
                     (text "Create")
                 ]
 
@@ -113,6 +113,7 @@ viewAccountTests model =
                 [ button Button
                     [ onClick (InitCreateMany)
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Create 3")
                 ]
@@ -122,6 +123,7 @@ viewAccountTests model =
                 [ button Button
                     [ onClick (InitAdd)
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Add 0xfBbBb...")
                 ]
@@ -131,6 +133,7 @@ viewAccountTests model =
                 [ button Button
                     [ onClick (InitRemove)
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Remove")
                 , text model.removeStatus
@@ -141,6 +144,7 @@ viewAccountTests model =
                 [ button Button
                     [ onClick (InitClear)
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Clear")
                 ]
@@ -150,6 +154,7 @@ viewAccountTests model =
                 [ button Button
                     [ onClick (InitEncrypt)
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Encrypt")
                 ]
@@ -159,6 +164,7 @@ viewAccountTests model =
                 [ button Button
                     [ onClick (InitDecrypt)
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Decrypt")
                 ]
@@ -168,6 +174,7 @@ viewAccountTests model =
                 [ button Button
                     [ onClick InitSave
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Save Wallet")
                 , text model.saveStatus
@@ -178,6 +185,7 @@ viewAccountTests model =
                 [ button Button
                     [ onClick InitLoad
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Load Wallet")
                 , text model.loadStatus
