@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "An elm wrapper for Web3.js",
   "scripts": {
-    "testnet": "geth --datadir 'testchain' --networkid 23 console --ws --wsport 8545 --wsaddr 0.0.0.0 --wsorigins '*'",
+    "testnet": "geth console --datadir 'testchain' --networkid 23 --ws --wsport 8545 --wsaddr 0.0.0.0 --wsorigins '*'",
     "test": "elm-live --yes test/Main.elm --output=test/elm.js --debug"
   },
   "author": "Coury Ditch and Nick Miller",
