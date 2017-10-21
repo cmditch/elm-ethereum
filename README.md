@@ -24,4 +24,15 @@ npm run testnet
 miner.start(1)
 ```
 
-open http://localhost:8000/test   
+open http://localhost:8000/test     
+
+
+------    
+Still a number of big things to tick off the list:
+- Getting setup with elm-grove or elm-github-install
+- Documentation
+- Example App
+- Code Generator for Elm interfaces to Contracts (in Haskell 😄 )
+- Revising Types / Decoders in the face of Byzantium changes
+- Better tests. More automated, and without reliance on browser.
+- Fixing a few quirks here there, some of which are issues with web3.js 1.0
