@@ -1,7 +1,8 @@
 # <img src="https://cdn.rawgit.com/cmditch/elm-web3/master/elm-web3-logo.svg" width="75"> elm-web3
-###### Feed the tree some ether.
+###### 🌳  Feed the tree some ether 🌳 
 
-## Give it a try :smiley:    
+## Behold, the power of types! Give it a try!
+ 
 
 First Install Geth    
 https://geth.ethereum.org/downloads/
@@ -18,10 +19,12 @@ cd elm-web3/
 npm run test
 ```
 Run the local Geth testnet in a new terminal window    
-To allow for tests involving tx's and subscriptions mine a little.   
+To allow for tests involving tx's and subscriptions mine a little.    
+NOTE: It takes a while to build the DAG and start mining on your first go.    
+Give it a minute or three. :smiley:
 ```
 npm run testnet
-miner.start(1)
+miner.start(4)
 ```
 
 open http://localhost:8000/test     
