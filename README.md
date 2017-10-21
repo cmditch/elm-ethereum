@@ -29,8 +29,16 @@ miner.start(4)
 
 open http://localhost:8000/test     
 
+------    
+
+## Time traveling debugger    
+![alt text](https://raw.githubusercontent.com/cmditch/elm-web3/master/accounts-with-debugger.png)    
+
+## Code/Pages for every function in web3 
+![alt text](https://raw.githubusercontent.com/cmditch/elm-web3/master/wallet.png)    
 
 ------    
+
 Still a number of big things to tick off the list:
 - Getting setup with elm-grove or elm-github-install
 - Documentation
