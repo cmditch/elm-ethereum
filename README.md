@@ -1,7 +1,6 @@
 # <img src="https://cdn.rawgit.com/cmditch/elm-web3/master/elm-web3-logo.svg" width="75"> elm-web3
-###### 🌳  Feed the tree some ether 🌳 
 
-## Behold, the power of types! Give it a try!
+###### Behold, the beauty of elm. Give it a try!
  
 
 First Install Geth    
@@ -46,4 +45,8 @@ Still a number of big things to tick off the list:
 - Code Generator for Elm interfaces to Contracts (in Haskell 😄 )
 - Revising Types / Decoders in the face of Byzantium changes
 - Better tests. More automated, and without reliance on browser.
-- Fixing a few quirks here there, some of which are issues with web3.js 1.0
+- Fixing a few quirks here there, some of which are issues with web3.js 1.0    
+
+###### Feed the tree some ether  
+### 🌳Ξ🌳Ξ🌳
+
