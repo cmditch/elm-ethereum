@@ -109,11 +109,11 @@ viewAccountTests model =
                 [ spacing 20, paddingXY 20 13, xScrollbar ]
                 [ column None
                     [ verticalCenter, spacing 15 ]
-                    [ button None [ onClick InitCreate ] (text "Create Account")
+                    [ button Button [ onClick InitCreate ] (text "Create Account")
                     , row None
                         [ spacing 15 ]
                         [ Input.text TextField [] entropyTextfieldConfig
-                        , button None [ onClick InitCreateWithEntropy ] (text "Create w/ Entropy")
+                        , button Button [ onClick InitCreateWithEntropy ] (text "Create w/ Entropy")
                         ]
                     ]
                 , viewAccount account
