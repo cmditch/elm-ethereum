@@ -6,3 +6,4 @@ temp/
 examples/lightbox/web3.js
 testchain/geth/nodes/
 testchain/history
+documentation.json

@@ -57,7 +57,7 @@ viewAccountTests model =
         createAccount =
             row TestRow
                 [ spacing 20, paddingXY 20 20 ]
-                [ column None [] [ button None [ onClick InitCreate, width (px 230) ] (text "Create Account") ]
+                [ column None [] [ button Button [ onClick InitCreate, width (px 230), paddingXY 20 0 ] (text "Create Account") ]
                 ]
 
         viewAccount account =
@@ -109,11 +109,11 @@ viewAccountTests model =
                 [ spacing 20, paddingXY 20 13, xScrollbar ]
                 [ column None
                     [ verticalCenter, spacing 15 ]
-                    [ button None [ onClick InitCreate ] (text "Create Account")
+                    [ button Button [ onClick InitCreate, paddingXY 20 0 ] (text "Create Account")
                     , row None
                         [ spacing 15 ]
                         [ Input.text TextField [] entropyTextfieldConfig
-                        , button None [ onClick InitCreateWithEntropy ] (text "Create w/ Entropy")
+                        , button Button [ onClick InitCreateWithEntropy, paddingXY 20 0 ] (text "Create w/ Entropy")
                         ]
                     ]
                 , viewAccount account

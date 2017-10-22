@@ -70,7 +70,7 @@ isSyncing =
     Internal.toTask
         { method = "eth.isSyncing"
         , params = Encode.list []
-        , expect = expectJson (Decode.maybe syncStatusDecoder)
+        , expect = expectJson syncStatusDecoder
         , callType = Async
         , applyScope = Nothing
         }

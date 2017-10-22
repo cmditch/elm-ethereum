@@ -96,41 +96,44 @@ viewAccountTests model =
 
         list =
             viewTestRow "List Wallet"
-                [ button None
-                    [ onClick InitList, width (px 230) ]
+                [ button Button
+                    [ onClick InitList, width (px 230), paddingXY 20 0 ]
                     (text "List")
                 ]
 
         create =
             viewTestRow "Create Random Account"
-                [ button None
-                    [ onClick InitCreate, width (px 230) ]
+                [ button Button
+                    [ onClick InitCreate, width (px 230), paddingXY 20 0 ]
                     (text "Create")
                 ]
 
         createMany =
             viewTestRow "Create Many"
-                [ button None
+                [ button Button
                     [ onClick (InitCreateMany)
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Create 3")
                 ]
 
         add =
             viewTestRow "Add Account"
-                [ button None
+                [ button Button
                     [ onClick (InitAdd)
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Add 0xfBbBb...")
                 ]
 
         remove =
             viewTestRow "Remove First Account"
-                [ button None
+                [ button Button
                     [ onClick (InitRemove)
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Remove")
                 , text model.removeStatus
@@ -138,36 +141,40 @@ viewAccountTests model =
 
         clear =
             viewTestRow "Clear Wallet"
-                [ button None
+                [ button Button
                     [ onClick (InitClear)
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Clear")
                 ]
 
         encrypt =
             viewTestRow "Encrypt Wallet"
-                [ button None
+                [ button Button
                     [ onClick (InitEncrypt)
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Encrypt")
                 ]
 
         decrypt =
             viewTestRow "Decrypt Wallet"
-                [ button None
+                [ button Button
                     [ onClick (InitDecrypt)
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Decrypt")
                 ]
 
         save =
             viewTestRow "Save Wallet"
-                [ button None
+                [ button Button
                     [ onClick InitSave
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Save Wallet")
                 , text model.saveStatus
@@ -175,9 +182,10 @@ viewAccountTests model =
 
         load =
             viewTestRow "Load Wallet"
-                [ button None
+                [ button Button
                     [ onClick InitLoad
                     , width (px 230)
+                    , paddingXY 20 0
                     ]
                     (text "Load Wallet")
                 , text model.loadStatus

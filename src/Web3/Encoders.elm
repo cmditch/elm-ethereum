@@ -52,11 +52,11 @@ encodeTxParams from { to, value, gas, data, gasPrice, nonce, chainId } =
 
 encodeFilterParams : LogParams -> Value
 encodeFilterParams { fromBlock, toBlock, address, topics } =
-    listOfMaybesToVal
-        [ ( "fromBlock", Maybe.map getBlockIdValue fromBlock )
-        , ( "toBlock", Maybe.map getBlockIdValue toBlock )
-        , ( "address", Maybe.map encodeAddressList address )
-        , ( "topics", Maybe.map maybeStringListEncoder topics )
+    Encode.object
+        [ ( "fromBlock", getBlockIdValue fromBlock )
+        , ( "toBlock", getBlockIdValue toBlock )
+        , ( "address", encodeAddressList address )
+        , ( "topics", topicsListEncoder topics )
         ]
 
 
@@ -79,18 +79,18 @@ getBlockIdValue blockId =
             string "pending"
 
 
-maybeStringListEncoder : List (Maybe String) -> Value
-maybeStringListEncoder mList =
+topicsListEncoder : List (Maybe (List String)) -> Value
+topicsListEncoder topicsList =
     let
         toVal val =
             case val of
-                Just str ->
-                    string str
+                Just listOfStr ->
+                    List.map string listOfStr |> list
 
                 Nothing ->
                     null
     in
-        List.map toVal mList |> list
+        List.map toVal topicsList |> list
 
 
 encodeAddressList : List Address -> Value
