@@ -4,8 +4,8 @@ npm-debug.log
 .DS_Store
 temp/
 examples/lightbox/web3.js
-testchain/geth/nodes/
-testchain/history
+test/testchain/geth/nodes/
+test/testchain/history
 documentation.json
 docs
 sandbox

@@ -1,0 +1,10 @@
+{
+  "name": "elm-web3-test",
+  "version": "1.0.0",
+  "description": "Light 'tests' and examples for elm-web3 functions",
+  "scripts": {
+    "testnet": "geth --datadir 'testchain' --networkid 23 --ws --wsport 8545 --wsaddr 0.0.0.0 --wsorigins '*' console",
+    "test": "elm-live --yes Main.elm --output=elm.js --debug"
+  },
+  "author": "Coury Ditch and Nick Miller",
+  "license": "BSD3"
