@@ -8,8 +8,7 @@ https://geth.ethereum.org/downloads/
 
 Second Install Elm things    
 ```
-npm install -g elm
-npm install -g elm-live
+npm install -g elm elm-live elm-github-install
 ```
 Then get elm-web3 and open test/example page   
 ```
@@ -23,10 +22,10 @@ NOTE: It takes a while to build the DAG and start mining on your first go.
 Give it a minute or three. :smiley:
 ```
 npm run testnet
-miner.start(4)
+miner.start()
 ```
 
-open http://localhost:8000/test     
+open http://localhost:8000/    
 
 ------    
 
@@ -39,13 +38,11 @@ open http://localhost:8000/test
 ------    
 
 Still a number of big things to tick off the list:
-- Getting setup with elm-grove or elm-github-install
 - Documentation
-- Example App
+- Example App(s)
 - Code Generator for Elm interfaces to Contracts (in Haskell 😄 )
 - Revising Types / Decoders in the face of Byzantium changes
-- Better tests. More automated, and without reliance on browser.
-- Fixing a few quirks here there, some of which are issues with web3.js 1.0    
+- Better tests. More automated, and without reliance on browser. 
 
 ###### Feed the tree some ether  
 ### 🌳Ξ🌳Ξ🌳
