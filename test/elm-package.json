@@ -1,0 +1,15 @@
+{
+    "version": "1.0.0",
+    "summary": "elm-web3 tests",
+    "repository": "https://github.com/cmditch/elm-web-tests.git",
+    "license": "BSD-3-Clause",
+    "source-directories": [
+        "src"
+    ],
+    "exposed-modules": [],
+    "dependencies": {
+        "elm-lang/core": "5.1.1 <= v < 6.0.0",
+        "cmditch/elm-web3": "1.0.0 <= v < 2.0.0"
+    },
+    "elm-version": "0.18.0 <= v < 0.19.0"
+}

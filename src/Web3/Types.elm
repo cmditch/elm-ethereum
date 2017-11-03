@@ -1,43 +1,81 @@
-module Web3.Types exposing (..)
+module Web3.Types
+    exposing
+        ( Error(..)
+        , Address(..)
+        , TxId(..)
+        , Bytes(..)
+        , Hex(..)
+        , Abi(..)
+        , Sha3(..)
+        , BlockId(..)
+        , Block
+        , BlockHeader
+        , BlockTxObjs
+        , BlockTxIds
+        , TxObj
+        , TxReceipt
+        , TxParams
+        , SignedTx
+        , SignedMsg
+        , ContractInfo
+        , EventId
+        , Subscription(..)
+        , LogParams
+        , EventLog
+        , Log
+        , PrivateKey(..)
+        , WalletIndex(..)
+        , Account
+        , Keystore
+        , Crypto
+        , SyncStatus
+        , Network(..)
+        , EthUnit(..)
+        )
+
+{-| Web3.Types contains all the types to work within the Ethereum ecosystem
+
+
+# Types
+
+@docs Error, Address, TxId, Bytes, Hex, Abi, Sha3, Block, BlockId, BlockHeader, BlockTxObjs, BlockTxIds, TxObj, TxReceipt, TxParams, SignedTx, SignedMsg, ContractInfo, EventId, Subscription, LogParams, EventLog, Log, PrivateKey, WalletIndex, Account, Keystore, Crypto, SyncStatus, Network, EthUnit
+
+-}
 
 import BigInt exposing (BigInt)
 
 
-{-
-   ERROR TYPES
--}
-
-
+{-| -}
 type Error
     = Error String
 
 
-
-{-
-   ETHEREUM RUDIMENTS
--}
-
-
+{-| -}
 type Address
     = Address String
 
 
+{-| -}
 type TxId
     = TxId String
 
 
+{-| -}
 type Bytes
     = Bytes (List Int)
 
 
+{-| -}
 type Hex
     = Hex String
 
 
+{-| -}
 type Abi
     = Abi String
 
 
+{-| -}
 type Sha3
     = Sha3 String
 
@@ -48,6 +86,7 @@ type Sha3
 -}
 
 
+{-| -}
 type BlockId
     = BlockNum Int
     | BlockHash String
@@ -56,6 +95,7 @@ type BlockId
     | Pending
 
 
+{-| -}
 type alias Block a =
     { miner : Maybe Address
     , difficulty : BigInt
@@ -80,6 +120,7 @@ type alias Block a =
     }
 
 
+{-| -}
 type alias BlockHeader =
     { miner : Maybe Address
     , difficulty : BigInt
@@ -100,20 +141,17 @@ type alias BlockHeader =
     }
 
 
+{-| -}
 type alias BlockTxObjs =
     Block TxObj
 
 
+{-| -}
 type alias BlockTxIds =
     Block TxId
 
 
-
-{-
-   TRANSACTIONS
--}
-
-
+{-| -}
 type alias TxObj =
     { blockHash : BlockId
     , blockNumber : Int
@@ -138,6 +176,7 @@ type alias TxObj =
     }
 
 
+{-| -}
 type alias TxReceipt =
     { transactionHash : TxId
     , transactionIndex : Int
@@ -150,6 +189,7 @@ type alias TxReceipt =
     }
 
 
+{-| -}
 type alias TxParams =
     { to : Maybe Address
     , value : Maybe BigInt
@@ -161,6 +201,7 @@ type alias TxParams =
     }
 
 
+{-| -}
 type alias SignedTx =
     { messageHash : Sha3
     , r : Hex
@@ -170,6 +211,7 @@ type alias SignedTx =
     }
 
 
+{-| -}
 type alias SignedMsg =
     { message : Maybe String
     , messageHash : Sha3
@@ -180,6 +222,7 @@ type alias SignedMsg =
     }
 
 
+{-| -}
 type alias ContractInfo =
     { address : Address
     , txId : TxId
@@ -192,10 +235,12 @@ type alias ContractInfo =
 -}
 
 
+{-| -}
 type alias EventId =
     String
 
 
+{-| -}
 type Subscription
     = PendingTxs
     | NewBlockHeaders
@@ -203,6 +248,7 @@ type Subscription
     | Logs LogParams EventId
 
 
+{-| -}
 type alias LogParams =
     { fromBlock : BlockId
     , toBlock : BlockId
@@ -211,6 +257,7 @@ type alias LogParams =
     }
 
 
+{-| -}
 type alias EventLog a =
     { address : Address
     , blockHash : Maybe String -- Make BlockId?
@@ -227,6 +274,7 @@ type alias EventLog a =
     }
 
 
+{-| -}
 type alias Log =
     { address : Address
     , data : String
@@ -239,27 +287,25 @@ type alias Log =
     }
 
 
-
-{-
-   WALLET / ACCOUNTS
--}
-
-
+{-| -}
 type PrivateKey
     = PrivateKey String
 
 
+{-| -}
 type WalletIndex
     = AddressIndex Address
     | IntIndex Int
 
 
+{-| -}
 type alias Account =
     { address : Address
     , privateKey : PrivateKey
     }
 
 
+{-| -}
 type alias Keystore =
     { version : Int
     , id : String
@@ -268,6 +314,7 @@ type alias Keystore =
     }
 
 
+{-| -}
 type alias Crypto =
     { ciphertext : String
     , cipherparams : { iv : String }
@@ -284,12 +331,7 @@ type alias Crypto =
     }
 
 
-
-{-
-   NODE
--}
-
-
+{-| -}
 type alias SyncStatus =
     { startingBlock : Int
     , currentBlock : Int
@@ -299,6 +341,7 @@ type alias SyncStatus =
     }
 
 
+{-| -}
 type Network
     = MainNet
     | Morden
@@ -307,12 +350,7 @@ type Network
     | Private
 
 
-
-{-
-   INTERNAL
--}
-
-
+{-| -}
 type EthUnit
     = Wei
     | Kwei
