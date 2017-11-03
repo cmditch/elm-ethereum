@@ -4,7 +4,8 @@
   "description": "Light 'tests' and examples for elm-web3 functions",
   "scripts": {
     "testnet": "geth --datadir 'testchain' --networkid 23 --ws --wsport 8545 --wsaddr 0.0.0.0 --wsorigins '*' console",
-    "test": "elm-live --yes src/Main.elm --output=elm.js --debug"
+    "test": "npm run live || (elm-install && npm run live)",
+    "live": "elm-live --yes src/Main.elm --output=elm.js --debug --no-recover"
   },
   "author": "Coury Ditch and Nick Miller",
   "license": "BSD3"
