@@ -13,7 +13,7 @@ npm install -g elm elm-live elm-github-install
 Then get elm-web3 and open test/example page   
 ```
 git clone https://github.com/cmditch/elm-web3.git
-cd elm-web3/
+cd elm-web3/test
 npm run test
 ```
 Run the local Geth testnet in a new terminal window    
