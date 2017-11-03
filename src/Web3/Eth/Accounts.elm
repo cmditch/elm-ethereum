@@ -11,6 +11,11 @@ module Web3.Eth.Accounts
         , decrypt
         )
 
+{-| #Web3.Eth.Accounts
+@docs create, createWithEntropy, signTransaction, hashMessage
+@docs sign, recoverTx, recoverMsg, encrypt, decrypt
+-}
+
 import Task exposing (Task)
 import Json.Encode as Encode
 import Web3
@@ -20,6 +25,7 @@ import Web3.Encoders exposing (encodeKeystore, encodeTxParams)
 import Web3.Types exposing (..)
 
 
+{-| -}
 create : Task Error Account
 create =
     Internal.toTask
@@ -31,6 +37,7 @@ create =
         }
 
 
+{-| -}
 createWithEntropy : String -> Task Error Account
 createWithEntropy entropy =
     Internal.toTask
@@ -42,6 +49,7 @@ createWithEntropy entropy =
         }
 
 
+{-| -}
 signTransaction : Account -> TxParams -> Task Error SignedTx
 signTransaction { address, privateKey } txParams =
     Internal.toTask
@@ -57,6 +65,7 @@ signTransaction { address, privateKey } txParams =
         }
 
 
+{-| -}
 hashMessage : String -> Task Error Sha3
 hashMessage message =
     Internal.toTask
@@ -68,6 +77,7 @@ hashMessage message =
         }
 
 
+{-| -}
 sign : Account -> String -> Task Error SignedMsg
 sign { privateKey } message =
     Internal.toTask
@@ -83,6 +93,7 @@ sign { privateKey } message =
         }
 
 
+{-| -}
 recoverTx : SignedTx -> Task Error Address
 recoverTx { messageHash, v, r, s } =
     Internal.toTask
@@ -100,6 +111,7 @@ recoverTx { messageHash, v, r, s } =
         }
 
 
+{-| -}
 recoverMsg : SignedMsg -> Task Error Address
 recoverMsg { messageHash, v, r, s } =
     Internal.toTask
@@ -117,6 +129,7 @@ recoverMsg { messageHash, v, r, s } =
         }
 
 
+{-| -}
 encrypt : Account -> String -> Task Error Keystore
 encrypt { privateKey } password =
     Internal.toTask
@@ -133,6 +146,7 @@ encrypt { privateKey } password =
         |> Web3.delayExecution
 
 
+{-| -}
 decrypt : Keystore -> String -> Task Error Account
 decrypt keystore password =
     Internal.toTask

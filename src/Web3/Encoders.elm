@@ -14,12 +14,19 @@ module Web3.Encoders
           -- , encodeCustomTxParams
         )
 
+{-| #Web3.Decoders
+@docs encodeTxParams, encodeFilterParams, encodeAddressList, encodeBigIntList
+@docs encodeListBigIntList, encodeIntList, encodeKeystore, encodeKeystoreList
+@docs getBlockIdValue, listOfMaybesToVal, encodeBytes
+-}
+
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (addressToString, hexToString)
 import BigInt exposing (BigInt)
 import Json.Encode as Encode exposing (Value, string, int, null, list, object)
 
 
+{-| -}
 encodeTxParams : Maybe Address -> TxParams -> Value
 encodeTxParams from { to, value, gas, data, gasPrice, nonce, chainId } =
     listOfMaybesToVal
@@ -50,6 +57,7 @@ encodeTxParams from { to, value, gas, data, gasPrice, nonce, chainId } =
 --             ++ customFields
 
 
+{-| -}
 encodeFilterParams : LogParams -> Value
 encodeFilterParams { fromBlock, toBlock, address, topics } =
     Encode.object
@@ -60,6 +68,7 @@ encodeFilterParams { fromBlock, toBlock, address, topics } =
         ]
 
 
+{-| -}
 getBlockIdValue : BlockId -> Value
 getBlockIdValue blockId =
     case blockId of
@@ -79,6 +88,7 @@ getBlockIdValue blockId =
             string "pending"
 
 
+{-| -}
 topicsListEncoder : List (Maybe (List String)) -> Value
 topicsListEncoder topicsList =
     let
@@ -93,34 +103,40 @@ topicsListEncoder topicsList =
         List.map toVal topicsList |> list
 
 
+{-| -}
 encodeAddressList : List Address -> Value
 encodeAddressList =
     List.map (addressToString >> string)
         >> list
 
 
+{-| -}
 encodeBigIntList : List BigInt -> Value
 encodeBigIntList =
     List.map (BigInt.toString >> string)
         >> list
 
 
+{-| -}
 encodeListBigIntList : List (List BigInt) -> Value
 encodeListBigIntList =
     List.map encodeBigIntList
         >> list
 
 
+{-| -}
 encodeIntList : List Int -> Value
 encodeIntList =
     List.map int >> list
 
 
+{-| -}
 intMaybeMap : Maybe Int -> Maybe String
 intMaybeMap =
     Maybe.map toString
 
 
+{-| -}
 listOfMaybesToVal : List ( String, Maybe Value ) -> Value
 listOfMaybesToVal keyValueList =
     keyValueList
@@ -129,11 +145,13 @@ listOfMaybesToVal keyValueList =
         |> object
 
 
+{-| -}
 encodeBytes : Bytes -> Value
 encodeBytes (Bytes byteArray) =
     list <| List.map int byteArray
 
 
+{-| -}
 encodeKeystore : Keystore -> Value
 encodeKeystore keystore =
     let
@@ -164,6 +182,7 @@ encodeKeystore keystore =
             ]
 
 
+{-| -}
 encodeKeystoreList : List Keystore -> Value
 encodeKeystoreList keystores =
     List.map encodeKeystore keystores |> Encode.list

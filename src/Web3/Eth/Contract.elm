@@ -14,6 +14,11 @@ effect module Web3.Eth.Contract
         , Params
         )
 
+{-| #Web3.Eth.Contract
+@docs call, send, estimateMethodGas, estimateContractGas, encodeMethodABI
+@docs encodeContractABI, subscribe, unsubscribe, eventSentry, once, Params
+-}
+
 import Native.Web3
 import Web3.Internal exposing (..)
 import Web3.Types exposing (..)
@@ -39,6 +44,7 @@ type ContractAction
     | Once
 
 
+{-| -}
 type alias Params a =
     { abi : Abi
     , gasPrice : Maybe BigInt
@@ -56,6 +62,7 @@ type alias Params a =
 -}
 
 
+{-| -}
 call : Address -> Params a -> Task Error a
 call (Address contractAddress) params =
     let
@@ -66,6 +73,7 @@ call (Address contractAddress) params =
             { rawParams | contractAddress = contractAddress }
 
 
+{-| -}
 send : Address -> Address -> Params a -> Task Error TxId
 send (Address from) (Address contractAddress) params =
     let
@@ -80,6 +88,7 @@ send (Address from) (Address contractAddress) params =
             }
 
 
+{-| -}
 estimateMethodGas : Address -> Params a -> Task Error Int
 estimateMethodGas (Address contractAddress) params =
     let
@@ -93,6 +102,7 @@ estimateMethodGas (Address contractAddress) params =
             }
 
 
+{-| -}
 encodeMethodABI : Params a -> Task Error Hex
 encodeMethodABI params =
     let
@@ -106,6 +116,7 @@ encodeMethodABI params =
             }
 
 
+{-| -}
 encodeContractABI : Params Hex -> Task Error Hex
 encodeContractABI params =
     let
@@ -116,12 +127,14 @@ encodeContractABI params =
             { rawParams | callType = Sync }
 
 
+{-| -}
 estimateContractGas : Params Int -> Task Error Int
 estimateContractGas params =
     toTask (constructEval params <| Deploy EstimateGas)
         (defaultRawParams params)
 
 
+{-| -}
 once : Address -> Params (EventLog a) -> Task Error (EventLog a)
 once (Address contractAddress) params =
     let
@@ -154,6 +167,7 @@ cmdMap _ cmd =
             Unsubscribe eventId
 
 
+{-| -}
 subscribe : Abi -> String -> ( Address, EventId ) -> Cmd msg
 subscribe (Abi abi) eventName ( Address address, eventId ) =
     command <| Subscribe abi eventName address (address ++ eventId)
@@ -169,6 +183,7 @@ subscribe (Abi abi) eventName ( Address address, eventId ) =
 -}
 
 
+{-| -}
 unsubscribe : ( Address, EventId ) -> Cmd msg
 unsubscribe ( Address address, eventId ) =
     command <| Unsubscribe (address ++ eventId)
@@ -187,6 +202,7 @@ subMap method (EventSentry eventId toMsg) =
     EventSentry eventId (toMsg >> method)
 
 
+{-| -}
 eventSentry : ( Address, EventId ) -> (String -> msg) -> Sub msg
 eventSentry ( Address address, eventId ) toMsg =
     subscription <| EventSentry (address ++ eventId) toMsg

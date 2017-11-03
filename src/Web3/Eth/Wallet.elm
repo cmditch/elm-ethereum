@@ -17,6 +17,11 @@ module Web3.Eth.Wallet
         , getKeys
         )
 
+{-| #Web3.Eth.Wallet
+@docs list, create, createMany, createWithEntropy, createManyWithEntropy, add
+@docs remove, clear, encrypt, decrypt, save, load, length, getByIndex, getKeys
+-}
+
 import Task exposing (Task)
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (maybe)
@@ -35,27 +40,32 @@ import Web3.Decoders
         )
 
 
+{-| -}
 list : Task Error (Dict Int Account)
 list =
     retryWalletLoad
         |> Task.andThen listWithKeys
 
 
+{-| -}
 create : Task Error (Dict Int Account)
 create =
     createMany 1
 
 
+{-| -}
 createMany : Int -> Task Error (Dict Int Account)
 createMany =
     createManyWithEntropy Nothing
 
 
+{-| -}
 createWithEntropy : String -> Task Error (Dict Int Account)
 createWithEntropy entropy =
     createManyWithEntropy (Just entropy) 1
 
 
+{-| -}
 createManyWithEntropy : Maybe String -> Int -> Task Error (Dict Int Account)
 createManyWithEntropy maybeEntropy count =
     let
@@ -77,6 +87,7 @@ createManyWithEntropy maybeEntropy count =
             |> Task.andThen (\_ -> list)
 
 
+{-| -}
 add : PrivateKey -> Task Error ()
 add (PrivateKey privateKey) =
     Internal.toTask
@@ -88,6 +99,7 @@ add (PrivateKey privateKey) =
         }
 
 
+{-| -}
 remove : WalletIndex -> Task Error Bool
 remove index =
     let
@@ -108,6 +120,7 @@ remove index =
             }
 
 
+{-| -}
 clear : Task Error (Dict Int Account)
 clear =
     (Internal.toTask
@@ -122,6 +135,7 @@ clear =
         |> Web3.delayExecution
 
 
+{-| -}
 encrypt : String -> Task Error (List Keystore)
 encrypt password =
     Internal.toTask
@@ -134,6 +148,7 @@ encrypt password =
         |> Web3.delayExecution
 
 
+{-| -}
 decrypt : List Keystore -> String -> Task Error (Dict Int Account)
 decrypt keystores password =
     (Internal.toTask
@@ -148,6 +163,7 @@ decrypt keystores password =
         |> Web3.delayExecution
 
 
+{-| -}
 save : String -> Task Error Bool
 save password =
     Internal.toTask
@@ -160,6 +176,7 @@ save password =
         |> Web3.delayExecution
 
 
+{-| -}
 load : String -> Task Error ()
 load password =
     (Internal.toTask
@@ -173,6 +190,7 @@ load password =
         |> Web3.delayExecution
 
 
+{-| -}
 length : Task Error Int
 length =
     Internal.toTask
@@ -184,6 +202,7 @@ length =
         }
 
 
+{-| -}
 getByIndex : WalletIndex -> Task Error (Maybe Account)
 getByIndex index =
     let
@@ -208,6 +227,7 @@ getByIndex index =
 -- Internal
 
 
+{-| -}
 getKeys : Task Error (List Int)
 getKeys =
     Internal.toTask

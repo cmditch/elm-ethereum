@@ -38,7 +38,12 @@ module Web3.Types
 
 # Types
 
-@docs Error, Address, TxId, Bytes, Hex, Abi, Sha3, Block, BlockId, BlockHeader, BlockTxObjs, BlockTxIds, TxObj, TxReceipt, TxParams, SignedTx, SignedMsg, ContractInfo, EventId, Subscription, LogParams, EventLog, Log, PrivateKey, WalletIndex, Account, Keystore, Crypto, SyncStatus, Network, EthUnit
+@docs Error, Address, TxId, Bytes, Hex, Abi, Sha3, Block
+@docs BlockId, BlockHeader, BlockTxObjs, BlockTxIds, TxObj
+@docs TxReceipt, TxParams, SignedTx, SignedMsg, ContractInfo
+@docs EventId, Subscription, LogParams, EventLog, Log
+@docs PrivateKey, WalletIndex, Account, Keystore, Crypto
+@docs SyncStatus, Network, EthUnit
 
 -}
 

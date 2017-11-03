@@ -13,12 +13,7 @@ documentation on Version](https://github.com/ethereum/wiki/wiki/JavaScript-API#w
 
 # Web3
 
-@docs version
-
-
-# Core
-
-@docs Error
+@docs version, retry, retryThrice, delayExecution, Retry
 
 -}
 
@@ -58,12 +53,14 @@ version =
 -}
 
 
+{-| -}
 type alias Retry =
     { attempts : Int
     , sleep : Float
     }
 
 
+{-| -}
 retry : Retry -> Task Error a -> Task Error a
 retry { attempts, sleep } web3Task =
     let
@@ -81,11 +78,13 @@ retry { attempts, sleep } web3Task =
                 )
 
 
+{-| -}
 delayExecution : Task x a -> Task x a
 delayExecution task =
     Process.sleep 50 |> Task.andThen (\_ -> task)
 
 
+{-| -}
 retryThrice : Task Error a -> Task Error a
 retryThrice =
     retry { sleep = 1, attempts = 3 }

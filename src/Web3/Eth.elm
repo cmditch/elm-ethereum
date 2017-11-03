@@ -39,6 +39,14 @@ module Web3.Eth
         )
 
 {-| Web3.Eth
+@docs getProtocolVersion, isSyncing, getCoinbase, isMining, getHashrate
+@docs getGasPrice, getAccounts, getBlockNumber, getBalance, getStorageAt
+@docs getStorageAtBlock, getCode, getCodeAtBlock, getBlockTransactionCount
+@docs getBlock, getBlockTxObjs, getBlockUncleCount, getUncle, getUncleTxObjs
+@docs getTransaction, getTransactionFromBlock, getTransactionReceipt
+@docs getTransactionCount, sendTransaction, sendSignedTransaction, sign
+@docs signTransaction, call, callAtBlock, estimateGas, getPastLogs, getId
+@docs isListening, getPeerCount, getNetworkType, currentProviderUrl
 -}
 
 import Web3.Internal as Internal exposing (CallType(..))
@@ -51,6 +59,7 @@ import Task exposing (Task)
 import BigInt exposing (BigInt)
 
 
+{-| -}
 getProtocolVersion : Task Error String
 getProtocolVersion =
     Internal.toTask
@@ -62,6 +71,7 @@ getProtocolVersion =
         }
 
 
+{-| -}
 isSyncing : Task Error (Maybe SyncStatus)
 isSyncing =
     Internal.toTask
@@ -81,6 +91,7 @@ isSyncing =
 -}
 
 
+{-| -}
 getCoinbase : Task Error Address
 getCoinbase =
     Internal.toTask
@@ -92,6 +103,7 @@ getCoinbase =
         }
 
 
+{-| -}
 isMining : Task Error Bool
 isMining =
     Internal.toTask
@@ -103,6 +115,7 @@ isMining =
         }
 
 
+{-| -}
 getHashrate : Task Error Int
 getHashrate =
     Internal.toTask
@@ -114,6 +127,7 @@ getHashrate =
         }
 
 
+{-| -}
 getGasPrice : Task Error BigInt
 getGasPrice =
     Internal.toTask
@@ -125,6 +139,7 @@ getGasPrice =
         }
 
 
+{-| -}
 getAccounts : Task Error (List Address)
 getAccounts =
     Internal.toTask
@@ -136,6 +151,7 @@ getAccounts =
         }
 
 
+{-| -}
 getBlockNumber : Task Error BlockId
 getBlockNumber =
     Internal.toTask
@@ -147,6 +163,7 @@ getBlockNumber =
         }
 
 
+{-| -}
 getBalance : Address -> Task Error BigInt
 getBalance (Address address) =
     Internal.toTask
@@ -158,11 +175,13 @@ getBalance (Address address) =
         }
 
 
+{-| -}
 getStorageAt : Address -> Int -> Task Error Hex
 getStorageAt =
     getStorageAtBlock Latest
 
 
+{-| -}
 getStorageAtBlock : BlockId -> Address -> Int -> Task Error Hex
 getStorageAtBlock blockId (Address address) position =
     Internal.toTask
@@ -174,11 +193,13 @@ getStorageAtBlock blockId (Address address) position =
         }
 
 
+{-| -}
 getCode : Address -> Task Error Hex
 getCode =
     getCodeAtBlock Latest
 
 
+{-| -}
 getCodeAtBlock : BlockId -> Address -> Task Error Hex
 getCodeAtBlock blockId (Address address) =
     Internal.toTask
@@ -190,6 +211,7 @@ getCodeAtBlock blockId (Address address) =
         }
 
 
+{-| -}
 getBlockTransactionCount : BlockId -> Task Error (Maybe Int)
 getBlockTransactionCount blockId =
     Internal.toTask
@@ -201,6 +223,7 @@ getBlockTransactionCount blockId =
         }
 
 
+{-| -}
 getBlock : BlockId -> Task Error (Maybe (Block TxId))
 getBlock blockId =
     Internal.toTask
@@ -212,6 +235,7 @@ getBlock blockId =
         }
 
 
+{-| -}
 getBlockTxObjs : BlockId -> Task Error (Maybe (Block TxObj))
 getBlockTxObjs blockId =
     Internal.toTask
@@ -223,6 +247,7 @@ getBlockTxObjs blockId =
         }
 
 
+{-| -}
 getBlockUncleCount : BlockId -> Task Error (Maybe Int)
 getBlockUncleCount blockId =
     Internal.toTask
@@ -234,6 +259,7 @@ getBlockUncleCount blockId =
         }
 
 
+{-| -}
 getUncle : BlockId -> Int -> Task Error (Maybe (Block TxId))
 getUncle blockId index =
     Internal.toTask
@@ -245,6 +271,7 @@ getUncle blockId index =
         }
 
 
+{-| -}
 getUncleTxObjs : BlockId -> Int -> Task Error (Maybe (Block TxObj))
 getUncleTxObjs blockId index =
     Internal.toTask
@@ -256,6 +283,7 @@ getUncleTxObjs blockId index =
         }
 
 
+{-| -}
 getTransaction : TxId -> Task Error (Maybe TxObj)
 getTransaction (TxId txId) =
     Internal.toTask
@@ -267,6 +295,7 @@ getTransaction (TxId txId) =
         }
 
 
+{-| -}
 getTransactionFromBlock : BlockId -> Int -> Task Error (Maybe TxObj)
 getTransactionFromBlock blockId index =
     Internal.toTask
@@ -278,6 +307,7 @@ getTransactionFromBlock blockId index =
         }
 
 
+{-| -}
 getTransactionReceipt : TxId -> Task Error (Maybe TxReceipt)
 getTransactionReceipt (TxId txId) =
     Internal.toTask
@@ -289,6 +319,7 @@ getTransactionReceipt (TxId txId) =
         }
 
 
+{-| -}
 getTransactionCount : BlockId -> Address -> Task Error (Maybe Int)
 getTransactionCount blockId (Address address) =
     Internal.toTask
@@ -300,6 +331,7 @@ getTransactionCount blockId (Address address) =
         }
 
 
+{-| -}
 sendTransaction : Address -> TxParams -> Task Error TxId
 sendTransaction from txParams =
     Internal.toTask
@@ -311,6 +343,7 @@ sendTransaction from txParams =
         }
 
 
+{-| -}
 sendSignedTransaction : Hex -> Task Error TxId
 sendSignedTransaction (Hex signedData) =
     Internal.toTask
@@ -322,6 +355,7 @@ sendSignedTransaction (Hex signedData) =
         }
 
 
+{-| -}
 sign : Address -> Hex -> Task Error Hex
 sign (Address address) (Hex data) =
     Internal.toTask
@@ -333,6 +367,7 @@ sign (Address address) (Hex data) =
         }
 
 
+{-| -}
 signTransaction : Address -> TxParams -> Task Error SignedTx
 signTransaction address txParams =
     Internal.toTask
@@ -348,11 +383,13 @@ signTransaction address txParams =
         }
 
 
+{-| -}
 call : Maybe Address -> TxParams -> Task Error Hex
 call =
     callAtBlock Latest
 
 
+{-| -}
 callAtBlock : BlockId -> Maybe Address -> TxParams -> Task Error Hex
 callAtBlock blockId from txParams =
     -- TODO Look into removing 'from' field from TxParams since it's optional all over.
@@ -365,6 +402,7 @@ callAtBlock blockId from txParams =
         }
 
 
+{-| -}
 estimateGas : TxParams -> Task Error Int
 estimateGas txParams =
     Internal.toTask
@@ -376,6 +414,7 @@ estimateGas txParams =
         }
 
 
+{-| -}
 getPastLogs : LogParams -> Task Error (List Log)
 getPastLogs params =
     -- TODO Something wrong with this function in Web3
@@ -401,6 +440,7 @@ getId =
         }
 
 
+{-| -}
 isListening : Task Error Bool
 isListening =
     Internal.toTask
@@ -412,6 +452,7 @@ isListening =
         }
 
 
+{-| -}
 getPeerCount : Task Error Int
 getPeerCount =
     Internal.toTask
@@ -423,6 +464,7 @@ getPeerCount =
         }
 
 
+{-| -}
 getNetworkType : Task Error Network
 getNetworkType =
     Internal.toTask
@@ -434,6 +476,7 @@ getNetworkType =
         }
 
 
+{-| -}
 currentProviderUrl : Task Error String
 currentProviderUrl =
     Internal.toTask

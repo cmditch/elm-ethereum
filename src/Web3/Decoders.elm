@@ -38,6 +38,22 @@ module Web3.Decoders
         , expectBigInt
         )
 
+{-|
+
+
+# Web3.Decoders
+
+@docs decodeWeb3String, blockDecoder, blockHeaderDecoder, blockTxIdDecoder
+@docs blockTxObjDecoder, txObjDecoder, txReceiptDecoder, logDecoder
+@docs addressDecoder, txIdDecoder, bytesDecoder, hexDecoder, sha3Decoder
+@docs keystoreDecoder, privateKeyDecoder, accountDecoder, signedTxDecoder
+@docs rpcSignedTxDecoder, signedMsgDecoder, blockNumDecoder, networkTypeDecoder
+@docs bigIntDecoder, toAsciiDecoder, syncStatusDecoder, contractInfoDecoder
+@docs eventLogDecoder, hexToString, addressToString, txIdToString, sha3ToString
+@docs privateKeyToString, expectInt, expectString, expectBool, expectJson, expectBigInt
+
+-}
+
 import BigInt exposing (BigInt)
 import Json.Decode as Decode exposing (int, list, nullable, string, bool, maybe, field, Decoder)
 import Json.Decode.Pipeline exposing (..)
@@ -45,11 +61,13 @@ import Web3.Types exposing (..)
 import Web3.Internal exposing (expectStringResponse, Expect)
 
 
+{-| -}
 decodeWeb3String : Decoder a -> String -> Result Error a
 decodeWeb3String decoder =
     Decode.decodeString decoder >> Result.mapError Error
 
 
+{-| -}
 blockDecoder : Decoder a -> Decoder (Block a)
 blockDecoder decoder =
     decode Block
@@ -75,6 +93,7 @@ blockDecoder decoder =
         |> required "uncles" (list string)
 
 
+{-| -}
 blockHeaderDecoder : Decoder BlockHeader
 blockHeaderDecoder =
     decode BlockHeader
@@ -96,16 +115,19 @@ blockHeaderDecoder =
         |> required "transactionsRoot" string
 
 
+{-| -}
 blockTxIdDecoder : Decoder (Block TxId)
 blockTxIdDecoder =
     blockDecoder txIdDecoder
 
 
+{-| -}
 blockTxObjDecoder : Decoder (Block TxObj)
 blockTxObjDecoder =
     blockDecoder txObjDecoder
 
 
+{-| -}
 txObjDecoder : Decoder TxObj
 txObjDecoder =
     decode TxObj
@@ -131,6 +153,7 @@ txObjDecoder =
         |> required "value" bigIntDecoder
 
 
+{-| -}
 txReceiptDecoder : Decoder TxReceipt
 txReceiptDecoder =
     decode TxReceipt
@@ -144,6 +167,7 @@ txReceiptDecoder =
         |> required "logs" (list logDecoder)
 
 
+{-| -}
 logDecoder : Decoder Log
 logDecoder =
     decode Log
@@ -157,6 +181,7 @@ logDecoder =
         |> required "blockNumber" (nullable int)
 
 
+{-| -}
 eventLogDecoder : Decoder a -> Decoder (EventLog a)
 eventLogDecoder returnValuesDecoder =
     let
@@ -180,6 +205,7 @@ eventLogDecoder returnValuesDecoder =
             |> required "raw" rawDecoder
 
 
+{-| -}
 accountDecoder : Decoder Account
 accountDecoder =
     decode Account
@@ -187,6 +213,7 @@ accountDecoder =
         |> required "privateKey" privateKeyDecoder
 
 
+{-| -}
 signedTxDecoder : Decoder SignedTx
 signedTxDecoder =
     decode SignedTx
@@ -197,6 +224,7 @@ signedTxDecoder =
         |> required "rawTransaction" hexDecoder
 
 
+{-| -}
 rpcSignedTxDecoder : Decoder SignedTx
 rpcSignedTxDecoder =
     decode SignedTx
@@ -207,6 +235,7 @@ rpcSignedTxDecoder =
         |> required "raw" hexDecoder
 
 
+{-| -}
 signedMsgDecoder : Decoder SignedMsg
 signedMsgDecoder =
     decode SignedMsg
@@ -218,6 +247,7 @@ signedMsgDecoder =
         |> required "signature" hexDecoder
 
 
+{-| -}
 keystoreDecoder : Decoder Keystore
 keystoreDecoder =
     decode Keystore
@@ -227,6 +257,7 @@ keystoreDecoder =
         |> required "crypto" cryptoDecoder
 
 
+{-| -}
 cryptoDecoder : Decoder Crypto
 cryptoDecoder =
     let
@@ -250,46 +281,55 @@ cryptoDecoder =
             |> required "mac" string
 
 
+{-| -}
 addressDecoder : Decoder Address
 addressDecoder =
     stringyTypeDecoder Address
 
 
+{-| -}
 txIdDecoder : Decoder TxId
 txIdDecoder =
     stringyTypeDecoder TxId
 
 
+{-| -}
 hexDecoder : Decoder Hex
 hexDecoder =
     stringyTypeDecoder Hex
 
 
+{-| -}
 sha3Decoder : Decoder Sha3
 sha3Decoder =
     stringyTypeDecoder Sha3
 
 
+{-| -}
 privateKeyDecoder : Decoder PrivateKey
 privateKeyDecoder =
     stringyTypeDecoder PrivateKey
 
 
+{-| -}
 stringyTypeDecoder : (String -> a) -> Decoder a
 stringyTypeDecoder wrapper =
     string |> Decode.andThen (wrapper >> Decode.succeed)
 
 
+{-| -}
 bytesDecoder : Decoder Bytes
 bytesDecoder =
     list int |> Decode.andThen (Bytes >> Decode.succeed)
 
 
+{-| -}
 blockNumDecoder : Decoder BlockId
 blockNumDecoder =
     int |> Decode.andThen (BlockNum >> Decode.succeed)
 
 
+{-| -}
 networkTypeDecoder : Decoder Network
 networkTypeDecoder =
     let
@@ -316,11 +356,13 @@ networkTypeDecoder =
         string |> Decode.andThen toNetworkType
 
 
+{-| -}
 blockHashDecoder : Decoder BlockId
 blockHashDecoder =
     string |> Decode.andThen (BlockHash >> Decode.succeed)
 
 
+{-| -}
 bigIntDecoder : Decoder BigInt
 bigIntDecoder =
     let
@@ -335,6 +377,7 @@ bigIntDecoder =
         string |> Decode.andThen convert
 
 
+{-| -}
 toAsciiDecoder : Decoder String
 toAsciiDecoder =
     let
@@ -346,6 +389,7 @@ toAsciiDecoder =
         string |> Decode.andThen removeNulls
 
 
+{-| -}
 contractInfoDecoder : Decoder ContractInfo
 contractInfoDecoder =
     decode ContractInfo
@@ -353,6 +397,7 @@ contractInfoDecoder =
         |> required "transactionHash" txIdDecoder
 
 
+{-| -}
 syncStatusDecoder : Decoder (Maybe SyncStatus)
 syncStatusDecoder =
     decode SyncStatus
@@ -364,51 +409,61 @@ syncStatusDecoder =
         |> maybe
 
 
+{-| -}
 addressToString : Address -> String
 addressToString (Address address) =
     address
 
 
+{-| -}
 txIdToString : TxId -> String
 txIdToString (TxId txId) =
     txId
 
 
+{-| -}
 hexToString : Hex -> String
 hexToString (Hex hex) =
     hex
 
 
+{-| -}
 sha3ToString : Sha3 -> String
 sha3ToString (Sha3 sha3) =
     sha3
 
 
+{-| -}
 privateKeyToString : PrivateKey -> String
 privateKeyToString (PrivateKey privateKey) =
     privateKey
 
 
+{-| -}
 expectInt : Expect Int
 expectInt =
     expectStringResponse (\r -> Decode.decodeString int r)
 
 
+{-| -}
 expectString : Expect String
 expectString =
     expectStringResponse (\r -> Decode.decodeString string r)
 
 
+{-| -}
 expectBool : Expect Bool
 expectBool =
     expectStringResponse (\r -> Decode.decodeString bool r)
 
 
+{-| -}
 expectJson : Decoder a -> Expect a
 expectJson decoder =
     expectStringResponse (\r -> Decode.decodeString decoder r)
 
 
+{-| -}
 expectBigInt : Expect BigInt
 expectBigInt =
     expectStringResponse (\r -> Decode.decodeString bigIntDecoder r)

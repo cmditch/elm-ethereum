@@ -10,6 +10,10 @@ effect module Web3.Eth.Subscribe
         , logs
         )
 
+{-| #Web3.Elm.Subscribe
+@docs start, stop, clearSubscriptions, pendingTxs, newBlockHeaders, syncing, logs
+-}
+
 import Native.Web3
 import Web3.Types exposing (..)
 import Web3.Decoders exposing (decodeWeb3String, txIdDecoder, blockHeaderDecoder, syncStatusDecoder)
@@ -41,16 +45,19 @@ cmdMap _ cmd =
             ClearSubscriptions keepSyncingSubs
 
 
+{-| -}
 start : Subscription -> Cmd msg
 start subType =
     command <| Subscribe subType
 
 
+{-| -}
 stop : Subscription -> Cmd msg
 stop subType =
     command <| Unsubscribe subType
 
 
+{-| -}
 clearSubscriptions : Bool -> Cmd msg
 clearSubscriptions keepSyncingSubs =
     command <| ClearSubscriptions keepSyncingSubs
@@ -69,21 +76,25 @@ subMap tagger (EventSentry subType toMsg) =
     EventSentry subType (toMsg >> tagger)
 
 
+{-| -}
 pendingTxs : (Result Error TxId -> msg) -> Sub msg
 pendingTxs toMsg =
     subscription <| EventSentry PendingTxs (decodeWeb3String txIdDecoder >> toMsg)
 
 
+{-| -}
 newBlockHeaders : (Result Error BlockHeader -> msg) -> Sub msg
 newBlockHeaders toMsg =
     subscription <| EventSentry NewBlockHeaders (decodeWeb3String blockHeaderDecoder >> toMsg)
 
 
+{-| -}
 syncing : (Result Error (Maybe SyncStatus) -> msg) -> Sub msg
 syncing toMsg =
     subscription <| EventSentry Syncing (decodeWeb3String syncStatusDecoder >> toMsg)
 
 
+{-| -}
 logs : (String -> msg) -> EventId -> Sub msg
 logs toMsg eventId =
     let
