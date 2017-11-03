@@ -11,10 +11,15 @@
         "elm-lang/core": "5.1.1 <= v < 6.0.0",
         "mdgriffith/style-elements": "4.0.0 <= v <= 5.0.0",
         "elm-lang/html": "2.0.0 <= v < 3.0.0",
-        "cmditch/elm-web3": "1.0.0 <= v < 2.0.0"
+        "gilbertkennen/bigint": "1.0.1 <= v < 2.0.0",
+        "NoRedInk/elm-decode-pipeline": "3.0.0 <= v < 4.0.0",
+        "cmditch/elm-web3": "1.1.0 <= v < 2.0.0"
     },
     "dependency-sources": {
-        "cmditch/elm-web3": "git@github.com:cmditch/elm-web3"
+        "cmditch/elm-web3": {
+          "url": "https://github.com/cmditch/elm-web3",
+          "ref": "master"
+        }
     },
     "elm-version": "0.18.0 <= v < 0.19.0"
 }
