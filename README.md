@@ -1,32 +1,40 @@
 # <img src="https://cdn.rawgit.com/cmditch/elm-web3/master/examples/elm-web3-logo.svg" width="75"> elm-web3
 
-###### Behold, the beauty of elm. Give it a try!
- 
 
+## Installation  
+If needed, install the Elm things
+```
+npm install -g elm elm-live elm-github-install
+```
+then add to your `elm-package.json` 
+```
+ "dependency-sources": { "cmditch/elm-web3": "https://github.com/cmditch/elm-web3" }
+``` 
+and run `elm-install`.
+
+See [here](https://github.com/cmditch/elm-web3/blob/master/test/elm-package.json) for an example. 
+
+## Example App
 First Install Geth    
 https://geth.ethereum.org/downloads/
 
-Second Install Elm things    
-```
-npm install -g elm
-npm install -g elm-live
-```
-Then get elm-web3 and open test/example page   
 ```
 git clone https://github.com/cmditch/elm-web3.git
-cd elm-web3/
+cd elm-web3/test
 npm run test
 ```
+
+Then get elm-web3 and open test/example page   
+
 Run the local Geth testnet in a new terminal window    
-To allow for tests involving tx's and subscriptions mine a little.    
-NOTE: It takes a while to build the DAG and start mining on your first go.    
-Give it a minute or three. :smiley:
+Turn on mining to test txs/subscriptions.   
+NOTE: DAG takes a bit of time to build on the first run.  
 ```
 npm run testnet
-miner.start(4)
+miner.start() // within geth console
 ```
 
-open http://localhost:8000/test     
+open http://localhost:8000/    
 
 ------    
 
@@ -39,13 +47,11 @@ open http://localhost:8000/test
 ------    
 
 Still a number of big things to tick off the list:
-- Getting setup with elm-grove or elm-github-install
 - Documentation
-- Example App
+- Example App(s)
 - Code Generator for Elm interfaces to Contracts (in Haskell 😄 )
 - Revising Types / Decoders in the face of Byzantium changes
-- Better tests. More automated, and without reliance on browser.
-- Fixing a few quirks here there, some of which are issues with web3.js 1.0    
+- Better tests. More automated, and without reliance on browser. 
 
 ###### Feed the tree some ether  
 ### 🌳Ξ🌳Ξ🌳
