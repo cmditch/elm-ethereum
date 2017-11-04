@@ -1,4 +1,4 @@
-# <img src="https://cdn.rawgit.com/cmditch/elm-web3/master/elm-web3-logo.svg" width="75"> elm-web3
+# <img src="https://cdn.rawgit.com/cmditch/elm-web3/master/examples/elm-web3-logo.svg" width="75"> elm-web3
 
 ###### Behold, the beauty of elm. Give it a try!
  
@@ -31,10 +31,10 @@ open http://localhost:8000/test
 ------    
 
 ## Time traveling debugger    
-![alt text](https://raw.githubusercontent.com/cmditch/elm-web3/master/accounts-with-debugger.png)    
+![alt text](https://raw.githubusercontent.com/cmditch/elm-web3/master/examples/accounts-with-debugger.png)    
 
 ## Code/Pages for every function in web3 
-![alt text](https://raw.githubusercontent.com/cmditch/elm-web3/master/wallet.png)    
+![alt text](https://raw.githubusercontent.com/cmditch/elm-web3/master/examples/wallet.png)    
 
 ------    
 

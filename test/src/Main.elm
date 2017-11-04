@@ -109,13 +109,13 @@ viewPage model =
             column None
                 [ center, width fill, padding 100 ]
                 [ text <| "No tests for " ++ toString model.currentPage ++ " yet."
-                , decorativeImage Logo [ moveDown 200, height (px 600), width (px 800) ] { src = "../elm-web3-logo.svg" }
+                , decorativeImage Logo [ moveDown 200, height (px 600), width (px 800) ] { src = "elm-web3-logo.svg" }
                 ]
 
 
 logo : List (Element Styles Variations Msg)
 logo =
-    [ decorativeImage Logo [ alignTop ] { src = "../elm-web3-logo.svg" } ]
+    [ decorativeImage Logo [ alignTop ] { src = "elm-web3-logo.svg" } ]
 
 
 drawer : Element Styles Variations Msg
