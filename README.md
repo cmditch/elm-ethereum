@@ -1,17 +1,16 @@
 # <img src="https://cdn.rawgit.com/cmditch/elm-web3/master/elm-web3-logo.svg" width="75"> elm-web3
 
-###### Behold, the beauty of elm. Give it a try!
 
 ## Installation  
 If needed, install the Elm things
 ```
 npm install -g elm elm-live elm-github-install
 ```
-then add 
+then add to your `elm-package.json` 
 ```
  "dependency-sources": { "cmditch/elm-web3": "https://github.com/cmditch/elm-web3" }
 ``` 
-to your `elm-package.json` and `elm-install`.
+and run `elm-install`.
 
 See [here](https://github.com/cmditch/elm-web3/blob/master/test/elm-package.json) for an example. 
 
