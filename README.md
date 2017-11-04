@@ -23,9 +23,6 @@ git clone https://github.com/cmditch/elm-web3.git
 cd elm-web3/test
 npm run test
 ```
-
-Then get elm-web3 and open test/example page   
-
 Run the local Geth testnet in a new terminal window    
 Turn on mining to test txs/subscriptions.   
 NOTE: DAG takes a bit of time to build on the first run.  
@@ -34,7 +31,7 @@ npm run testnet
 miner.start() // within geth console
 ```
 
-open http://localhost:8000/    
+Open http://localhost:8000/    
 
 ------    
 
