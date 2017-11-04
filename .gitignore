@@ -3,9 +3,15 @@ elm.js
 npm-debug.log
 .DS_Store
 temp/
-examples/lightbox/web3.js
 test/testchain/geth/nodes/
 test/testchain/history
 documentation.json
 docs
 sandbox
+test/testchain/geth/chaindata/*
+!test/testchain/geth/chaindata/000019.ldb
+!test/testchain/geth/chaindata/000020.ldb
+!test/testchain/geth/chaindata/000023.ldb
+!test/testchain/geth/chaindata/CURRENT
+!test/testchain/geth/chaindata/LOCK
+!test/testchain/geth/chaindata/LOG

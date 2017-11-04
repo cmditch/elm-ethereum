@@ -104,3 +104,34 @@
 00:03:54.514641 version@stat F·[2 1] S·110KiB[486B 109KiB] Sc·[0.50 0.00]
 00:03:54.515319 db@janitor F·5 G·0
 00:03:54.515340 db@open done T·6.254071ms
+=============== Nov 4, 2017 (EST) ===============
+12:55:28.445496 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+12:55:28.446040 version@stat F·[2 1] S·110KiB[486B 109KiB] Sc·[0.50 0.00]
+12:55:28.446054 db@open opening
+12:55:28.446109 journal@recovery F·1
+12:55:28.447204 journal@recovery recovering @24
+12:55:28.455606 memdb@flush created L0@26 N·2407 S·112KiB "\x01\x1f-..I\xc5~,v5625":"\xff\xf7\xaa..݄|,v4333"
+12:55:28.456523 version@stat F·[3 1] S·222KiB[112KiB 109KiB] Sc·[0.75 0.00]
+12:55:28.458444 db@janitor F·6 G·0
+12:55:28.458471 db@open done T·12.410135ms
+13:03:17.440444 db@close closing
+13:03:17.441111 db@close done T·658.347µs
+=============== Nov 4, 2017 (EST) ===============
+13:17:29.495335 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+=============== Nov 4, 2017 (EST) ===============
+13:17:29.495947 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+13:17:29.496107 table@recovery F·3
+13:17:29.496119 table@recovery recovering @19
+13:17:29.498170 table@recovery recovered @19 Gk·1739 Ck·0 Cb·0 S·112353 Q·3656
+13:17:29.498202 table@recovery recovering @20
+13:17:29.498450 table@recovery recovered @20 Gk·2 Ck·0 Cb·0 S·243 Q·3659
+13:17:29.498471 table@recovery recovering @23
+13:17:29.498679 table@recovery recovered @23 Gk·2 Ck·0 Cb·0 S·243 Q·3662
+13:17:29.498692 table@recovery recovered F·3 N·1743 Gk·1743 Ck·0 Q·3662
+13:17:29.500151 version@stat F·[3] S·110KiB[110KiB] Sc·[0.75]
+13:17:29.500484 db@open opening
+13:17:29.503697 version@stat F·[3] S·110KiB[110KiB] Sc·[0.75]
+13:17:29.504297 db@janitor F·5 G·0
+13:17:29.504335 db@open done T·3.812619ms
+13:19:03.079799 db@close closing
+13:19:03.080342 db@close done T·537.163µs
