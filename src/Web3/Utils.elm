@@ -4,6 +4,7 @@ module Web3.Utils
         , sha3
         , isHex
         , isAddress
+        , isChecksumAddress
         , toChecksumAddress
         , checkAddressChecksum
         , toHex
@@ -48,6 +49,9 @@ module Web3.Utils
 -}
 
 import BigInt exposing (BigInt)
+import Bool.Extra exposing (all)
+import Char
+import Keccak exposing (ethereum_keccak_256)
 import Task exposing (Task)
 import Json.Encode as Encode
 import Web3.Types exposing (..)
@@ -126,9 +130,58 @@ isHex val =
         }
 
 
+isChecksumAddress : Address -> Bool
+isChecksumAddress (Address input) =
+    let
+        noZeroX =
+            if String.slice 0 2 input == "0x" then
+                String.slice 2 (String.length input) input
+            else
+                input
+
+        is40Chars =
+            40 == String.length noZeroX
+
+        addrBytes =
+            List.map Char.toCode <| String.toList noZeroX
+
+        addrHash =
+            ethereum_keccak_256 addrBytes
+
+        checksumTestChar addrInt hashInt =
+            let
+                addrChar =
+                    Char.fromCode addrInt
+            in
+                if hashInt > 7 && Char.toUpper addrChar /= addrChar || hashInt <= 7 && Char.toLower addrChar /= addrChar then
+                    False
+                else
+                    True
+
+        checksumCorrect =
+            List.map2 checksumTestChar addrBytes addrHash
+    in
+        if is40Chars then
+            all checksumCorrect
+        else
+            False
+
+
+toAddress : String -> Maybe Address
+toAddress addrStr =
+    let
+        isCSAddr =
+            isChecksumAddress (Address addrStr)
+    in
+        if isCSAddr then
+            Just (Address addrStr)
+        else
+            Nothing
+
+
 {-| Check if a given address is valid.
 
-    isAddress (Address "0xc1912fEE45d61C87Cc5EA59DaE31190FFFFf232d") == True
+isAddress (Address "0xc1912fEE45d61C87Cc5EA59DaE31190FFFFf232d") == True
 
 **Note:** This function should not really be needed, but is included to wrap web3.js.
 Everything wrapped in the opaque `Address` type should be a valid address.

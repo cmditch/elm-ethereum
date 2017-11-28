@@ -1,5 +1,5 @@
 {
-    "version": "0.2.0",
+    "version": "0.3.0",
     "summary": "feed the tree some ether.",
     "repository": "https://github.com/cmditch/elm-web3.git",
     "license": "BSD3",
@@ -20,9 +20,11 @@
     ],
     "native-modules": true,
     "dependencies": {
-      "elm-lang/core": "5.1.1 <= v < 6.0.0",
-      "gilbertkennen/bigint": "1.0.1 <= v < 2.0.0",
-      "NoRedInk/elm-decode-pipeline": "3.0.0 <= v < 4.0.0"
+        "Chadtech/elm-bool-extra": "1.1.1 <= v < 2.0.0",
+        "NoRedInk/elm-decode-pipeline": "3.0.0 <= v < 4.0.0",
+        "elm-lang/core": "5.1.1 <= v < 6.0.0",
+        "gilbertkennen/bigint": "1.0.1 <= v < 2.0.0",
+        "prozacchiwawa/elm-keccak": "1.0.0 <= v < 2.0.0"
     },
     "elm-version": "0.18.0 <= v < 0.19.0"
 }
