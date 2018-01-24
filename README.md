@@ -1,5 +1,9 @@
 # <img src="https://cdn.rawgit.com/cmditch/elm-web3/master/examples/elm-web3-logo.svg" width="75"> elm-web3
 
+## Fair word of caution
+Since MetaMask does not support web3.js 1.0 yet, using elm-web3 in production is difficult at best, downright impossible at worst. Hopefully MetaMask will support this soon! Once they do, Elm + Ethereum will reign the day!  
+
+The code generator to help provide easy Elm interfaces for Solidity contracts is in the works too. Fear not!
 
 ## Installation  
 If needed, install the Elm things
@@ -23,9 +27,6 @@ git clone https://github.com/cmditch/elm-web3.git
 cd elm-web3/test
 npm run test
 ```
-
-Then get elm-web3 and open test/example page   
-
 Run the local Geth testnet in a new terminal window    
 Turn on mining to test txs/subscriptions.   
 NOTE: DAG takes a bit of time to build on the first run.  
@@ -34,7 +35,7 @@ npm run testnet
 miner.start() // within geth console
 ```
 
-open http://localhost:8000/    
+Open http://localhost:8000/    
 
 ------    
 
