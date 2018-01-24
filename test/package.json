@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Light 'tests' and examples for elm-web3 functions",
   "scripts": {
-    "testnet": "geth --datadir 'testchain' --networkid 23 --ws --wsport 8545 --wsaddr 0.0.0.0 --wsorigins '*' console",
+    "testnet": "geth --datadir 'testchain' --rpc --networkid 23 --ws --wsport 8545 --wsaddr 0.0.0.0 --wsorigins '*' console",
     "test": "npm run live || (elm-install && npm run live)",
     "live": "elm-live --yes src/Main.elm --output=elm.js --debug --no-recover"
   },

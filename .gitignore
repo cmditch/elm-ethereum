@@ -7,7 +7,7 @@ test/testchain/geth/nodes/
 test/testchain/history
 documentation.json
 docs
-sandbox
+examples/blockInfo
 test/testchain/geth/chaindata/*
 !test/testchain/geth/chaindata/000019.ldb
 !test/testchain/geth/chaindata/000020.ldb

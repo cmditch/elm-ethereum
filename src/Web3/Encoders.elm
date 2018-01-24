@@ -2,7 +2,10 @@ module Web3.Encoders
     exposing
         ( encodeTxParams
         , encodeFilterParams
+        , encodeHex
+        , encodeAddress
         , encodeAddressList
+        , encodeBigInt
         , encodeBigIntList
         , encodeListBigIntList
         , encodeIntList
@@ -15,7 +18,7 @@ module Web3.Encoders
         )
 
 {-| #Web3.Decoders
-@docs encodeTxParams, encodeFilterParams, encodeAddressList, encodeBigIntList
+@docs encodeTxParams, encodeFilterParams, encodeHex, encodeAddress, encodeAddressList, encodeBigInt, encodeBigIntList
 @docs encodeListBigIntList, encodeIntList, encodeKeystore, encodeKeystoreList
 @docs getBlockIdValue, listOfMaybesToVal, encodeBytes
 -}
@@ -30,11 +33,11 @@ import Json.Encode as Encode exposing (Value, string, int, null, list, object)
 encodeTxParams : Maybe Address -> TxParams -> Value
 encodeTxParams from { to, value, gas, data, gasPrice, nonce, chainId } =
     listOfMaybesToVal
-        [ ( "from", Maybe.map (addressToString >> string) from )
-        , ( "to", Maybe.map (addressToString >> string) to )
-        , ( "value", Maybe.map (BigInt.toString >> string) value )
+        [ ( "from", Maybe.map encodeAddress from )
+        , ( "to", Maybe.map encodeAddress to )
+        , ( "value", Maybe.map encodeBigInt value )
         , ( "gas", Maybe.map int (Just gas) )
-        , ( "data", Maybe.map (hexToString >> string) data )
+        , ( "data", Maybe.map encodeHex data )
         , ( "gasPrice", Maybe.map int gasPrice )
         , ( "nonce", Maybe.map int nonce )
         , ( "chainId", Maybe.map int chainId )
@@ -104,16 +107,34 @@ topicsListEncoder topicsList =
 
 
 {-| -}
+encodeHex : Hex -> Value
+encodeHex =
+    hexToString >> string
+
+
+{-| -}
+encodeAddress : Address -> Value
+encodeAddress =
+    addressToString >> string
+
+
+{-| -}
 encodeAddressList : List Address -> Value
 encodeAddressList =
-    List.map (addressToString >> string)
+    List.map encodeAddress
         >> list
+
+
+{-| -}
+encodeBigInt : BigInt -> Value
+encodeBigInt =
+    BigInt.toString >> string
 
 
 {-| -}
 encodeBigIntList : List BigInt -> Value
 encodeBigIntList =
-    List.map (BigInt.toString >> string)
+    List.map encodeBigInt
         >> list
 
 
