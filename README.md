@@ -12,6 +12,7 @@ npm install -g elm elm-live elm-github-install
 ```
 then add to your `elm-package.json` 
 ```
+ "dependencies: { "cmditch/elm-web3": "0.2.1 <= v < 1.0.0" },
  "dependency-sources": { "cmditch/elm-web3": "https://github.com/cmditch/elm-web3" }
 ``` 
 and run `elm-install`.
