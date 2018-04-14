@@ -1,40 +1,159 @@
 module Web3.Utils exposing (..)
 
--- Library
-
-import Ascii
-import Base58
 import BigInt exposing (BigInt)
-import Hex
+import Bool.Extra exposing (all)
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
+import Char
 import Keccak exposing (ethereum_keccak_256)
-import Regex
+import Regex exposing (Regex)
 import Result.Extra as Result
 import String.Extra as String
-
-
--- Internal
-
-import Web3.Internal.Utils as Internal
+import Web3.Internal.Types as Internal
+import Web3.Internal.Utils as Internal exposing (quote)
 import Web3.Types exposing (..)
+import Hex
 
 
--- Utils
+-- Address
 
 
 toAddress : String -> Result String Address
-toAddress =
-    Internal.toAddress
+toAddress str =
+    let
+        noZeroX =
+            remove0x str
+
+        isLower =
+            isLowerCaseAddress noZeroX
+
+        isUpper =
+            isUpperCaseAddress noZeroX
+    in
+        if String.length noZeroX /= 40 then
+            Err <| "Given address " ++ quote str ++ " is not 20 bytes long."
+        else if not (isAddress noZeroX) then
+            Err <| "Given address " ++ quote str ++ " contains invalid hex characters."
+        else if isUpper || isLower then
+            toChecksumAddress str
+        else if (isChecksumAddress noZeroX) then
+            Ok <| Internal.Address noZeroX
+        else
+            Err <| "Given address " ++ quote str ++ " failed the EIP-55 checksum test."
+
+
+toChecksumAddress : String -> Result String Address
+toChecksumAddress str =
+    let
+        compareCharToHash addrChar hashInt =
+            if hashInt >= 8 then
+                Char.toUpper addrChar
+            else
+                addrChar
+
+        checksumIt str_ =
+            uncurry (List.map2 compareCharToHash) (checksumHelper str_)
+                |> String.fromList
+                |> Internal.Address
+    in
+        if isAddress (remove0x str) then
+            Ok <| checksumIt str
+        else
+            Err <| "Given address " ++ quote str ++ " is not a valid Ethereum address."
+
+
+isChecksumAddress : String -> Bool
+isChecksumAddress str =
+    let
+        checksumTestChar addrChar hashInt =
+            if hashInt >= 8 && Char.isLower addrChar || hashInt < 8 && Char.isUpper addrChar then
+                False
+            else
+                True
+
+        checksumCorrect =
+            uncurry (List.map2 checksumTestChar) (checksumHelper str)
+    in
+        if isAddress (remove0x str) then
+            all checksumCorrect
+        else
+            False
+
+
+{-| Takes first 20 bytes of keccak'd address, and converts each hex char to an int
+Packs this list into a tuple with the split up address chars so a comparison can be made between the two.
+-}
+checksumHelper : String -> ( List Char, List Int )
+checksumHelper address =
+    let
+        addressChars =
+            String.toList (remove0x address)
+    in
+        addressChars
+            |> List.map (Char.toLower >> Char.toCode)
+            |> ethereum_keccak_256
+            |> List.take 20
+            |> List.map (Hex.toString >> Internal.toByteLength)
+            |> String.join ""
+            |> String.split ""
+            |> List.map Hex.fromString
+            |> Result.combine
+            |> Result.withDefault []
+            |> (,) addressChars
+
+
+
+-- Hex
+
+
+toHex : String -> Result String Hex
+toHex str =
+    if isHex (remove0x str) then
+        Ok <| Internal.Hex str
+    else
+        Err <| "Given hex " ++ quote str ++ " is not a valid."
+
+
+
+-- toString
+
+
+hexToString : Hex -> String
+hexToString (Internal.Hex hex) =
+    add0x hex
 
 
 addressToString : Address -> String
-addressToString =
-    Internal.addressToString
+addressToString (Internal.Address address) =
+    add0x address
 
 
 
--- Old
+-- Regex
+
+
+isAddress : String -> Bool
+isAddress =
+    Regex.contains (Regex.regex "^[0-9A-Fa-f]{40}$")
+
+
+isLowerCaseAddress : String -> Bool
+isLowerCaseAddress =
+    Regex.contains (Regex.regex "^[0-9a-f]{40}$")
+
+
+isUpperCaseAddress : String -> Bool
+isUpperCaseAddress =
+    Regex.contains (Regex.regex "^[0-9A-F]{40}$")
+
+
+isHex : String -> Bool
+isHex =
+    Regex.contains (Regex.regex "^[0-9a-fA-F]+$")
+
+
+
+-- String Helpers
 
 
 add0x : String -> String
@@ -58,14 +177,6 @@ leftPad data =
     String.padLeft 64 '0' data
 
 
-listOfMaybesToVal : List ( String, Maybe Value ) -> Value
-listOfMaybesToVal keyValueList =
-    keyValueList
-        |> List.filter (\( k, v ) -> v /= Nothing)
-        |> List.map (\( k, v ) -> ( k, Maybe.withDefault Encode.null v ))
-        |> Encode.object
-
-
 hexToAscii : String -> Result String String
 hexToAscii str =
     case String.length str % 2 == 0 of
@@ -74,30 +185,10 @@ hexToAscii str =
                 |> String.break 2
                 |> List.map Hex.fromString
                 |> Result.combine
-                |> Result.map Ascii.toString
+                |> Result.map (String.fromList << List.map Char.fromCode)
 
         False ->
-            Err ("Data is not ascii hex. Uneven length. Byte pairs required.")
-
-
-{-| Help with decoding past a result straight into a Msg
--}
-valToMsg : (a -> msg) -> (String -> msg) -> Decoder a -> (Value -> msg)
-valToMsg successMsg failureMsg decoder =
-    let
-        resultToMessage result =
-            case result of
-                Ok val ->
-                    successMsg val
-
-                Err error ->
-                    failureMsg error
-    in
-        resultToMessage << Decode.decodeValue decoder
-
-
-
--- TODO This needs to be tightened up a lot. Checksum conversion, etc. Very naive implementation.
+            Err (quote str ++ " is not ascii hex. Uneven length. Byte pairs required.")
 
 
 functionSig : String -> String
@@ -109,17 +200,13 @@ functionSig fSig =
             else
                 s
     in
-        Ascii.fromString fSig
+        String.toList fSig
+            |> List.map Char.toCode
             |> ethereum_keccak_256
             |> List.take 4
             |> List.map (Hex.toString >> toByteLength)
             |> String.join ""
             |> (++) "0x"
-
-
-zeroAddress : Address
-zeroAddress =
-    Internal.zeroAddress
 
 
 
@@ -146,79 +233,28 @@ keccak256 str =
             else
                 s
     in
-        Ascii.fromString str
+        String.toList str
+            |> List.map Char.toCode
             |> ethereum_keccak_256
             |> List.map (Hex.toString >> toByteLength)
             |> String.join ""
             |> (++) "0x"
 
 
-getNetwork : Int -> NetworkId
-getNetwork networkId =
-    case networkId of
-        1 ->
-            Mainnet
+{-| Help with decoding past a result straight into a Msg
+-}
+valToMsg : (a -> msg) -> (String -> msg) -> Decoder a -> (Value -> msg)
+valToMsg successMsg failureMsg decoder =
+    let
+        resultToMessage result =
+            case result of
+                Ok val ->
+                    successMsg val
 
-        2 ->
-            Expanse
-
-        3 ->
-            Ropsten
-
-        4 ->
-            Rinkeby
-
-        30 ->
-            RskMain
-
-        31 ->
-            RskTest
-
-        42 ->
-            Kovan
-
-        41 ->
-            ETCMain
-
-        62 ->
-            ETCTest
-
-        _ ->
-            Private networkId
-
-
-getNetworkName : NetworkId -> String
-getNetworkName networkId =
-    case networkId of
-        Mainnet ->
-            "Mainnet"
-
-        Expanse ->
-            "Expanse"
-
-        Ropsten ->
-            "Ropsten"
-
-        Rinkeby ->
-            "Rinkeby"
-
-        RskMain ->
-            "Rootstock"
-
-        RskTest ->
-            "Rootstock Test"
-
-        Kovan ->
-            "Kovan"
-
-        ETCMain ->
-            "ETC Mainnet"
-
-        ETCTest ->
-            "ETC Testnet"
-
-        Private networkId ->
-            "Private Chain"
+                Err error ->
+                    failureMsg error
+    in
+        resultToMessage << Decode.decodeValue decoder
 
 
 
@@ -228,3 +264,8 @@ getNetworkName networkId =
 gwei : Int -> BigInt
 gwei =
     BigInt.fromInt >> BigInt.mul (BigInt.fromInt 1000000000)
+
+
+eth : Int -> BigInt
+eth =
+    BigInt.fromInt >> (BigInt.mul <| BigInt.mul (BigInt.fromInt 100) (BigInt.fromInt 10000000000000000))

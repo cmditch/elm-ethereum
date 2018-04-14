@@ -1,23 +1,8 @@
-module Web3.Types
-    exposing
-        ( Hex
-        , Address
-        , IPFSHash
-        , TxHash
-        , BlockId
-        , toAddress
-        )
+module Web3.Types exposing (..)
 
 import BigInt exposing (BigInt)
 import Json.Decode exposing (Decoder)
-import Web3.Internal.Hex as Hex
 import Web3.Internal.Types as Internal
-import Web3.Internal.Utils as Internal
-
-
-toAddress : String -> Result String Address
-toAddress =
-    Internal.toAddress
 
 
 type alias Address =

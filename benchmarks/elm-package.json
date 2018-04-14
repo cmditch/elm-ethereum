@@ -1,15 +1,16 @@
 {
     "version": "1.0.0",
-    "summary": "elm-web3 test suites",
+    "summary": "benchmarks for elm-web3",
     "repository": "https://github.com/user/project.git",
     "license": "BSD3",
     "source-directories": [
-        "../src",
-        "."
+        ".",
+        "../src"
     ],
     "exposed-modules": [],
     "dependencies": {
-        "elm-community/elm-test": "4.0.0 <= v < 5.0.0",
+        "elm-lang/core": "5.1.1 <= v < 6.0.0",
+        "BrianHicks/elm-benchmark": "1.0.2 <= v < 2.0.0",
         "Chadtech/elm-bool-extra": "1.2.1 <= v < 2.0.0",
         "NoRedInk/elm-decode-pipeline": "3.0.0 <= v < 4.0.0",
         "Warry/ascii-table": "1.0.0 <= v < 2.0.0",
@@ -18,7 +19,6 @@
         "elm-community/maybe-extra": "4.0.0 <= v < 5.0.0",
         "elm-community/result-extra": "2.2.0 <= v < 3.0.0",
         "elm-community/string-extra": "1.4.0 <= v < 2.0.0",
-        "elm-lang/core": "5.1.1 <= v < 6.0.0",
         "elm-lang/http": "1.0.0 <= v < 2.0.0",
         "elm-lang/websocket": "1.0.2 <= v < 2.0.0",
         "hickscorp/elm-bigint": "1.0.1 <= v < 2.0.0",

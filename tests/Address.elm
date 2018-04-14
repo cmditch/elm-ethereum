@@ -1,4 +1,4 @@
-module AddressTests exposing (..)
+module Address exposing (..)
 
 -- import Fuzz exposing (Fuzzer, int, list, string)
 
