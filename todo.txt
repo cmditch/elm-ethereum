@@ -1,0 +1,36 @@
+[ ] - Create opqaue types and functions
+
+    type Address = Address (String, Bool)
+        toAddress       : String -> Result String Address
+        toString        : Address -> String
+        isChecksummed   : Address -> Bool
+
+    type TxId = TxId String
+        toTxId : String -> Result String TxId
+        toString : TxId -> String
+
+    ...
+
+
+[ ] - Finish out the TxSentry
+    ...
+
+
+[ ] - Finish out the EventSentry
+    ...
+
+
+[ ] - Finsh out ChainEff
+    [ ] - Make ChainEff.Sentry tuple full of Maybes and handle unwrapping internally
+          Create helper functions to create specific sentry's, or a lower level generic creation function
+
+          ChainEff.eventSentry  : EventSentry msg -> Sentry msg
+          ChainEff.txSentry     : TxSentry msg -> Sentry msg
+          ChainEff.customSentry : Maybe (EventSentry msg) -> Maybe (TxSentry msg) -> Sentry Msg
+
+
+[ ] - Add the rest of the RPC calls, and the necessary decoders/encoders
+
+
+[ ] - Finish out EVM decoder
+    [ ] - int
