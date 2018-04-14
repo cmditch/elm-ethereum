@@ -9,7 +9,7 @@ import Json.Encode as Encode exposing (Value)
 -- Internal
 
 import Web3.Types exposing (..)
-import Web3.Utils exposing (listOfMaybesToVal, add0x)
+import Web3.Utils exposing (add0x, hexToString)
 
 
 -- Encoders
@@ -21,5 +21,5 @@ bigInt =
 
 
 hex : Hex -> Value
-hex (Hex data) =
-    Encode.string data
+hex =
+    hexToString >> Encode.string

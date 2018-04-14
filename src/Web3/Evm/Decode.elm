@@ -1,19 +1,16 @@
-module Web3.Evm exposing (..)
+module Web3.Evm.Decode exposing (..)
 
--- Library
-
-import Base58
 import BigInt exposing (BigInt)
 import Hex
 import String.Extra as String
 import Result.Extra as Result
 import Json.Decode as Decode exposing (Decoder)
+import Web3.Decode exposing (resultToDecoder)
+import Web3.Utils exposing (add0x, remove0x, toAddress)
+import Web3.Types exposing (Address, IPFSHash)
 
 
--- Internal
-
-import Web3.Utils exposing (hexToAddress, add0x, remove0x, makeIPFSHash)
-import Web3.Types exposing (Address(..), IPFSHash(..))
+-- import Base58
 
 
 type alias EvmDecoder a =
@@ -48,21 +45,7 @@ runDecoder evmDecoder evmString =
 
 toElmDecoder : EvmDecoder a -> Decoder a
 toElmDecoder =
-    runDecoder >> makeDecoder
-
-
-makeDecoder : (String -> Result String a) -> Decoder a
-makeDecoder typeCaster =
-    let
-        convert n =
-            case typeCaster n of
-                Ok a ->
-                    Decode.succeed a
-
-                Err error ->
-                    Decode.fail error
-    in
-        Decode.string |> Decode.andThen convert
+    runDecoder >> resultToDecoder
 
 
 
@@ -108,7 +91,7 @@ address : EvmDecoder Address
 address =
     \( original, altered ) ->
         take64 altered
-            |> hexToAddress
+            |> toAddress
             |> Result.map (\address -> ( ( original, drop64 altered ), address ))
 
 
@@ -138,28 +121,27 @@ sArray arrSize decoder =
             |> Result.map (\list -> ( ( original, String.dropLeft (arrSize * 64) altered ), list ))
 
 
-{-| Decodes bytes32 into IPFS Hash (assuming use of 32 byte sha256)
-Not IPFS future proof. See <https://ethereum.stackexchange.com/questions/17094/how-to-store-ipfs-hash-using-bytes>
--}
-ipfsHash : EvmDecoder IPFSHash
-ipfsHash =
-    \( original, altered ) ->
-        take64 altered
-            |> (++) "0x1220"
-            |> BigInt.fromString
-            |> Maybe.map Base58.encode
-            |> Result.fromMaybe "Error Encoding IPFS Hash from BigInt"
-            |> Result.andThen makeIPFSHash
-            |> Result.map (\ipfsHash -> ( ( original, drop64 altered ), ipfsHash ))
 
-
-{-| Prepares IPFS Hash to store as soldity bytes32
--}
-ipfsToBytes32 : IPFSHash -> String
-ipfsToBytes32 (IPFSHash str) =
-    Base58.decode str
-        |> Result.map (BigInt.toHexString >> String.dropLeft 4)
-        |> Result.withDefault "this should never happen, document what you did to get this outcome"
+-- {-| Decodes bytes32 into IPFS Hash (assuming use of 32 byte sha256)
+-- Not IPFS future proof. See <https://ethereum.stackexchange.com/questions/17094/how-to-store-ipfs-hash-using-bytes>
+-- -}
+-- ipfsHash : EvmDecoder IPFSHash
+-- ipfsHash =
+--     \( original, altered ) ->
+--         take64 altered
+--             |> (++) "0x1220"
+--             |> BigInt.fromString
+--             |> Maybe.map Base58.encode
+--             |> Result.fromMaybe "Error Encoding IPFS Hash from BigInt"
+--             |> Result.andThen makeIPFSHash
+--             |> Result.map (\ipfsHash -> ( ( original, drop64 altered ), ipfsHash ))
+-- {-| Prepares IPFS Hash to store as soldity bytes32
+-- -}
+-- ipfsToBytes32 : IPFSHash -> String
+-- ipfsToBytes32 (IPFSHash str) =
+--     Base58.decode str
+--         |> Result.map (BigInt.toHexString >> String.dropLeft 4)
+--         |> Result.withDefault "this should never happen, document what you did to get this outcome"
 
 
 {-| Useful for decoding data withing events/logs.

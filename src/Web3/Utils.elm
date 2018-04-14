@@ -15,9 +15,6 @@ import Web3.Types exposing (..)
 import Hex
 
 
--- Address
-
-
 toAddress : String -> Result String Address
 toAddress str =
     let
@@ -30,8 +27,10 @@ toAddress str =
         isUpper =
             isUpperCaseAddress noZeroX
     in
-        if String.length noZeroX /= 40 then
-            Err <| "Given address " ++ quote str ++ " is not 20 bytes long."
+        if String.length noZeroX < 40 then
+            Err <| "Given address " ++ quote str ++ " is too short"
+        else if String.length noZeroX > 40 then
+            Err <| "Given address " ++ quote str ++ " is too long"
         else if not (isAddress noZeroX) then
             Err <| "Given address " ++ quote str ++ " contains invalid hex characters."
         else if isUpper || isLower then
@@ -56,7 +55,7 @@ toChecksumAddress str =
                 |> String.fromList
                 |> Internal.Address
     in
-        if isAddress (remove0x str) then
+        if isAddress str then
             Ok <| checksumIt str
         else
             Err <| "Given address " ++ quote str ++ " is not a valid Ethereum address."
@@ -74,7 +73,7 @@ isChecksumAddress str =
         checksumCorrect =
             uncurry (List.map2 checksumTestChar) (checksumHelper str)
     in
-        if isAddress (remove0x str) then
+        if isAddress str then
             all checksumCorrect
         else
             False
@@ -102,16 +101,20 @@ checksumHelper address =
             |> (,) addressChars
 
 
-
--- Hex
-
-
 toHex : String -> Result String Hex
 toHex str =
-    if isHex (remove0x str) then
-        Ok <| Internal.Hex str
+    if isHex str then
+        Ok <| Internal.Hex (remove0x str)
     else
-        Err <| "Given hex " ++ quote str ++ " is not a valid."
+        Err <| "Given hex " ++ quote str ++ " is not valid."
+
+
+toTxHash : String -> Result String TxHash
+toTxHash str =
+    if isTxHash str then
+        Ok <| Internal.TxHash (remove0x str)
+    else
+        Err <| "Given txHash " ++ quote str ++ " is not valid."
 
 
 
@@ -134,22 +137,27 @@ addressToString (Internal.Address address) =
 
 isAddress : String -> Bool
 isAddress =
-    Regex.contains (Regex.regex "^[0-9A-Fa-f]{40}$")
+    Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9A-Fa-f]{40}$")
 
 
 isLowerCaseAddress : String -> Bool
 isLowerCaseAddress =
-    Regex.contains (Regex.regex "^[0-9a-f]{40}$")
+    Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9a-f]{40}$")
 
 
 isUpperCaseAddress : String -> Bool
 isUpperCaseAddress =
-    Regex.contains (Regex.regex "^[0-9A-F]{40}$")
+    Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9A-F]{40}$")
+
+
+isTxHash : String -> Bool
+isTxHash =
+    Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9a-fA-F]{64}$")
 
 
 isHex : String -> Bool
 isHex =
-    Regex.contains (Regex.regex "^[0-9a-fA-F]+$")
+    Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9a-fA-F]+$")
 
 
 
@@ -241,6 +249,24 @@ keccak256 str =
             |> (++) "0x"
 
 
+
+-- VALUE UTILS
+
+
+gwei : Int -> BigInt
+gwei =
+    BigInt.fromInt >> BigInt.mul (BigInt.fromInt 1000000000)
+
+
+eth : Int -> BigInt
+eth =
+    BigInt.fromInt >> (BigInt.mul <| BigInt.mul (BigInt.fromInt 100) (BigInt.fromInt 10000000000000000))
+
+
+
+-- APP UTILS
+
+
 {-| Help with decoding past a result straight into a Msg
 -}
 valToMsg : (a -> msg) -> (String -> msg) -> Decoder a -> (Value -> msg)
@@ -255,17 +281,3 @@ valToMsg successMsg failureMsg decoder =
                     failureMsg error
     in
         resultToMessage << Decode.decodeValue decoder
-
-
-
--- VALUE UTILS
-
-
-gwei : Int -> BigInt
-gwei =
-    BigInt.fromInt >> BigInt.mul (BigInt.fromInt 1000000000)
-
-
-eth : Int -> BigInt
-eth =
-    BigInt.fromInt >> (BigInt.mul <| BigInt.mul (BigInt.fromInt 100) (BigInt.fromInt 10000000000000000))

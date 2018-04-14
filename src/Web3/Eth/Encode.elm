@@ -1,21 +1,21 @@
 module Web3.Eth.Encode exposing (..)
 
-import BigInt exposing (BigInt)
-import Json.Encode as Encode exposing (Value)
-import Web3.Utils as Web3
+import Json.Encode exposing (Value, int, list, string, object, null)
+import Web3.Internal.Utils exposing (listOfMaybesToVal)
+import Web3.Utils exposing (addressToString, hexToString)
 import Web3.Types exposing (..)
+import Web3.Encode exposing (hex, bigInt)
 
 
 address : Address -> Value
 address =
-    Web3.addressToString >> Encode.string
+    addressToString >> string
 
 
 {-| -}
 addressList : List Address -> Value
 addressList =
-    List.map address
-        >> Encode.list
+    List.map address >> list
 
 
 callParams : TxParams a -> Value
@@ -23,7 +23,7 @@ callParams { to, from, gas, gasPrice, value, data } =
     listOfMaybesToVal
         [ ( "to", Maybe.map address to )
         , ( "from", Maybe.map address from )
-        , ( "gas", Maybe.map Encode.int gas )
+        , ( "gas", Maybe.map int gas )
         , ( "gasPrice", Maybe.map bigInt gasPrice )
         , ( "value", Maybe.map bigInt value )
         , ( "data", Maybe.map hex data )
@@ -35,11 +35,11 @@ sendParams { to, from, gas, gasPrice, value, data, nonce } =
     listOfMaybesToVal
         [ ( "to", Maybe.map address to )
         , ( "from", Maybe.map address from )
-        , ( "gas", Maybe.map Encode.int gas )
+        , ( "gas", Maybe.map int gas )
         , ( "gasPrice", Maybe.map bigInt gasPrice )
         , ( "value", Maybe.map bigInt value )
         , ( "data", Maybe.map hex data )
-        , ( "nonce", Maybe.map Encode.int nonce )
+        , ( "nonce", Maybe.map int nonce )
         ]
 
 
@@ -47,21 +47,24 @@ blockId : BlockId -> Value
 blockId blockId =
     case blockId of
         BlockNum num ->
-            Encode.int num
+            int num
+
+        BlockHash blockHash ->
+            string (hexToString blockHash)
 
         Earliest ->
-            Encode.string "earliest"
+            string "earliest"
 
         Latest ->
-            Encode.string "latest"
+            string "latest"
 
         Pending ->
-            Encode.string "pending"
+            string "pending"
 
 
 logFilter : LogFilter -> Value
 logFilter logFilter =
-    Encode.object
+    object
         [ ( "fromBlock", blockId logFilter.fromBlock )
         , ( "toBlock", blockId logFilter.toBlock )
         , ( "address", address logFilter.address )
@@ -76,18 +79,18 @@ topicsList topicsList =
         toVal val =
             case val of
                 Just str ->
-                    Encode.string str
+                    string str
 
                 Nothing ->
-                    Encode.null
+                    null
     in
-        List.map toVal topicsList |> Encode.list
+        List.map toVal topicsList |> list
 
 
 rpc : Int -> String -> List Value -> Value
 rpc id method params =
-    Encode.object
-        [ ( "id", Encode.int id )
-        , ( "method", Encode.string method )
-        , ( "params", Encode.list params )
+    object
+        [ ( "id", int id )
+        , ( "method", string method )
+        , ( "params", list params )
         ]
