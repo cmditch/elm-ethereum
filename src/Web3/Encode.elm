@@ -1,13 +1,8 @@
 module Web3.Encode exposing (..)
 
--- Libraries
-
 import BigInt exposing (BigInt)
+import Hex
 import Json.Encode as Encode exposing (Value)
-
-
--- Internal
-
 import Web3.Types exposing (..)
 import Web3.Utils exposing (add0x, hexToString)
 
@@ -23,3 +18,8 @@ bigInt =
 hex : Hex -> Value
 hex =
     hexToString >> Encode.string
+
+
+hexInt : Int -> Value
+hexInt =
+    Hex.toString >> add0x >> Encode.string

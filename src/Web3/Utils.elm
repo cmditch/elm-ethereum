@@ -10,7 +10,7 @@ import Regex exposing (Regex)
 import Result.Extra as Result
 import String.Extra as String
 import Web3.Internal.Types as Internal
-import Web3.Internal.Utils as Internal exposing (quote)
+import Web3.Internal.Utils as Internal exposing (quote, toByteLength)
 import Web3.Types exposing (..)
 import Hex
 
@@ -92,7 +92,7 @@ checksumHelper address =
             |> List.map (Char.toLower >> Char.toCode)
             |> ethereum_keccak_256
             |> List.take 20
-            |> List.map (Hex.toString >> Internal.toByteLength)
+            |> List.map (Hex.toString >> toByteLength)
             |> String.join ""
             |> String.split ""
             |> List.map Hex.fromString
@@ -111,10 +111,18 @@ toHex str =
 
 toTxHash : String -> Result String TxHash
 toTxHash str =
-    if isTxHash str then
+    if isSha256 str then
         Ok <| Internal.TxHash (remove0x str)
     else
         Err <| "Given txHash " ++ quote str ++ " is not valid."
+
+
+toBlockHash : String -> Result String BlockHash
+toBlockHash str =
+    if isSha256 str then
+        Ok <| Internal.BlockHash (remove0x str)
+    else
+        Err <| "Given blockHash " ++ quote str ++ " is not valid."
 
 
 
@@ -136,6 +144,11 @@ txHashToString (Internal.TxHash txHash) =
     add0x txHash
 
 
+blockHashToString : BlockHash -> String
+blockHashToString (Internal.BlockHash blockHash) =
+    add0x blockHash
+
+
 
 -- Regex
 
@@ -155,8 +168,8 @@ isUpperCaseAddress =
     Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9A-F]{40}$")
 
 
-isTxHash : String -> Bool
-isTxHash =
+isSha256 : String -> Bool
+isSha256 =
     Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9a-fA-F]{64}$")
 
 
@@ -206,20 +219,13 @@ hexToAscii str =
 
 functionSig : String -> String
 functionSig fSig =
-    let
-        toByteLength s =
-            if String.length s == 1 then
-                String.append "0" s
-            else
-                s
-    in
-        String.toList fSig
-            |> List.map Char.toCode
-            |> ethereum_keccak_256
-            |> List.take 4
-            |> List.map (Hex.toString >> toByteLength)
-            |> String.join ""
-            |> (++) "0x"
+    String.toList fSig
+        |> List.map Char.toCode
+        |> ethereum_keccak_256
+        |> List.take 4
+        |> List.map (Hex.toString >> toByteLength)
+        |> String.join ""
+        |> (++) "0x"
 
 
 
@@ -239,19 +245,12 @@ functionSig fSig =
 
 keccak256 : String -> String
 keccak256 str =
-    let
-        toByteLength s =
-            if String.length s == 1 then
-                String.append "0" s
-            else
-                s
-    in
-        String.toList str
-            |> List.map Char.toCode
-            |> ethereum_keccak_256
-            |> List.map (Hex.toString >> toByteLength)
-            |> String.join ""
-            |> (++) "0x"
+    String.toList str
+        |> List.map Char.toCode
+        |> ethereum_keccak_256
+        |> List.map (Hex.toString >> toByteLength)
+        |> String.join ""
+        |> (++) "0x"
 
 
 

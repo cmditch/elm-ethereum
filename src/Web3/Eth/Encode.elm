@@ -1,10 +1,11 @@
 module Web3.Eth.Encode exposing (..)
 
+import Hex
 import Json.Encode exposing (Value, int, list, string, object, null)
 import Web3.Internal.Utils exposing (listOfMaybesToVal)
-import Web3.Utils exposing (addressToString, hexToString, txHashToString)
+import Web3.Utils exposing (..)
 import Web3.Types exposing (..)
-import Web3.Encode exposing (hex, bigInt)
+import Web3.Encode exposing (hex, bigInt, hexInt)
 
 
 address : Address -> Value
@@ -20,6 +21,11 @@ txHash =
 addressList : List Address -> Value
 addressList =
     List.map address >> list
+
+
+blockHash : BlockHash -> Value
+blockHash =
+    blockHashToString >> string
 
 
 callParams : TxParams a -> Value
@@ -39,22 +45,24 @@ sendParams { to, from, gas, gasPrice, value, data, nonce } =
     listOfMaybesToVal
         [ ( "to", Maybe.map address to )
         , ( "from", Maybe.map address from )
-        , ( "gas", Maybe.map int gas )
+        , ( "gas", Maybe.map hexInt gas )
         , ( "gasPrice", Maybe.map bigInt gasPrice )
         , ( "value", Maybe.map bigInt value )
         , ( "data", Maybe.map hex data )
-        , ( "nonce", Maybe.map int nonce )
+        , ( "nonce", Maybe.map hexInt nonce )
         ]
 
 
 blockId : BlockId -> Value
 blockId blockId =
     case blockId of
-        BlockNum num ->
-            int num
+        BlockIdNum num ->
+            Hex.toString num
+                |> add0x
+                |> string
 
-        BlockHash blockHash ->
-            string (hexToString blockHash)
+        BlockIdHash hash ->
+            blockHash hash
 
         Earliest ->
             string "earliest"
