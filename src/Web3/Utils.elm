@@ -131,6 +131,11 @@ addressToString (Internal.Address address) =
     add0x address
 
 
+txHashToString : TxHash -> String
+txHashToString (Internal.TxHash txHash) =
+    add0x txHash
+
+
 
 -- Regex
 

@@ -2,7 +2,7 @@ module Web3.Eth.Encode exposing (..)
 
 import Json.Encode exposing (Value, int, list, string, object, null)
 import Web3.Internal.Utils exposing (listOfMaybesToVal)
-import Web3.Utils exposing (addressToString, hexToString)
+import Web3.Utils exposing (addressToString, hexToString, txHashToString)
 import Web3.Types exposing (..)
 import Web3.Encode exposing (hex, bigInt)
 
@@ -12,7 +12,11 @@ address =
     addressToString >> string
 
 
-{-| -}
+txHash : TxHash -> Value
+txHash =
+    txHashToString >> string
+
+
 addressList : List Address -> Value
 addressList =
     List.map address >> list
@@ -85,12 +89,3 @@ topicsList topicsList =
                     null
     in
         List.map toVal topicsList |> list
-
-
-rpc : Int -> String -> List Value -> Value
-rpc id method params =
-    object
-        [ ( "id", int id )
-        , ( "method", string method )
-        , ( "params", list params )
-        ]

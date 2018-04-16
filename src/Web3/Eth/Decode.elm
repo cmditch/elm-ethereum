@@ -1,12 +1,10 @@
 module Web3.Eth.Decode exposing (..)
 
+import Hex
 import Json.Decode as Decode exposing (Decoder, string, maybe, field, list, nullable)
 import Json.Decode.Pipeline exposing (required, decode, custom)
-
-
--- Internal
-
 import Web3.Decode exposing (resultToDecoder, hexInt)
+import Web3.Network exposing (networkId)
 import Web3.Types exposing (..)
 import Web3.Utils exposing (remove0x, toAddress, toHex, toTxHash)
 
@@ -87,3 +85,24 @@ event returnDataDecoder =
         |> required "blockHash" (nullable string)
         |> required "blockNumber" (nullable string)
         |> custom returnDataDecoder
+
+
+netVersion : Decoder NetworkId
+netVersion =
+    (String.toInt >> Result.map networkId)
+        |> resultToDecoder
+
+
+netPeerCount : Decoder Int
+netPeerCount =
+    (remove0x >> Hex.fromString)
+        |> resultToDecoder
+
+
+
+-- Generic
+
+
+stringyInt : Decoder Int
+stringyInt =
+    resultToDecoder String.toInt

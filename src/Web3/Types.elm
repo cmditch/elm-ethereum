@@ -13,6 +13,10 @@ type alias TxHash =
     Internal.TxHash
 
 
+type alias HttpProvider =
+    String
+
+
 type alias Hex =
     Internal.Hex
 
