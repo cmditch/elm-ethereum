@@ -5,17 +5,13 @@ import Http
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Task exposing (Task)
-import Web3.Network exposing (NetworkId(..))
 import Web3.Types exposing (..)
 import Web3.Eth.Types exposing (..)
 import Web3.Eth.Encode as Encode
 import Web3.Eth.Decode as Decode
 import Web3.Decode as Decode
 import Web3.Encode as Encode
-import Web3.RPC as RPC
-
-
--- ETH
+import Web3.JsonRPC as RPC
 
 
 call : HttpProvider -> Call a -> Task Http.Error a
@@ -77,44 +73,6 @@ clientVersion ethNode =
         , params = []
         , decoder = Decode.string
         }
-
-
-
--- NET
-
-
-netVersion : HttpProvider -> Task Http.Error NetworkId
-netVersion ethNode =
-    RPC.buildRequest
-        { url = ethNode
-        , method = "net_version"
-        , params = []
-        , decoder = Decode.netVersion
-        }
-
-
-netListening : HttpProvider -> Task Http.Error Bool
-netListening ethNode =
-    RPC.buildRequest
-        { url = ethNode
-        , method = "net_listening"
-        , params = []
-        , decoder = Decode.bool
-        }
-
-
-netPeerCount : HttpProvider -> Task Http.Error Int
-netPeerCount ethNode =
-    RPC.buildRequest
-        { url = ethNode
-        , method = "net_peerCount"
-        , params = []
-        , decoder = Decode.stringInt
-        }
-
-
-
--- ETH
 
 
 protocolVersion : HttpProvider -> Task Http.Error Int
@@ -377,8 +335,8 @@ getBlockByHashWithTxObjs ethNode blockHash =
         }
 
 
-getTransactionByBlockHashAndIndex : HttpProvider -> BlockHash -> Int -> Task Http.Error Tx
-getTransactionByBlockHashAndIndex ethNode blockHash txIndex =
+getxByBlockHashAndIndex : HttpProvider -> BlockHash -> Int -> Task Http.Error Tx
+getxByBlockHashAndIndex ethNode blockHash txIndex =
     RPC.buildRequest
         { url = ethNode
         , method = "eth_getTransactionByBlockHashAndIndex"
@@ -387,8 +345,8 @@ getTransactionByBlockHashAndIndex ethNode blockHash txIndex =
         }
 
 
-getTransactionByBlockNumberAndIndex : HttpProvider -> Int -> Int -> Task Http.Error Tx
-getTransactionByBlockNumberAndIndex ethNode blockNumber txIndex =
+getTxByBlockNumberAndIndex : HttpProvider -> Int -> Int -> Task Http.Error Tx
+getTxByBlockNumberAndIndex ethNode blockNumber txIndex =
     RPC.buildRequest
         { url = ethNode
         , method = "eth_getTransactionByBlockNumberAndIndex"

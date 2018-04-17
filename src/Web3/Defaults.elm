@@ -7,7 +7,7 @@ module Web3.Defaults
         )
 
 import Web3.Internal.Types as Internal
-import Web3.Types exposing (Address, BlockHash)
+import Web3.Eth.Types exposing (Address, BlockHash)
 
 
 zeroAddress : Address

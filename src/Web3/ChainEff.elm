@@ -13,9 +13,9 @@ module Web3.ChainEff
         )
 
 import Json.Decode exposing (Value)
-import Web3.Eth.Event.Sentry as EventSentry
-import Web3.Eth.Tx.Sentry as TxSentry
-import Web3.Types exposing (..)
+import Web3.Eth.EventSentry as EventSentry
+import Web3.Eth.TxSentry as TxSentry
+import Web3.Eth.Types exposing (..)
 
 
 -- ChainsEffs

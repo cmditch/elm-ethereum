@@ -1,4 +1,4 @@
-module Web3.Eth.Tx.Sentry exposing (..)
+module Web3.Eth.TxSentry exposing (..)
 
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Value, Decoder)
@@ -7,9 +7,9 @@ import Task exposing (Task)
 import Http
 import Process
 import Web3.Eth as Eth
-import Web3.Eth exposing (RpcRequest, buildRequest)
-import Web3.Types exposing (..)
-import Web3.Encode as Encode
+import Web3.Eth.Encode as Encode
+import Web3.Eth.Decode as Decode
+import Web3.Eth.Types exposing (..)
 
 
 init : ( (Value -> Msg) -> Sub Msg, Value -> Cmd Msg ) -> (Msg -> msg) -> String -> TxSentry msg
@@ -46,7 +46,7 @@ type TxSentry msg
 
 type TxStatus
     = Signing Send
-    | Signed TxId
+    | Signed TxHash
     | Sent Tx
     | Mined TxReceipt
 
@@ -73,13 +73,13 @@ type Msg
 update : Msg -> TxSentry msg -> ( TxSentry msg, Cmd msg )
 update msg (TxSentry sentry) =
     case msg of
-        TxSigned { ref, txId } ->
+        TxSigned { ref, txHash } ->
             case Dict.get ref sentry.txs of
                 Just txState ->
-                    ( TxSentry { sentry | txs = Dict.update ref (txStatusSigned txId) sentry.txs }
+                    ( TxSentry { sentry | txs = Dict.update ref (txStatusSigned txHash) sentry.txs }
                     , Cmd.map sentry.tagger <|
                         Task.attempt (TxSent ref)
-                            (Process.sleep 500 |> Task.andThen (\_ -> Eth.getTransactionByHash sentry.nodePath txId))
+                            (Process.sleep 500 |> Task.andThen (\_ -> Eth.getTransactionByHash sentry.nodePath txHash))
                     )
 
                 Nothing ->
@@ -113,9 +113,9 @@ update msg (TxSentry sentry) =
 {- Dict Update Helpers -}
 
 
-txStatusSigned : TxId -> Maybe (TxState msg) -> Maybe (TxState msg)
-txStatusSigned txId =
-    Maybe.map (\txState -> { txState | status = Signed txId })
+txStatusSigned : TxHash -> Maybe (TxState msg) -> Maybe (TxState msg)
+txStatusSigned txHash =
+    Maybe.map (\txState -> { txState | status = Signed txHash })
 
 
 txStatusSent : Tx -> Maybe (TxState msg) -> Maybe (TxState msg)
@@ -172,13 +172,13 @@ decodeTxData val =
 
 txIdResponseDecoder : Decoder TxIdResponse
 txIdResponseDecoder =
-    Decode.map2 (\ref txId -> { ref = ref, txId = txId })
+    Decode.map2 (\ref txHash -> { ref = ref, txHash = txHash })
         (Decode.field "ref" Decode.int)
-        (Decode.field "txId" (Decode.map TxId Decode.string))
+        (Decode.field "txHash" Decode.txHash)
 
 
 type alias TxIdResponse =
-    { ref : Int, txId : TxId }
+    { ref : Int, txHash : TxHash }
 
 
 newTxState : Send -> Maybe (TxReceipt -> msg) -> (Tx -> msg) -> TxState msg

@@ -1,5 +1,6 @@
 module Web3.Utils exposing (..)
 
+import Base58
 import BigInt exposing (BigInt)
 import Bool.Extra exposing (all)
 import Char
@@ -13,7 +14,7 @@ import String.Extra as String
 import Web3.Internal.Types as Internal
 import Web3.Internal.Utils as Internal exposing (quote, toByteLength)
 import Web3.Eth.Types exposing (..)
-import Web3.Types exposing (Hex)
+import Web3.Types exposing (Hex, IPFSHash)
 
 
 toAddress : String -> Result String Address
@@ -229,19 +230,20 @@ functionSig fSig =
         |> (++) "0x"
 
 
+ipfsHashToString : IPFSHash -> String
+ipfsHashToString (Internal.IPFSHash str) =
+    str
 
--- ipfsHashToString : IPFSHash -> String
--- ipfsHashToString (IPFSHash str) =
---     str
--- makeIPFSHash : String -> Result String IPFSHash
--- makeIPFSHash str =
---     if String.length str /= 46 then
---         Err <| str ++ " is an invalid IPFS Hash. Must be 46 chars long."
---     else if String.left 2 str /= "Qm" then
---         Err <| str ++ " is an invalid IPFS Hash. Must begin with \"Qm\"."
---     else
---         Base58.decode str
---             |> Result.andThen (\_ -> Ok <| IPFSHash str)
+
+makeIPFSHash : String -> Result String IPFSHash
+makeIPFSHash str =
+    if String.length str /= 46 then
+        Err <| str ++ " is an invalid IPFS Hash. Must be 46 chars long."
+    else if String.left 2 str /= "Qm" then
+        Err <| str ++ " is an invalid IPFS Hash. Must begin with \"Qm\"."
+    else
+        Base58.decode str
+            |> Result.andThen (\_ -> Ok <| Internal.IPFSHash str)
 
 
 keccak256 : String -> String

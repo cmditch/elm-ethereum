@@ -1,4 +1,4 @@
-module Web3.Eth.Event.Sentry
+module Web3.Eth.EventSentry
     exposing
         ( EventSentry
         , Msg
@@ -17,8 +17,9 @@ import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Value, Decoder)
 import Json.Encode as Encode
 import Web3.Utils exposing (keccak256, addressToString)
-import Web3.Types exposing (..)
-import Web3.Encode as Encode
+import Web3.Eth.Types exposing (..)
+import Web3.Eth.Encode as Encode
+import Web3.JsonRPC as RPC
 import WebSocket as WS
 
 
@@ -183,7 +184,7 @@ watch_ isOnce logFilter onReceive sentry =
                 }
                     ! [ WS.send sentry.nodePath <|
                             Encode.encode 0
-                                (Encode.rpc sentry.ref
+                                (RPC.encode sentry.ref
                                     "eth_subscribe"
                                     [ Encode.string "logs", Encode.logFilter logFilter ]
                                 )
@@ -345,7 +346,7 @@ logFilterKey { address, topics } =
 
 closeFilterRpc : Int -> String -> String
 closeFilterRpc rpcId filterId =
-    Encode.rpc rpcId "eth_unsubscribe" [ Encode.string filterId ]
+    RPC.encode rpcId "eth_unsubscribe" [ Encode.string filterId ]
         |> Encode.encode 0
 
 

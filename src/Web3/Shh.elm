@@ -8,6 +8,7 @@ import Web3.Decode as Decode
 import Web3.Types exposing (..)
 import Web3.Shh.Types exposing (Post)
 import Web3.Shh.Encode as Encode
+import Web3.Shh.Decode as Decode
 import Web3.RPC as RPC
 
 

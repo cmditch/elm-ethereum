@@ -3,7 +3,6 @@ module Web3.Eth.Decode exposing (..)
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (required, decode, custom, optional)
 import Web3.Decode exposing (resultToDecoder, hexInt, bigInt, hexTime, hexBool)
-import Web3.Network exposing (networkId, NetworkId(..))
 import Web3.Types exposing (..)
 import Web3.Eth.Types exposing (..)
 import Web3.Utils exposing (remove0x, toAddress, toHex, toTxHash, toBlockHash)
@@ -145,12 +144,6 @@ event returnDataDecoder =
         |> required "blockHash" blockHash
         |> required "blockNumber" hexInt
         |> custom returnDataDecoder
-
-
-netVersion : Decoder NetworkId
-netVersion =
-    (String.toInt >> Result.map networkId)
-        |> resultToDecoder
 
 
 syncStatus : Decoder (Maybe SyncStatus)

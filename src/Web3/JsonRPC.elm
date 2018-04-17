@@ -1,4 +1,4 @@
-module Web3.RPC exposing (..)
+module Web3.JsonRPC exposing (..)
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value, object, int, string, list)
@@ -27,12 +27,12 @@ defaultRPCBody =
 
 rpcBody : Int -> String -> List Value -> Http.Body
 rpcBody id method params =
-    encodeRPC id method params
+    encode id method params
         |> Http.jsonBody
 
 
-encodeRPC : Int -> String -> List Value -> Value
-encodeRPC id method params =
+encode : Int -> String -> List Value -> Value
+encode id method params =
     object
         [ ( "id", int id )
         , ( "method", string method )

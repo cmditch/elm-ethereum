@@ -1,9 +1,10 @@
-module Web3.Shh.Types exposing (..)
+module Web3.Shh.Types exposing (WhisperId, Post)
 
-import Web3.Internal.Types exposing (WhisperId)
+import Web3.Internal.Types as Internal
 
-type WhisperId
-    = Internal.WhisperId
+
+type alias WhisperId =
+    Internal.WhisperId
 
 
 type alias Post =
