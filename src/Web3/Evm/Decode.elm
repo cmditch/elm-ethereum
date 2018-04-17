@@ -13,11 +13,8 @@ import Web3.Types exposing (IPFSHash)
 import Web3.Utils exposing (add0x, remove0x, toAddress, makeIPFSHash)
 
 
--- import Base58
-
-
-type alias EvmDecoder a =
-    Tape -> Result String ( Tape, a )
+type EvmDecoder a
+    = EvmDecoder (Tape -> Result String ( Tape, a ))
 
 
 {-| Tape == (Original Tape, Altered Tape)
@@ -29,17 +26,17 @@ type alias EvmDecoder a =
                     and is needed to help grab dynamic solidity values, such as 'bytes', 'address[]', or 'uint256[]'
 
 -}
-type alias Tape =
-    ( String, String )
+type Tape
+    = Tape String String
 
 
 evmDecode : a -> EvmDecoder a
 evmDecode r =
-    \tape -> Ok ( tape, r )
+    EvmDecoder (\tape -> Ok ( tape, r ))
 
 
 runDecoder : EvmDecoder a -> String -> Result String a
-runDecoder evmDecoder evmString =
+runDecoder (EvmDecoder evmDecoder) evmString =
     remove0x evmString
         |> (\a -> ( a, a ))
         |> evmDecoder
@@ -57,12 +54,13 @@ toElmDecoder =
 
 uint : EvmDecoder BigInt
 uint =
-    \( original, altered ) ->
-        take64 altered
-            |> add0x
-            |> BigInt.fromString
-            |> Result.fromMaybe "Error Decoding Uint into BigInt"
-            |> Result.map (\bi -> ( ( original, drop64 altered ), bi ))
+    EvmDecoder <|
+        \( original, altered ) ->
+            take64 altered
+                |> add0x
+                |> BigInt.fromString
+                |> Result.fromMaybe "Error Decoding Uint into BigInt"
+                |> Result.map (\bi -> ( ( original, drop64 altered ), bi ))
 
 
 bool : EvmDecoder Bool
@@ -84,18 +82,20 @@ bool =
                 False ->
                     Err ("Boolean decode error." ++ b ++ " is not boolean.")
     in
-        \( original, altered ) ->
-            take64 altered
-                |> parseBool
-                |> Result.map (\bi -> ( ( original, drop64 altered ), bi ))
+        EvmDecoder <|
+            \( original, altered ) ->
+                take64 altered
+                    |> parseBool
+                    |> Result.map (\bi -> ( ( original, drop64 altered ), bi ))
 
 
 address : EvmDecoder Address
 address =
-    \( original, altered ) ->
-        take64 altered
-            |> toAddress
-            |> Result.map (\address -> ( ( original, drop64 altered ), address ))
+    EvmDecoder <|
+        \( original, altered ) ->
+            take64 altered
+                |> toAddress
+                |> Result.map (\address -> ( ( original, drop64 altered ), address ))
 
 
 {-| Decode Dynamically Sized Arrays
@@ -103,12 +103,13 @@ address =
 -}
 dArray : EvmDecoder a -> EvmDecoder (List a)
 dArray decoder =
-    \( original, altered ) ->
-        take64 altered
-            |> buildDynArray original
-            |> Result.map (List.map (unpackDecoder decoder))
-            |> Result.andThen Result.combine
-            |> Result.map (\list -> ( ( original, drop64 altered ), list ))
+    EvmDecoder <|
+        \( original, altered ) ->
+            take64 altered
+                |> buildDynArray original
+                |> Result.map (List.map (unpackDecoder decoder))
+                |> Result.andThen Result.combine
+                |> Result.map (\list -> ( ( original, drop64 altered ), list ))
 
 
 {-| Decode Statically Sized Arrays
@@ -116,12 +117,13 @@ dArray decoder =
 -}
 sArray : Int -> EvmDecoder a -> EvmDecoder (List a)
 sArray arrSize decoder =
-    \( original, altered ) ->
-        String.left (arrSize * 64) altered
-            |> String.break 64
-            |> List.map (unpackDecoder decoder)
-            |> Result.combine
-            |> Result.map (\list -> ( ( original, String.dropLeft (arrSize * 64) altered ), list ))
+    EvmDecoder <|
+        \( original, altered ) ->
+            String.left (arrSize * 64) altered
+                |> String.break 64
+                |> List.map (unpackDecoder decoder)
+                |> Result.combine
+                |> Result.map (\list -> ( Tape ( original, String.dropLeft (arrSize * 64) altered ), list ))
 
 
 {-| Decodes bytes32 into IPFS Hash (assuming use of 32 byte sha256)
@@ -129,14 +131,15 @@ Not IPFS future proof. See <https://ethereum.stackexchange.com/questions/17094/h
 -}
 ipfsHash : EvmDecoder IPFSHash
 ipfsHash =
-    \( original, altered ) ->
-        take64 altered
-            |> (++) "0x1220"
-            |> BigInt.fromString
-            |> Maybe.map Base58.encode
-            |> Result.fromMaybe "Error Encoding IPFS Hash from BigInt"
-            |> Result.andThen makeIPFSHash
-            |> Result.map (\ipfsHash -> ( ( original, drop64 altered ), ipfsHash ))
+    EvmDecoder <|
+        \(Tape original altered) ->
+            take64 altered
+                |> (++) "0x1220"
+                |> BigInt.fromString
+                |> Maybe.map Base58.encode
+                |> Result.fromMaybe "Error Encoding IPFS Hash from BigInt"
+                |> Result.andThen makeIPFSHash
+                |> Result.map (\ipfsHash -> ( Tape ( original, drop64 altered ), ipfsHash ))
 
 
 {-| Prepares IPFS Hash to store as soldity bytes32
@@ -151,11 +154,13 @@ ipfsToBytes32 (Internal.IPFSHash str) =
 {-| Useful for decoding data withing events/logs.
 -}
 dropBytes : Int -> EvmDecoder a -> EvmDecoder a
-dropBytes location decoder =
-    \( original, altered ) ->
-        String.dropLeft (location * 64) altered
-            |> (,) original
-            |> decoder
+dropBytes location (EvmDecoder decoder) =
+    EvmDecoder <|
+        \(Tape ( original, altered )) ->
+            String.dropLeft (location * 64) altered
+                |> (,) original
+                |> Tape
+                |> decoder
 
 
 {-| Useful for decoding data withing events/logs.
@@ -180,38 +185,49 @@ data index evmDecoder =
 andMap is the same as `apply` or `<*>` in Haskell, except initial arguments are flipped to help with elm pipeline syntax.
 
 -}
+
+
+
+-- map : (a -> b) -> EvmDecoder a -> EvmDecoder b
+-- map f a =
+
+
+map2 : (a -> b -> c) -> EvmDecoder a -> EvmDecoder b -> EvmDecoder c
+map2 f (EvmDecoder decA) (EvmDecoder decB) =
+    EvmDecoder <|
+        \tape0 ->
+            decA tape0
+                |> Result.andThen
+                    (\( tape1, vA ) ->
+                        decB tape1
+                            |> Result.map (Tuple.mapSecond (f vA))
+                    )
+
+
 andMap : EvmDecoder a -> EvmDecoder (a -> b) -> EvmDecoder b
 andMap dVal dFunc =
     map2 (\f v -> f v) dFunc dVal
 
 
-map2 : (a -> b -> c) -> EvmDecoder a -> EvmDecoder b -> EvmDecoder c
-map2 f decA decB =
-    \tape0 ->
-        decA tape0
-            |> Result.andThen
-                (\( tape1, vA ) ->
-                    decB tape1
-                        |> Result.map (Tuple.mapSecond (f vA))
-                )
 
+{- Takes the index pointer to the beginning of the array data (the first piece being the array length)
+   and the full return data, and slices out the
 
-{-| Takes the index pointer to the beginning of the array data (the first piece being the array length)
-and the full return data, and slices out the
+   Example - Here is a returns(address[],uint256)
 
-Example - Here is a returns(address[],uint256)
+           0000000000000000000000000000000000000000000000000000000000000040 -- Start index of address[] (starts at byte 64, or the 128th character)
+           0000000000000000000000000000000000000000000000000000000000000123 -- Some Uint256
+           0000000000000000000000000000000000000000000000000000000000000003 -- Length of address[]
+           000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3 -- First Address
+           0000000000000000000000006A987e3C0cd7Ed478Ce18C4cE00a0B313299365B -- Second Address
+           000000000000000000000000aD9178336d523494914ca37359D2456ef123466c -- Third Address
 
-        0000000000000000000000000000000000000000000000000000000000000040 -- Start index of address[] (starts at byte 64, or the 128th character)
-        0000000000000000000000000000000000000000000000000000000000000123 -- Some Uint256
-        0000000000000000000000000000000000000000000000000000000000000003 -- Length of address[]
-        000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3 -- First Address
-        0000000000000000000000006A987e3C0cd7Ed478Ce18C4cE00a0B313299365B -- Second Address
-        000000000000000000000000aD9178336d523494914ca37359D2456ef123466c -- Third Address
-
-    buildDynArray fullReturnData startIndex
-        > Ok ["000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3", secondAddress, thirdAddress]
+       buildDynArray fullReturnData startIndex
+           > Ok ["000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3", secondAddress, thirdAddress]
 
 -}
+
+
 buildDynArray : String -> String -> Result String (List String)
 buildDynArray fullTape startIndex =
     let
@@ -235,8 +251,8 @@ buildDynArray fullTape startIndex =
 Useful for mapping over lists built from dynamic types
 -}
 unpackDecoder : EvmDecoder a -> String -> Result String a
-unpackDecoder decoder val =
-    decoder ( "", val )
+unpackDecoder (EvmDecoder decoder) val =
+    decoder (Tape ( "", val ))
         |> Result.map Tuple.second
 
 

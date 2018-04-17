@@ -7,17 +7,14 @@ import Time exposing (Time)
 import Web3.Utils exposing (remove0x)
 
 
---
+stringInt : Decoder Int
+stringInt =
+    resultToDecoder String.toInt
 
 
 hexInt : Decoder Int
 hexInt =
     resultToDecoder (remove0x >> Hex.fromString)
-
-
-stringInt : Decoder Int
-stringInt =
-    resultToDecoder String.toInt
 
 
 bigInt : Decoder BigInt
@@ -45,10 +42,6 @@ hexBool =
                     Err <| "Error decoding " ++ n ++ "as bool."
     in
         resultToDecoder isBool
-
-
-
---
 
 
 resultToDecoder : (String -> Result String a) -> Decoder a

@@ -1,8 +1,8 @@
 module Web3.Net
     exposing
-        ( netVersion
-        , netListening
-        , netPeerCount
+        ( version
+        , listening
+        , peerCount
         , networkId
         , name
         , networkIdDecoder
@@ -14,7 +14,7 @@ import Http
 import Task exposing (Task)
 import Web3.Types exposing (HttpProvider)
 import Web3.Decode as Decode
-import Web3.RPC as RPC
+import Web3.JsonRPC as RPC
 
 
 type NetworkId
@@ -30,8 +30,8 @@ type NetworkId
     | Private Int
 
 
-netVersion : HttpProvider -> Task Http.Error NetworkId
-netVersion ethNode =
+version : HttpProvider -> Task Http.Error NetworkId
+version ethNode =
     RPC.buildRequest
         { url = ethNode
         , method = "net_version"
@@ -40,8 +40,8 @@ netVersion ethNode =
         }
 
 
-netListening : HttpProvider -> Task Http.Error Bool
-netListening ethNode =
+listening : HttpProvider -> Task Http.Error Bool
+listening ethNode =
     RPC.buildRequest
         { url = ethNode
         , method = "net_listening"
@@ -50,8 +50,8 @@ netListening ethNode =
         }
 
 
-netPeerCount : HttpProvider -> Task Http.Error Int
-netPeerCount ethNode =
+peerCount : HttpProvider -> Task Http.Error Int
+peerCount ethNode =
     RPC.buildRequest
         { url = ethNode
         , method = "net_peerCount"
@@ -130,5 +130,5 @@ name networkId =
         ETCTest ->
             "ETC Testnet"
 
-        Private networkId ->
-            "Private Chain"
+        Private num ->
+            "Private Chain: " ++ toString num
