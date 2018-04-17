@@ -1,11 +1,4 @@
-module Web3.Internal.Types
-    exposing
-        ( Address(..)
-        , TxHash(..)
-        , BlockHash(..)
-        , Hex(..)
-        , IPFSHash(..)
-        )
+module Web3.Internal.Types exposing (..)
 
 
 type Address
@@ -18,6 +11,10 @@ type TxHash
 
 type BlockHash
     = BlockHash String
+
+
+type WhisperId
+    = WhisperId String
 
 
 

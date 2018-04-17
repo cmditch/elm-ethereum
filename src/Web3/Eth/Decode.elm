@@ -1,10 +1,11 @@
 module Web3.Eth.Decode exposing (..)
 
-import Json.Decode as Decode exposing (Decoder, string, maybe, int, field, list, nullable)
+import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (required, decode, custom, optional)
 import Web3.Decode exposing (resultToDecoder, hexInt, bigInt, hexTime, hexBool)
-import Web3.Network exposing (networkId)
+import Web3.Network exposing (networkId, NetworkId(..))
 import Web3.Types exposing (..)
+import Web3.Eth.Types exposing (..)
 import Web3.Utils exposing (remove0x, toAddress, toHex, toTxHash, toBlockHash)
 
 
@@ -59,8 +60,13 @@ block txsDecoder =
         |> required "gasLimit" hexInt
         |> required "gasUsed" hexInt
         |> required "timestamp" hexTime
-        |> required "transactions" (list txsDecoder)
+        |> optional "transactions" (list txsDecoder) []
         |> required "uncles" (list string)
+
+
+uncle : Decoder (Block ())
+uncle =
+    block (succeed ())
 
 
 {-| -}
@@ -117,11 +123,12 @@ log =
         |> required "address" address
         |> required "data" string
         |> required "topics" (list string)
-        |> required "logIndex" (nullable string)
-        |> required "transactionIndex" string
+        |> required "removed" bool
+        |> required "logIndex" hexInt
+        |> required "transactionIndex" hexInt
         |> required "transactionHash" txHash
-        |> required "blockHash" (nullable string)
-        |> required "blockNumber" (nullable string)
+        |> required "blockHash" blockHash
+        |> required "blockNumber" hexInt
 
 
 {-| -}
@@ -131,11 +138,12 @@ event returnDataDecoder =
         |> required "address" address
         |> required "data" string
         |> required "topics" (list string)
-        |> required "logIndex" (nullable string)
-        |> required "transactionIndex" string
+        |> required "removed" bool
+        |> required "logIndex" hexInt
+        |> required "transactionIndex" hexInt
         |> required "transactionHash" txHash
-        |> required "blockHash" (nullable string)
-        |> required "blockNumber" (nullable string)
+        |> required "blockHash" blockHash
+        |> required "blockNumber" hexInt
         |> custom returnDataDecoder
 
 

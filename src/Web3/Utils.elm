@@ -2,17 +2,18 @@ module Web3.Utils exposing (..)
 
 import BigInt exposing (BigInt)
 import Bool.Extra exposing (all)
+import Char
+import Hex
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
-import Char
 import Keccak exposing (ethereum_keccak_256)
 import Regex exposing (Regex)
 import Result.Extra as Result
 import String.Extra as String
 import Web3.Internal.Types as Internal
 import Web3.Internal.Utils as Internal exposing (quote, toByteLength)
-import Web3.Types exposing (..)
-import Hex
+import Web3.Eth.Types exposing (..)
+import Web3.Types exposing (Hex)
 
 
 toAddress : String -> Result String Address
@@ -264,7 +265,11 @@ gwei =
 
 eth : Int -> BigInt
 eth =
-    BigInt.fromInt >> (BigInt.mul <| BigInt.mul (BigInt.fromInt 100) (BigInt.fromInt 10000000000000000))
+    let
+        oneEth =
+            BigInt.mul (BigInt.fromInt 100) (BigInt.fromInt 10000000000000000)
+    in
+        BigInt.fromInt >> (BigInt.mul oneEth)
 
 
 

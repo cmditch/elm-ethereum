@@ -4,7 +4,7 @@ import Hex
 import Json.Encode exposing (Value, int, list, string, object, null)
 import Web3.Internal.Utils exposing (listOfMaybesToVal)
 import Web3.Utils exposing (..)
-import Web3.Types exposing (..)
+import Web3.Eth.Types exposing (..)
 import Web3.Encode exposing (hex, bigInt, hexInt)
 
 
@@ -28,7 +28,7 @@ blockHash =
     blockHashToString >> string
 
 
-callParams : TxParams a -> Value
+callParams : Call a -> Value
 callParams { to, from, gas, gasPrice, value, data } =
     listOfMaybesToVal
         [ ( "to", Maybe.map address to )

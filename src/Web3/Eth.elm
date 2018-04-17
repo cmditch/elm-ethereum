@@ -5,7 +5,9 @@ import Http
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Task exposing (Task)
+import Web3.Network exposing (NetworkId(..))
 import Web3.Types exposing (..)
+import Web3.Eth.Types exposing (..)
 import Web3.Eth.Encode as Encode
 import Web3.Eth.Decode as Decode
 import Web3.Decode as Decode
@@ -16,12 +18,12 @@ import Web3.RPC as RPC
 -- ETH
 
 
-call : HttpProvider -> TxParams a -> Task Http.Error a
+call : HttpProvider -> Call a -> Task Http.Error a
 call ethNode txParams =
     callAtBlock ethNode Latest txParams
 
 
-callAtBlock : HttpProvider -> BlockId -> TxParams a -> Task Http.Error a
+callAtBlock : HttpProvider -> BlockId -> Call a -> Task Http.Error a
 callAtBlock ethNode blockId txParams =
     RPC.buildRequest
         { url = ethNode
@@ -31,7 +33,7 @@ callAtBlock ethNode blockId txParams =
         }
 
 
-send : TxParams a -> Send
+send : Call a -> Send
 send { to, from, gas, gasPrice, value, data, nonce } =
     { to = to
     , from = from
@@ -60,16 +62,6 @@ getTransactionReceipt ethNode txHash =
         , method = "eth_getTransactionReceipt"
         , params = [ Encode.txHash txHash ]
         , decoder = Decode.txReceipt
-        }
-
-
-getLogs : HttpProvider -> LogFilter -> Task Http.Error (List Log)
-getLogs ethNode logFilter =
-    RPC.buildRequest
-        { url = ethNode
-        , method = "eth_getLogs"
-        , params = [ Encode.logFilter logFilter ]
-        , decoder = Decode.list Decode.log
         }
 
 
@@ -335,7 +327,7 @@ sendRawTx ethNode signedTx =
         }
 
 
-estimateGas : HttpProvider -> TxParams a -> Task Http.Error Int
+estimateGas : HttpProvider -> Call a -> Task Http.Error Int
 estimateGas ethNode txParams =
     RPC.buildRequest
         { url = ethNode
@@ -402,4 +394,98 @@ getTransactionByBlockNumberAndIndex ethNode blockNumber txIndex =
         , method = "eth_getTransactionByBlockNumberAndIndex"
         , params = [ Encode.hexInt blockNumber, Encode.hexInt txIndex ]
         , decoder = Decode.tx
+        }
+
+
+getUncleByBlockHashAndIndex : HttpProvider -> BlockHash -> Int -> Task Http.Error Uncle
+getUncleByBlockHashAndIndex ethNode blockHash uncleIndex =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_getUncleByBlockHashAndIndex"
+        , params = [ Encode.blockHash blockHash, Encode.hexInt uncleIndex ]
+        , decoder = Decode.uncle
+        }
+
+
+getUncleByBlockNumberAndIndex : HttpProvider -> BlockHash -> Int -> Task Http.Error Uncle
+getUncleByBlockNumberAndIndex ethNode blockHash uncleIndex =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_getUncleByBlockHashAndIndex"
+        , params = [ Encode.blockHash blockHash, Encode.hexInt uncleIndex ]
+        , decoder = Decode.uncle
+        }
+
+
+
+-- Filters
+
+
+newFilter : HttpProvider -> LogFilter -> Task Http.Error FilterId
+newFilter ethNode logFilter =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_newFilter"
+        , params = [ Encode.logFilter logFilter ]
+        , decoder = Decode.string
+        }
+
+
+newBlockFilter : HttpProvider -> Task Http.Error FilterId
+newBlockFilter ethNode =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_newBlockFilter"
+        , params = []
+        , decoder = Decode.string
+        }
+
+
+newPendingTxFilter : HttpProvider -> Task Http.Error FilterId
+newPendingTxFilter ethNode =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_newPendingTransactionFilter"
+        , params = []
+        , decoder = Decode.string
+        }
+
+
+uninstallFilter : HttpProvider -> FilterId -> Task Http.Error FilterId
+uninstallFilter ethNode filterId =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_newPendingTransactionFilter"
+        , params = []
+        , decoder = Decode.string
+        }
+
+
+getFilterChanges : HttpProvider -> Decoder a -> FilterId -> Task Http.Error (List a)
+getFilterChanges ethNode decoder filterId =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_getFilterChanges"
+        , params = []
+        , decoder = Decode.list decoder
+        }
+
+
+getFilterLogs : HttpProvider -> Decoder a -> FilterId -> Task Http.Error (List a)
+getFilterLogs ethNode decoder filterId =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_getFilterLogs"
+        , params = [ Encode.string filterId ]
+        , decoder = Decode.list decoder
+        }
+
+
+getLogs : HttpProvider -> LogFilter -> Task Http.Error (List Log)
+getLogs ethNode logFilter =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_getLogs"
+        , params = [ Encode.logFilter logFilter ]
+        , decoder = Decode.list Decode.log
         }

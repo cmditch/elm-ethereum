@@ -1,6 +1,17 @@
-module Web3.Network exposing (networkId, name)
+module Web3.Network exposing (networkId, name, NetworkId(..))
 
-import Web3.Types exposing (..)
+
+type NetworkId
+    = Mainnet
+    | Expanse
+    | Ropsten
+    | Rinkeby
+    | RskMain
+    | RskTest
+    | Kovan
+    | ETCMain
+    | ETCTest
+    | Private Int
 
 
 networkId : Int -> NetworkId
