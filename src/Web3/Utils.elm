@@ -8,9 +8,12 @@ import Hex
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
 import Keccak exposing (ethereum_keccak_256)
+import Process
 import Regex exposing (Regex)
 import Result.Extra as Result
 import String.Extra as String
+import Task exposing (Task)
+import Time
 import Web3.Internal.Types as Internal
 import Web3.Internal.Utils as Internal exposing (quote, toByteLength)
 import Web3.Eth.Types exposing (..)
@@ -81,9 +84,12 @@ isChecksumAddress str =
             False
 
 
-{-| Takes first 20 bytes of keccak'd address, and converts each hex char to an int
-Packs this list into a tuple with the split up address chars so a comparison can be made between the two.
+
+{- Takes first 20 bytes of keccak'd address, and converts each hex char to an int
+   Packs this list into a tuple with the split up address chars so a comparison can be made between the two.
 -}
+
+
 checksumHelper : String -> ( List Char, List Int )
 checksumHelper address =
     let
@@ -235,6 +241,15 @@ ipfsHashToString (Internal.IPFSHash str) =
     str
 
 
+{-| Prepares IPFS Hash to store as soldity bytes32
+-}
+ipfsToBytes32 : IPFSHash -> String
+ipfsToBytes32 (Internal.IPFSHash str) =
+    Base58.decode str
+        |> Result.map (BigInt.toHexString >> String.dropLeft 4)
+        |> Result.withDefault "this should never happen, document what you did to get this outcome"
+
+
 makeIPFSHash : String -> Result String IPFSHash
 makeIPFSHash str =
     if String.length str /= 46 then
@@ -292,3 +307,28 @@ valToMsg successMsg failureMsg decoder =
                     failureMsg error
     in
         resultToMessage << Decode.decodeValue decoder
+
+
+{-| -}
+type alias Retry =
+    { attempts : Int
+    , sleep : Float
+    }
+
+
+{-| -}
+retry : Retry -> Task x a -> Task x a
+retry { attempts, sleep } myTask =
+    let
+        remaining =
+            attempts - 1
+    in
+        myTask
+            |> Task.onError
+                (\x ->
+                    if remaining > 0 then
+                        Process.sleep (sleep * Time.second)
+                            |> Task.andThen (\_ -> retry (Retry remaining sleep) myTask)
+                    else
+                        Task.fail x
+                )

@@ -1,4 +1,13 @@
-module Web3.Eth.TxSentry exposing (..)
+module Web3.Eth.TxSentry
+    exposing
+        ( TxSentry
+        , init
+        , send
+        , sendWithReceipt
+        , listen
+        , withDebug
+        , changeNode
+        )
 
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Value, Decoder)
@@ -10,6 +19,18 @@ import Web3.Eth as Eth
 import Web3.Eth.Encode as Encode
 import Web3.Eth.Decode as Decode
 import Web3.Eth.Types exposing (..)
+
+
+type TxSentry msg
+    = TxSentry
+        { inPort : (Value -> Msg) -> Sub Msg
+        , outPort : Value -> Cmd Msg
+        , tagger : Msg -> msg
+        , nodePath : String
+        , txs : Dict Int (TxState msg)
+        , debug : Bool
+        , ref : Int
+        }
 
 
 init : ( (Value -> Msg) -> Sub Msg, Value -> Cmd Msg ) -> (Msg -> msg) -> String -> TxSentry msg
@@ -25,6 +46,47 @@ init ( inPort, outPort ) tagger nodePath =
         }
 
 
+send : Send -> (Tx -> msg) -> TxSentry msg -> ( TxSentry msg, Cmd msg )
+send send onReceiveTx sentry =
+    sendInternal send onReceiveTx Nothing sentry
+
+
+sendWithReceipt :
+    Send
+    -> (Tx -> msg)
+    -> (TxReceipt -> msg)
+    -> TxSentry msg
+    -> ( TxSentry msg, Cmd msg )
+sendWithReceipt send onReceiveTx onReceiveTxReceipt sentry =
+    sendInternal send onReceiveTx (Just onReceiveTxReceipt) sentry
+
+
+sendInternal :
+    Send
+    -> (Tx -> msg)
+    -> Maybe (TxReceipt -> msg)
+    -> TxSentry msg
+    -> ( TxSentry msg, Cmd msg )
+sendInternal send onReceiveTx onReceiveTxReceipt (TxSentry sentry) =
+    let
+        newTxs =
+            Dict.insert sentry.ref (newTxState send onReceiveTxReceipt onReceiveTx) sentry.txs
+    in
+        (TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 })
+            ! [ Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref send) ]
+
+
+listen : TxSentry msg -> Sub msg
+listen (TxSentry sentry) =
+    Sub.map sentry.tagger (sentry.inPort decodeTxData)
+
+
+{-| -}
+withDebug : TxSentry msg -> TxSentry msg
+withDebug (TxSentry sentry) =
+    TxSentry { sentry | debug = True }
+
+
 {-| Look into the errors this might cause, some kind of cleanup process should probably occur on changing a node.
 -}
 changeNode : String -> TxSentry msg -> TxSentry msg
@@ -32,16 +94,8 @@ changeNode newNodePath (TxSentry txSentry) =
     TxSentry { txSentry | nodePath = newNodePath }
 
 
-type TxSentry msg
-    = TxSentry
-        { inPort : (Value -> Msg) -> Sub Msg
-        , outPort : Value -> Cmd Msg
-        , tagger : Msg -> msg
-        , nodePath : String
-        , txs : Dict Int (TxState msg)
-        , debug : Bool
-        , ref : Int
-        }
+
+-- Internal
 
 
 type TxStatus
@@ -59,13 +113,9 @@ type alias TxState msg =
     }
 
 
-
---- UPDATE
-
-
 type Msg
     = NoOp
-    | TxSigned TxIdResponse
+    | TxSigned { ref : Int, txHash : TxHash }
     | TxSent Int (Result Http.Error Tx)
     | TxMined { ref : Int, txReceipt : TxReceipt }
 
@@ -79,13 +129,11 @@ update msg (TxSentry sentry) =
                     ( TxSentry { sentry | txs = Dict.update ref (txStatusSigned txHash) sentry.txs }
                     , Cmd.map sentry.tagger <|
                         Task.attempt (TxSent ref)
-                            (Process.sleep 500 |> Task.andThen (\_ -> Eth.getTransactionByHash sentry.nodePath txHash))
+                            (Process.sleep 500 |> Task.andThen (\_ -> Eth.getTx sentry.nodePath txHash))
                     )
 
                 Nothing ->
-                    ( TxSentry sentry
-                    , Cmd.none
-                    )
+                    ( TxSentry sentry, Cmd.none )
 
         TxSent ref result ->
             case result of
@@ -94,7 +142,6 @@ update msg (TxSentry sentry) =
                         Just txState ->
                             ( TxSentry { sentry | txs = Dict.update ref (txStatusSent tx) sentry.txs }
                             , Task.perform txState.txTagger (Task.succeed tx)
-                              -- , Cmd.none
                             )
 
                         Nothing ->
@@ -123,35 +170,6 @@ txStatusSent tx =
     Maybe.map (\txState -> { txState | status = Sent tx })
 
 
-
--- API
-
-
-send : Send -> (Tx -> msg) -> TxSentry msg -> ( TxSentry msg, Cmd msg )
-send send onReceiveTx (TxSentry sentry) =
-    let
-        newTxs =
-            Dict.insert sentry.ref (newTxState send Nothing onReceiveTx) sentry.txs
-    in
-        (TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 })
-            ! [ Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref send) ]
-
-
-listen : TxSentry msg -> Sub msg
-listen (TxSentry sentry) =
-    Sub.map sentry.tagger (sentry.inPort decodeTxData)
-
-
-{-| -}
-withDebug : TxSentry msg -> TxSentry msg
-withDebug (TxSentry sentry) =
-    TxSentry { sentry | debug = True }
-
-
-
---
-
-
 encodeTxData : Int -> Send -> Value
 encodeTxData ref send =
     Encode.object
@@ -170,15 +188,11 @@ decodeTxData val =
             NoOp
 
 
-txIdResponseDecoder : Decoder TxIdResponse
+txIdResponseDecoder : Decoder { ref : Int, txHash : TxHash }
 txIdResponseDecoder =
     Decode.map2 (\ref txHash -> { ref = ref, txHash = txHash })
         (Decode.field "ref" Decode.int)
         (Decode.field "txHash" Decode.txHash)
-
-
-type alias TxIdResponse =
-    { ref : Int, txHash : TxHash }
 
 
 newTxState : Send -> Maybe (TxReceipt -> msg) -> (Tx -> msg) -> TxState msg
