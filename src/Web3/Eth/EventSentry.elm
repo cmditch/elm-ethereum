@@ -169,8 +169,8 @@ unWatch filterKey ((EventSentry sentry) as sentry_) =
 
 {-| -}
 listen : EventSentry msg -> (Msg msg -> msg) -> Sub msg
-listen sentry fn =
-    (Sub.batch >> Sub.map (mapAll fn))
+listen sentry tagger =
+    (Sub.batch >> Sub.map (mapAll tagger))
         [ internalMsgs sentry
         , externalMsgs sentry
         ]

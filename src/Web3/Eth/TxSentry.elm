@@ -19,14 +19,15 @@ import Web3.Eth as Eth
 import Web3.Eth.Encode as Encode
 import Web3.Eth.Decode as Decode
 import Web3.Eth.Types exposing (..)
+import Web3.Utils exposing (Retry, retry)
 
 
 type TxSentry msg
     = TxSentry
         { inPort : (Value -> Msg) -> Sub Msg
         , outPort : Value -> Cmd Msg
-        , tagger : Msg -> msg
         , nodePath : String
+        , tagger : Msg -> msg
         , txs : Dict Int (TxState msg)
         , debug : Bool
         , ref : Int
@@ -47,33 +48,23 @@ init ( inPort, outPort ) tagger nodePath =
 
 
 send : Send -> (Tx -> msg) -> TxSentry msg -> ( TxSentry msg, Cmd msg )
-send send onReceiveTx sentry =
-    sendInternal send onReceiveTx Nothing sentry
+send txParams onReceiveTx sentry =
+    send_ txParams onReceiveTx Nothing sentry
 
 
-sendWithReceipt :
-    Send
-    -> (Tx -> msg)
-    -> (TxReceipt -> msg)
-    -> TxSentry msg
-    -> ( TxSentry msg, Cmd msg )
-sendWithReceipt send onReceiveTx onReceiveTxReceipt sentry =
-    sendInternal send onReceiveTx (Just onReceiveTxReceipt) sentry
+sendWithReceipt : Send -> (Tx -> msg) -> (TxReceipt -> msg) -> TxSentry msg -> ( TxSentry msg, Cmd msg )
+sendWithReceipt txParams onReceiveTx onReceiveTxReceipt sentry =
+    send_ txParams onReceiveTx (Just onReceiveTxReceipt) sentry
 
 
-sendInternal :
-    Send
-    -> (Tx -> msg)
-    -> Maybe (TxReceipt -> msg)
-    -> TxSentry msg
-    -> ( TxSentry msg, Cmd msg )
-sendInternal send onReceiveTx onReceiveTxReceipt (TxSentry sentry) =
+send_ : Send -> (Tx -> msg) -> Maybe (TxReceipt -> msg) -> TxSentry msg -> ( TxSentry msg, Cmd msg )
+send_ txParams onReceiveTx onReceiveTxReceipt (TxSentry sentry) =
     let
         newTxs =
-            Dict.insert sentry.ref (newTxState send onReceiveTxReceipt onReceiveTx) sentry.txs
+            Dict.insert sentry.ref (newTxState txParams onReceiveTxReceipt onReceiveTx) sentry.txs
     in
         (TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 })
-            ! [ Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref send) ]
+            ! [ Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref txParams) ]
 
 
 listen : TxSentry msg -> Sub msg
@@ -117,12 +108,15 @@ type Msg
     = NoOp
     | TxSigned { ref : Int, txHash : TxHash }
     | TxSent Int (Result Http.Error Tx)
-    | TxMined { ref : Int, txReceipt : TxReceipt }
+    | TxMined Int (Result Http.Error TxReceipt)
 
 
 update : Msg -> TxSentry msg -> ( TxSentry msg, Cmd msg )
 update msg (TxSentry sentry) =
     case msg of
+        NoOp ->
+            ( TxSentry sentry, Cmd.none )
+
         TxSigned { ref, txHash } ->
             case Dict.get ref sentry.txs of
                 Just txState ->
@@ -140,9 +134,22 @@ update msg (TxSentry sentry) =
                 Ok tx ->
                     case Dict.get ref sentry.txs of
                         Just txState ->
-                            ( TxSentry { sentry | txs = Dict.update ref (txStatusSent tx) sentry.txs }
-                            , Task.perform txState.txTagger (Task.succeed tx)
-                            )
+                            let
+                                watchForConfirmation =
+                                    case txState.receiptTagger of
+                                        Nothing ->
+                                            Cmd.none
+
+                                        Just _ ->
+                                            Task.attempt (TxMined ref) (pollTxReceipt sentry.nodePath tx.hash)
+                                                |> Cmd.map sentry.tagger
+                            in
+                                ( TxSentry { sentry | txs = Dict.update ref (txStatusSent tx) sentry.txs }
+                                , Cmd.batch
+                                    [ Task.perform txState.txTagger (Task.succeed tx)
+                                    , watchForConfirmation
+                                    ]
+                                )
 
                         Nothing ->
                             ( TxSentry sentry, Cmd.none )
@@ -150,10 +157,36 @@ update msg (TxSentry sentry) =
                 Err error ->
                     ( TxSentry sentry, Cmd.none )
 
-        _ ->
-            ( TxSentry sentry
-            , Cmd.none
-            )
+        TxMined ref result ->
+            case result of
+                Ok txReceipt ->
+                    case Dict.get ref sentry.txs of
+                        Just txState ->
+                            let
+                                cmdIfMined =
+                                    case txState.receiptTagger of
+                                        Nothing ->
+                                            Cmd.none
+
+                                        Just receiptTagger ->
+                                            Task.perform receiptTagger (Task.succeed txReceipt)
+                            in
+                                ( TxSentry { sentry | txs = Dict.update ref (txStatusMined txReceipt) sentry.txs }
+                                , cmdIfMined
+                                )
+
+                        Nothing ->
+                            ( TxSentry sentry, Cmd.none )
+
+                Err error ->
+                    ( TxSentry sentry, Cmd.none )
+
+
+pollTxReceipt : String -> TxHash -> Task Http.Error TxReceipt
+pollTxReceipt nodePath txHash =
+    Eth.getTxReceipt nodePath txHash
+        -- polls for 5 minutes every 5 seconds
+        |> retry { attempts = 60, sleep = 5 }
 
 
 
@@ -168,6 +201,15 @@ txStatusSigned txHash =
 txStatusSent : Tx -> Maybe (TxState msg) -> Maybe (TxState msg)
 txStatusSent tx =
     Maybe.map (\txState -> { txState | status = Sent tx })
+
+
+txStatusMined : TxReceipt -> Maybe (TxState msg) -> Maybe (TxState msg)
+txStatusMined txReceipt =
+    Maybe.map (\txState -> { txState | status = Mined txReceipt })
+
+
+
+-- Decoders/Encoders
 
 
 encodeTxData : Int -> Send -> Value
