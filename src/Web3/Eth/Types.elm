@@ -22,9 +22,9 @@ type alias BlockHash =
 type BlockId
     = BlockIdNum Int
     | BlockIdHash BlockHash
-    | Earliest
-    | Latest
-    | Pending
+    | EarliestBlock
+    | LatestBlock
+    | PendingBlock
 
 
 type alias Call a =
@@ -50,24 +50,18 @@ type alias Send =
     }
 
 
+
+-- type Tx
+--     = Mined MinedTx
+--     | Pending PendingTx
+
+
 type alias Tx =
     { hash : TxHash
     , nonce : Int
     , blockHash : BlockHash
-    , blockNumber : Int
+    , blockNumber : Maybe Int
     , transactionIndex : Int
-    , from : Address
-    , to : Maybe Address
-    , value : BigInt
-    , gasPrice : BigInt
-    , gas : Int
-    , input : String
-    }
-
-
-type alias PendingTx =
-    { hash : TxHash
-    , nonce : Int
     , from : Address
     , to : Maybe Address
     , value : BigInt
@@ -118,6 +112,26 @@ type alias Block a =
 
 type alias Uncle =
     Block ()
+
+
+type alias BlockHead =
+    { number : Int
+    , hash : BlockHash
+    , parentHash : BlockHash
+    , nonce : String
+    , sha3Uncles : String
+    , logsBloom : String
+    , transactionsRoot : String
+    , stateRoot : String
+    , receiptsRoot : String
+    , miner : Address
+    , difficulty : BigInt
+    , extraData : String
+    , gasLimit : Int
+    , gasUsed : Int
+    , mixHash : String
+    , timestamp : Time
+    }
 
 
 {-| -}

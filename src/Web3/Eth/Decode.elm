@@ -42,7 +42,7 @@ hex =
 block : Decoder a -> Decoder (Block a)
 block txsDecoder =
     decode Block
-        |> required "number" int
+        |> required "number" hexInt
         |> required "hash" blockHash
         |> required "parentHash" blockHash
         |> required "nonce" string
@@ -60,12 +60,33 @@ block txsDecoder =
         |> required "gasUsed" hexInt
         |> required "timestamp" hexTime
         |> optional "transactions" (list txsDecoder) []
-        |> required "uncles" (list string)
+        |> optional "uncles" (list string) []
 
 
 uncle : Decoder (Block ())
 uncle =
     block (succeed ())
+
+
+blockHead : Decoder BlockHead
+blockHead =
+    decode BlockHead
+        |> required "number" hexInt
+        |> required "hash" blockHash
+        |> required "parentHash" blockHash
+        |> required "nonce" string
+        |> required "sha3Uncles" string
+        |> required "logsBloom" string
+        |> required "transactionsRoot" string
+        |> required "stateRoot" string
+        |> required "receiptsRoot" string
+        |> required "miner" address
+        |> required "difficulty" bigInt
+        |> required "extraData" string
+        |> required "gasLimit" hexInt
+        |> required "gasUsed" hexInt
+        |> required "mixHash" string
+        |> required "timestamp" hexTime
 
 
 {-| -}
@@ -75,21 +96,8 @@ tx =
         |> required "hash" txHash
         |> required "nonce" hexInt
         |> required "blockHash" blockHash
-        |> required "blockNumber" hexInt
+        |> required "blockNumber" (nullable hexInt)
         |> required "transactionIndex" hexInt
-        |> required "from" address
-        |> required "to" (nullable address)
-        |> required "value" bigInt
-        |> required "gasPrice" bigInt
-        |> required "gas" hexInt
-        |> required "input" string
-
-
-pendingTx : Decoder PendingTx
-pendingTx =
-    decode PendingTx
-        |> required "hash" txHash
-        |> required "nonce" hexInt
         |> required "from" address
         |> required "to" (nullable address)
         |> required "value" bigInt

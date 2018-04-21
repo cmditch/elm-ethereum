@@ -19,7 +19,7 @@ import Web3.JsonRPC as RPC
 
 call : HttpProvider -> Call a -> Task Http.Error a
 call ethNode txParams =
-    callAtBlock ethNode Latest txParams
+    callAtBlock ethNode LatestBlock txParams
 
 
 callAtBlock : HttpProvider -> BlockId -> Call a -> Task Http.Error a
@@ -44,7 +44,7 @@ estimateGas ethNode txParams =
 
 getStorageAt : HttpProvider -> Address -> Int -> Task Http.Error BigInt
 getStorageAt ethNode address index =
-    getStorageAtBlock ethNode Latest address index
+    getStorageAtBlock ethNode LatestBlock address index
 
 
 getStorageAtBlock : HttpProvider -> BlockId -> Address -> Int -> Task Http.Error BigInt
@@ -59,7 +59,7 @@ getStorageAtBlock ethNode blockId address index =
 
 getCode : HttpProvider -> Address -> Task Http.Error String
 getCode ethNode address =
-    getCodeAtBlock ethNode Latest address
+    getCodeAtBlock ethNode LatestBlock address
 
 
 getCodeAtBlock : HttpProvider -> BlockId -> Address -> Task Http.Error String
@@ -154,7 +154,7 @@ sendRawTx ethNode signedTx =
 
 getBalance : HttpProvider -> Address -> Task Http.Error BigInt
 getBalance ethNode address =
-    getBalanceAtBlock ethNode Latest address
+    getBalanceAtBlock ethNode LatestBlock address
 
 
 getBalanceAtBlock : HttpProvider -> BlockId -> Address -> Task Http.Error BigInt
@@ -169,7 +169,7 @@ getBalanceAtBlock ethNode blockId address =
 
 getTxCount : HttpProvider -> Address -> Task Http.Error Int
 getTxCount ethNode address =
-    getTxCountAtBlock ethNode Latest address
+    getTxCountAtBlock ethNode LatestBlock address
 
 
 getTxCountAtBlock : HttpProvider -> BlockId -> Address -> Task Http.Error Int

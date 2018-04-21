@@ -64,13 +64,13 @@ blockId blockId =
         BlockIdHash hash ->
             blockHash hash
 
-        Earliest ->
+        EarliestBlock ->
             string "earliest"
 
-        Latest ->
+        LatestBlock ->
             string "latest"
 
-        Pending ->
+        PendingBlock ->
             string "pending"
 
 

@@ -10,83 +10,75 @@ module Web3.Eth.EventSentry
         , watch
         , watchOnce
         , unWatch
+        , newBlocks
+        , unWatchNewBlocks
+        , nextBlock
+        , pendingTxs
+        , unWatchPendingTxs
+        , logFilterKey
         , withDebug
         )
 
+import BigInt
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Value, Decoder)
 import Json.Encode as Encode
 import Web3.Utils exposing (keccak256, addressToString)
+import Web3.Defaults as Default
 import Web3.Eth.Types exposing (..)
+import Web3.Eth.Decode as Decode
 import Web3.Eth.Encode as Encode
 import Web3.JsonRPC as RPC
 import WebSocket as WS
 
 
--- TYPES
+{--Internal Docs
+
+    Design inspiration taken from elm-phoenix-sockets, thanks!!!
+
+    -- Glossary --
+
+    RpcId           - JSON RPC request ID, mapped to various things internally
+    SubscriptionId  - eth_subscribe filter id, e.g., "0xca4b1e6c2973ec643a6e63c459ec1e13", needed for eth_unsubscribe
+    FilterKey       - Dict Key which allows the user to open/close subscriptions.
+                        Generated automatically with "getHeads" and "getPendingTransactions" calls.
+                        Generated from the LogFilter params in the case of "logs" call. User must keep track of LogFilter in order to close it.
+
+    -- EventSentry Workflow --
+
+    1. User calls (EventSentry.watch myFilterLog), Cmd.maps and fires off assoicated Cmd
+        and updates their model.eventSentry with the newly returned sentry.
+
+    2. The returned EventSentry includes new mappings for (RpcId -> FilterKey) and (FilterKey -> FilterState). This allows:
+        a) The EventSentry to update the FilterState with it's SubscriptionId once the eth_node responds.
+        b) The EventSentry to route the appropriate eth_node responses to the user app with an onRecieve tagger (Value -> msg).
+        b) The user to close a subscription.
+
+    3. Once the eth_node responds with a "Subscription Opened" message, a (SubscriptionId -> FilterKey) mapping is updated.
+
+    4a. Further incoming msgs from the eth_node include it's SubscriptionId and data.
+        The data is routed to the user app through the "teach me how to msg" tagger function
+        provided by the user on the initial EventSentry.watch call
+
+    4b. The tagger is found by going through a series of Dict.gets from (SubscriptionId -> FilterKey -> FilterState -> tagger)
+
+    5.  The user closes the subscription by providing EventSentry.unWatch with the initial FilterKey,
+        where (FilterKey -> FilterState -> SubscriptionId) is provided to an eth_unsubscribe RPC call.
+
+
+-}
+-- API
 
 
 type EventSentry msg
     = EventSentry
         { nodePath : String
         , filters : Dict FilterKey (FilterState msg)
-        , refToFKey : Dict Int FilterKey
-        , fIdToFKey : Dict FilterId FilterKey
+        , rpcIdToFKey : Dict RpcId FilterKey
+        , subIdToFKey : Dict SubscriptionId FilterKey
         , debug : Bool
-        , ref : Int
+        , idRef : RpcId
         }
-
-
-{-| (Contract Address, Event Topic)
-
-Need to come up with a better Key scheme to avoid collisions
-Maybe by hashing the Filter params
-
--}
-type alias FilterKey =
-    ( String, String )
-
-
-
--- Internal
-
-
-type NodeResponse
-    = Subscribed OpenedMsg
-    | Event EventMsg
-    | Unsubscribed ClosedMsg
-
-
-type alias OpenedMsg =
-    { id : Int, filterId : FilterId }
-
-
-type alias EventMsg =
-    { method : String
-    , params : { filterId : FilterId, result : Value }
-    }
-
-
-type alias FilterId =
-    String
-
-
-type FilterStatus
-    = Opening
-    | Opened
-
-
-type alias FilterState msg =
-    { tagger : Value -> msg
-    , status : FilterStatus
-    , ref : Int
-    , filterId : Maybe FilterId
-    , once : Bool
-    }
-
-
-
--- MODEL
 
 
 init : String -> EventSentry msg
@@ -94,77 +86,52 @@ init nodePath =
     EventSentry
         { nodePath = nodePath
         , filters = Dict.empty
-        , refToFKey = Dict.empty
-        , fIdToFKey = Dict.empty
+        , rpcIdToFKey = Dict.empty
+        , subIdToFKey = Dict.empty
         , debug = False
-        , ref = 1
+        , idRef = 1
         }
 
 
-
--- API
-
-
 {-| -}
-watch : LogFilter -> (Value -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-watch =
-    watch_ False
+watch : LogFilter -> (Value -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+watch logFilter =
+    watch_ False [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter)
 
 
-watchOnce : LogFilter -> (Value -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-watchOnce =
-    watch_ True
+watchOnce : LogFilter -> (Value -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+watchOnce logFilter =
+    watch_ True [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter)
 
 
-watch_ : Bool -> LogFilter -> (Value -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-watch_ isOnce logFilter onReceive ((EventSentry sentry) as sentry_) =
-    let
-        filterKey =
-            logFilterKey logFilter
-    in
-        case Dict.get filterKey sentry.filters of
-            Nothing ->
-                ( EventSentry
-                    { sentry
-                        | filters = Dict.insert filterKey (makeFilter isOnce onReceive sentry.ref) sentry.filters
-                        , refToFKey = Dict.insert sentry.ref filterKey sentry.refToFKey
-                        , ref = sentry.ref + 1
-                    }
-                , Cmd.batch
-                    [ WS.send sentry.nodePath <|
-                        Encode.encode 0
-                            (RPC.encode sentry.ref
-                                "eth_subscribe"
-                                [ Encode.string "logs", Encode.logFilter logFilter ]
-                            )
-                    ]
-                )
-
-            _ ->
-                ( sentry_, Cmd.none )
-
-
-{-| -}
 unWatch : FilterKey -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
-unWatch filterKey ((EventSentry sentry) as sentry_) =
-    case Dict.get filterKey sentry.filters of
-        Nothing ->
-            ( sentry_, Cmd.none )
+unWatch =
+    unWatch_
 
-        Just filterState ->
-            case filterState.filterId of
-                Just filterId ->
-                    ( EventSentry
-                        { sentry
-                            | filters = Dict.remove filterKey sentry.filters
-                            , refToFKey = Dict.remove sentry.ref sentry.refToFKey
-                            , fIdToFKey = Dict.remove filterId sentry.fIdToFKey
-                        }
-                    , Cmd.batch [ WS.send sentry.nodePath (closeFilterRpc sentry.ref filterId) ]
-                    )
 
-                Nothing ->
-                    ( sentry_, Cmd.none )
+newBlocks : (BlockHead -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+newBlocks onReceive =
+    watch_ False [ Encode.string "newHeads" ] newBlockHeadsKey (decodeBlockHead >> onReceive)
+
+
+nextBlock : (BlockHead -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+nextBlock onReceive =
+    watch_ True [ Encode.string "newHeads" ] newBlockHeadsKey (decodeBlockHead >> onReceive)
+
+
+unWatchNewBlocks : EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+unWatchNewBlocks =
+    unWatch_ newBlockHeadsKey
+
+
+pendingTxs : (TxHash -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+pendingTxs onReceive =
+    watch_ False [ Encode.string "newPendingTransactions" ] pendingTxsKey (decodeTxHash >> onReceive)
+
+
+unWatchPendingTxs : EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+unWatchPendingTxs =
+    unWatch_ pendingTxsKey
 
 
 {-| -}
@@ -187,6 +154,111 @@ changeNode newNodePath (EventSentry eventSentry) =
     EventSentry { eventSentry | nodePath = newNodePath }
 
 
+{-| (Contract Address, Event Topic)
+
+Need to come up with a better Key scheme to avoid collisions
+Maybe by hashing the Filter params
+
+-}
+type alias FilterKey =
+    ( String, String )
+
+
+type alias RpcId =
+    Int
+
+
+
+-- Internal
+
+
+watch_ : Bool -> List Value -> FilterKey -> (Value -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+watch_ isOnce rpcParams filterKey onReceive ((EventSentry sentry) as sentry_) =
+    case Dict.get filterKey sentry.filters of
+        Nothing ->
+            ( EventSentry
+                { sentry
+                    | filters = Dict.insert filterKey (makeFilter isOnce onReceive sentry.idRef) sentry.filters
+                    , rpcIdToFKey = Dict.insert sentry.idRef filterKey sentry.rpcIdToFKey
+                    , idRef = sentry.idRef + 1
+                }
+            , Cmd.batch
+                [ WS.send sentry.nodePath <|
+                    Encode.encode 0 (RPC.encode sentry.idRef "eth_subscribe" rpcParams)
+                ]
+            )
+
+        Just _ ->
+            ( sentry_, Cmd.none )
+
+
+{-| -}
+unWatch_ : FilterKey -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+unWatch_ filterKey ((EventSentry sentry) as sentry_) =
+    case Dict.get filterKey sentry.filters of
+        Nothing ->
+            ( sentry_, Cmd.none )
+
+        Just filterState ->
+            case filterState.subId of
+                Just subId ->
+                    let
+                        _ =
+                            debugHelp sentry log.subClosed { rpcId = filterState.rpcId, subId = subId }
+                    in
+                        ( EventSentry
+                            { sentry
+                                | filters = Dict.remove filterKey sentry.filters
+                                , rpcIdToFKey = Dict.remove filterState.rpcId sentry.rpcIdToFKey
+                                , subIdToFKey = Dict.remove subId sentry.subIdToFKey
+                                , idRef = sentry.idRef + 1
+                            }
+                        , Cmd.batch
+                            [ WS.send sentry.nodePath (closeFilterRpc sentry.idRef subId) ]
+                        )
+
+                Nothing ->
+                    ( sentry_, Cmd.none )
+
+
+type NodeResponse
+    = Subscribed OpenedMsg
+    | Event EventMsg
+    | Unsubscribed ClosedMsg
+
+
+type alias OpenedMsg =
+    { rpcId : RpcId, subId : SubscriptionId }
+
+
+type alias ClosedMsg =
+    { rpcId : RpcId, result : Bool }
+
+
+type alias EventMsg =
+    { method : String
+    , params : { subId : SubscriptionId, result : Value }
+    }
+
+
+type alias SubscriptionId =
+    String
+
+
+type FilterStatus
+    = Opening
+    | Opened
+
+
+type alias FilterState msg =
+    { tagger : Value -> msg
+    , status : FilterStatus
+    , rpcId : RpcId
+    , subId : Maybe SubscriptionId
+    , once : Bool
+    }
+
+
 
 --- UPDATE
 
@@ -194,7 +266,8 @@ changeNode newNodePath (EventSentry eventSentry) =
 type Msg msg
     = NoOp
     | SubscriptionOpened OpenedMsg
-    | SubscriptionClosed FilterKey
+    | CloseSubscription FilterKey
+    | SubscriptionClosed ClosedMsg
     | ExternalMsg msg
 
 
@@ -202,35 +275,42 @@ update : Msg msg -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
 update msg ((EventSentry sentry) as sentry_) =
     case msg of
         SubscriptionOpened openedMsg ->
-            case getFilterByRef openedMsg.id sentry_ of
-                Just ( filterKey, filterState ) ->
-                    ( EventSentry
-                        { sentry
-                            | filters =
-                                Dict.update filterKey
-                                    (Maybe.map (setFilterStateOpened openedMsg.filterId))
-                                    sentry.filters
-                            , fIdToFKey =
-                                Dict.insert openedMsg.filterId
-                                    filterKey
-                                    sentry.fIdToFKey
-                        }
-                    , Cmd.none
-                    )
+            let
+                _ =
+                    debugHelp sentry log.subOpened openedMsg
+            in
+                case getFilterByRpcId openedMsg.rpcId sentry_ of
+                    Just ( filterKey, filterState ) ->
+                        ( EventSentry
+                            { sentry
+                                | filters =
+                                    Dict.update filterKey
+                                        (Maybe.map (setFilterStateOpened openedMsg.subId))
+                                        sentry.filters
+                                , subIdToFKey =
+                                    Dict.insert openedMsg.subId
+                                        filterKey
+                                        sentry.subIdToFKey
+                            }
+                        , Cmd.none
+                        )
 
-                Nothing ->
-                    ( sentry_, Cmd.none )
+                    Nothing ->
+                        ( sentry_, Cmd.none )
 
-        SubscriptionClosed filterKey ->
-            unWatch filterKey sentry_
+        CloseSubscription filterKey ->
+            unWatch_ filterKey sentry_
+
+        SubscriptionClosed closedMsg ->
+            ( sentry_, Cmd.none )
 
         _ ->
-            (EventSentry sentry) ! []
+            ( sentry_, Cmd.none )
 
 
-getFilterByRef : Int -> EventSentry msg -> Maybe ( FilterKey, FilterState msg )
-getFilterByRef ref (EventSentry sentry) =
-    Dict.get ref sentry.refToFKey
+getFilterByRpcId : RpcId -> EventSentry msg -> Maybe ( FilterKey, FilterState msg )
+getFilterByRpcId rpcId (EventSentry sentry) =
+    Dict.get rpcId sentry.rpcIdToFKey
         |> Maybe.andThen
             (\key ->
                 Dict.get key sentry.filters
@@ -238,9 +318,9 @@ getFilterByRef ref (EventSentry sentry) =
             )
 
 
-setFilterStateOpened : FilterId -> FilterState msg -> FilterState msg
-setFilterStateOpened filterId filterState =
-    { filterState | status = Opened, filterId = Just filterId }
+setFilterStateOpened : SubscriptionId -> FilterState msg -> FilterState msg
+setFilterStateOpened subId filterState =
+    { filterState | status = Opened, subId = Just subId }
 
 
 
@@ -256,24 +336,20 @@ mapExternalMsgs : EventSentry msg -> Maybe NodeResponse -> Msg msg
 mapExternalMsgs sentry maybeResponse =
     case maybeResponse of
         Just (Event eventMsg) ->
-            case getFilterById eventMsg.params.filterId sentry of
+            case getFilterBySubscriptionId eventMsg.params.subId sentry of
                 Just ( _, filterState ) ->
                     ExternalMsg (filterState.tagger eventMsg.params.result)
 
                 Nothing ->
-                    let
-                        a =
-                            Debug.log "This shouldn't happen: " eventMsg
-                    in
-                        NoOp
+                    NoOp
 
         _ ->
             NoOp
 
 
-getFilterById : FilterId -> EventSentry msg -> Maybe ( FilterKey, FilterState msg )
-getFilterById fId (EventSentry sentry) =
-    Dict.get fId sentry.fIdToFKey
+getFilterBySubscriptionId : SubscriptionId -> EventSentry msg -> Maybe ( FilterKey, FilterState msg )
+getFilterBySubscriptionId fId (EventSentry sentry) =
+    Dict.get fId sentry.subIdToFKey
         |> Maybe.andThen
             (\key ->
                 Dict.get key sentry.filters
@@ -289,33 +365,26 @@ internalMsgs sentry =
 mapInternalMsgs : EventSentry msg -> Maybe NodeResponse -> Msg msg
 mapInternalMsgs ((EventSentry sentry) as sentry_) maybeResponse =
     case maybeResponse of
-        Just mess ->
-            let
-                message =
-                    if sentry.debug then
-                        Debug.log "Incoming message: " mess
-                    else
-                        mess
-            in
-                case message of
-                    Subscribed openedMsg ->
-                        SubscriptionOpened openedMsg
+        Just message ->
+            case message of
+                Subscribed openedMsg ->
+                    SubscriptionOpened openedMsg
 
-                    Event eventMsg ->
-                        closeIfOnce eventMsg.params.filterId sentry_
+                Event eventMsg ->
+                    closeIfOnce eventMsg.params.subId sentry_
 
-                    _ ->
-                        NoOp
+                Unsubscribed closedMsg ->
+                    NoOp
 
         Nothing ->
             NoOp
 
 
-closeIfOnce : FilterId -> EventSentry msg -> Msg msg
-closeIfOnce id sentry =
-    case getFilterById id sentry |> Maybe.map (Tuple.mapSecond .once) of
+closeIfOnce : SubscriptionId -> EventSentry msg -> Msg msg
+closeIfOnce subId sentry =
+    case getFilterBySubscriptionId subId sentry |> Maybe.map (Tuple.mapSecond .once) of
         Just ( filterKey, True ) ->
-            SubscriptionClosed filterKey
+            CloseSubscription filterKey
 
         _ ->
             NoOp
@@ -336,17 +405,17 @@ mapAll fn internalMsg =
             fn internalMsg
 
 
-makeFilter : Bool -> (Value -> msg) -> Int -> FilterState msg
-makeFilter isOnce onReceive ref =
+makeFilter : Bool -> (Value -> msg) -> RpcId -> FilterState msg
+makeFilter isOnce onReceive rpcId =
     { tagger = onReceive
     , status = Opening
-    , ref = ref
-    , filterId = Nothing
+    , rpcId = rpcId
+    , subId = Nothing
     , once = isOnce
     }
 
 
-logFilterKey : LogFilter -> ( String, String )
+logFilterKey : LogFilter -> FilterKey
 logFilterKey { address, topics } =
     let
         eventTopic =
@@ -357,7 +426,7 @@ logFilterKey { address, topics } =
         ( addressToString address, eventTopic )
 
 
-closeFilterRpc : Int -> String -> String
+closeFilterRpc : RpcId -> String -> String
 closeFilterRpc rpcId filterId =
     RPC.encode rpcId "eth_unsubscribe" [ Encode.string filterId ]
         |> Encode.encode 0
@@ -389,11 +458,19 @@ openedMsgDecoder =
             (Decode.field "result" Decode.string)
 
 
+closedMsgDecoder : Decoder NodeResponse
+closedMsgDecoder =
+    Decode.map Unsubscribed <|
+        Decode.map2 ClosedMsg
+            (Decode.field "id" Decode.int)
+            (Decode.field "result" Decode.bool)
+
+
 eventDecoder : Decoder NodeResponse
 eventDecoder =
     let
         eventParamsDecoder =
-            Decode.map2 (\s r -> { filterId = s, result = r })
+            Decode.map2 (\s r -> { subId = s, result = r })
                 (Decode.field "subscription" Decode.string)
                 (Decode.field "result" Decode.value)
     in
@@ -403,17 +480,73 @@ eventDecoder =
                 (Decode.field "params" eventParamsDecoder)
 
 
+decodeBlockHead : Value -> BlockHead
+decodeBlockHead val =
+    case Decode.decodeValue Decode.blockHead val of
+        Ok blockHead ->
+            blockHead
 
--- Not using this response yet
-
-
-closedMsgDecoder : Decoder NodeResponse
-closedMsgDecoder =
-    Decode.map Unsubscribed <|
-        Decode.map2 ClosedMsg
-            (Decode.field "id" Decode.int)
-            (Decode.field "result" Decode.bool)
+        Err error ->
+            Debug.log error defaultBlockHead
 
 
-type alias ClosedMsg =
-    { id : Int, result : Bool }
+decodeTxHash : Value -> TxHash
+decodeTxHash val =
+    case Decode.decodeValue Decode.txHash val of
+        Ok txHash ->
+            txHash
+
+        Err error ->
+            Debug.log error Default.txHash
+
+
+
+-- Constants
+
+
+pendingTxsKey : FilterKey
+pendingTxsKey =
+    ( "pending", "txs" )
+
+
+newBlockHeadsKey : FilterKey
+newBlockHeadsKey =
+    ( "new", "heads" )
+
+
+debugHelp sentry log val =
+    if sentry.debug then
+        Debug.log log val
+    else
+        val
+
+
+log =
+    { subOpened = "EventSentry - Subscription Opened"
+    , subClosed = "EventSentry - Subscription Closed"
+    }
+
+
+
+-- Default helpers
+
+
+defaultBlockHead : BlockHead
+defaultBlockHead =
+    { number = 42
+    , hash = Default.blockHash
+    , parentHash = Default.blockHash
+    , nonce = ""
+    , sha3Uncles = ""
+    , logsBloom = ""
+    , transactionsRoot = ""
+    , stateRoot = ""
+    , receiptsRoot = ""
+    , miner = Default.zeroAddress
+    , difficulty = BigInt.fromInt 0
+    , extraData = "open up a github issue on elm-web3, you should not see this, the shape of a blockhead must've changed"
+    , gasLimit = 0
+    , gasUsed = 0
+    , mixHash = ""
+    , timestamp = 0
+    }

@@ -81,12 +81,16 @@ withDebug (TxSentry sentry) =
 {-| Look into the errors this might cause, some kind of cleanup process should probably occur on changing a node.
 -}
 changeNode : String -> TxSentry msg -> TxSentry msg
-changeNode newNodePath (TxSentry txSentry) =
-    TxSentry { txSentry | nodePath = newNodePath }
+changeNode newNodePath (TxSentry sentry) =
+    let
+        _ =
+            debugHelp sentry (log.nodeChanged newNodePath)
+    in
+        TxSentry { sentry | nodePath = newNodePath }
 
 
 
--- Internal
+-- INTERNAL
 
 
 type TxStatus
@@ -104,8 +108,13 @@ type alias TxState msg =
     }
 
 
+
+-- UPDATE
+
+
 type Msg
     = NoOp
+    | ErrorDecoding String
     | TxSigned { ref : Int, txHash : TxHash }
     | TxSent Int (Result Http.Error Tx)
     | TxMined Int (Result Http.Error TxReceipt)
@@ -120,11 +129,15 @@ update msg (TxSentry sentry) =
         TxSigned { ref, txHash } ->
             case Dict.get ref sentry.txs of
                 Just txState ->
-                    ( TxSentry { sentry | txs = Dict.update ref (txStatusSigned txHash) sentry.txs }
-                    , Cmd.map sentry.tagger <|
-                        Task.attempt (TxSent ref)
-                            (Process.sleep 500 |> Task.andThen (\_ -> Eth.getTx sentry.nodePath txHash))
-                    )
+                    let
+                        _ =
+                            debugHelp sentry (log.signed txHash ref)
+                    in
+                        ( TxSentry { sentry | txs = Dict.update ref (txStatusSigned txHash) sentry.txs }
+                        , Cmd.map sentry.tagger <|
+                            Task.attempt (TxSent ref)
+                                (Process.sleep 500 |> Task.andThen (\_ -> Eth.getTx sentry.nodePath txHash))
+                        )
 
                 Nothing ->
                     ( TxSentry sentry, Cmd.none )
@@ -132,54 +145,77 @@ update msg (TxSentry sentry) =
         TxSent ref result ->
             case result of
                 Ok tx ->
-                    case Dict.get ref sentry.txs of
-                        Just txState ->
-                            let
-                                watchForConfirmation =
-                                    case txState.receiptTagger of
-                                        Nothing ->
-                                            Cmd.none
+                    let
+                        _ =
+                            debugHelp sentry (log.broadcast tx ref)
+                    in
+                        case Dict.get ref sentry.txs of
+                            Just txState ->
+                                let
+                                    watchForConfirmation =
+                                        case txState.receiptTagger of
+                                            Nothing ->
+                                                Cmd.none
 
-                                        Just _ ->
-                                            Task.attempt (TxMined ref) (pollTxReceipt sentry.nodePath tx.hash)
-                                                |> Cmd.map sentry.tagger
-                            in
-                                ( TxSentry { sentry | txs = Dict.update ref (txStatusSent tx) sentry.txs }
-                                , Cmd.batch
-                                    [ Task.perform txState.txTagger (Task.succeed tx)
-                                    , watchForConfirmation
-                                    ]
-                                )
+                                            Just _ ->
+                                                Task.attempt (TxMined ref) (pollTxReceipt sentry.nodePath tx.hash)
+                                                    |> Cmd.map sentry.tagger
+                                in
+                                    ( TxSentry { sentry | txs = Dict.update ref (txStatusSent tx) sentry.txs }
+                                    , Cmd.batch
+                                        [ Task.perform txState.txTagger (Task.succeed tx)
+                                        , watchForConfirmation
+                                        ]
+                                    )
 
-                        Nothing ->
-                            ( TxSentry sentry, Cmd.none )
+                            Nothing ->
+                                ( TxSentry sentry, Cmd.none )
 
                 Err error ->
-                    ( TxSentry sentry, Cmd.none )
+                    let
+                        _ =
+                            debugHelp sentry (log.broadcastError error)
+                    in
+                        ( TxSentry sentry, Cmd.none )
 
         TxMined ref result ->
             case result of
                 Ok txReceipt ->
-                    case Dict.get ref sentry.txs of
-                        Just txState ->
-                            let
-                                cmdIfMined =
-                                    case txState.receiptTagger of
-                                        Nothing ->
-                                            Cmd.none
+                    let
+                        _ =
+                            debugHelp sentry (log.mined txReceipt ref)
+                    in
+                        case Dict.get ref sentry.txs of
+                            Just txState ->
+                                let
+                                    cmdIfMined =
+                                        case txState.receiptTagger of
+                                            Nothing ->
+                                                Cmd.none
 
-                                        Just receiptTagger ->
-                                            Task.perform receiptTagger (Task.succeed txReceipt)
-                            in
-                                ( TxSentry { sentry | txs = Dict.update ref (txStatusMined txReceipt) sentry.txs }
-                                , cmdIfMined
-                                )
+                                            Just receiptTagger ->
+                                                Task.perform receiptTagger (Task.succeed txReceipt)
+                                in
+                                    ( TxSentry { sentry | txs = Dict.update ref (txStatusMined txReceipt) sentry.txs }
+                                    , cmdIfMined
+                                    )
 
-                        Nothing ->
-                            ( TxSentry sentry, Cmd.none )
+                            Nothing ->
+                                ( TxSentry sentry, Cmd.none )
 
                 Err error ->
-                    ( TxSentry sentry, Cmd.none )
+                    let
+                        _ =
+                            debugHelp sentry (log.minedError error)
+                    in
+                        ( TxSentry sentry, Cmd.none )
+
+        ErrorDecoding error ->
+            let
+                _ =
+                    debugHelp sentry (log.decodeError error)
+            in
+                ( TxSentry sentry, Cmd.none )
 
 
 pollTxReceipt : String -> TxHash -> Task Http.Error TxReceipt
@@ -227,7 +263,7 @@ decodeTxData val =
             TxSigned result
 
         Err error ->
-            NoOp
+            ErrorDecoding error
 
 
 txIdResponseDecoder : Decoder { ref : Int, txHash : TxHash }
@@ -243,4 +279,29 @@ newTxState send receiptTagger txTagger =
     , txTagger = txTagger
     , receiptTagger = receiptTagger
     , status = Signing send
+    }
+
+
+
+-- Logger
+
+
+debugHelp sentry logger =
+    if sentry.debug then
+        logger
+    else
+        ""
+
+
+log =
+    { signed = \txHash ref -> Debug.log "TxSentry - Tx Signed" (toString txHash ++ " (dict-ref: " ++ toString ref ++ ")")
+    , broadcast = \tx ref -> Debug.log "TxSentry - Tx Broadcast" (toString tx ++ " (dict-ref: " ++ toString ref ++ ")")
+    , broadcastError = \error -> Debug.log "TxSentry - Error Broadcasting" (toString error)
+    , mined = \txReceipt ref -> Debug.log "TxSentry - Tx Mined" (toString txReceipt ++ " (dict-ref: " ++ toString ref ++ ")")
+    , minedError = \error -> Debug.log "TxSentry - Error Mining" (toString error)
+    , nodeChanged = \newNodePath -> Debug.log "TxSentry - Nodepath changed" (toString newNodePath)
+    , decodeError =
+        \error ->
+            Debug.log "Error decoding"
+                (error ++ " (Problem is likely in your JS port code. Make sure you're sending me a value that looks like this { ref: Int, txHash: TxHash }")
     }
