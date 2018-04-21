@@ -56,3 +56,17 @@ resultToDecoder strToResult =
                     Decode.fail error
     in
         Decode.string |> Decode.andThen convert
+
+
+nonZero : Decoder a -> Decoder (Maybe a)
+nonZero decoder =
+    let
+        checkZero str =
+            if str == "0x" || str == "0x0" then
+                Decode.succeed Nothing
+            else if remove0x str |> String.all (\s -> s == '0') then
+                Decode.succeed Nothing
+            else
+                Decode.map Just decoder
+    in
+        Decode.string |> Decode.andThen checkZero

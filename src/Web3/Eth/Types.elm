@@ -59,7 +59,7 @@ type alias Send =
 type alias Tx =
     { hash : TxHash
     , nonce : Int
-    , blockHash : BlockHash
+    , blockHash : Maybe BlockHash
     , blockNumber : Maybe Int
     , transactionIndex : Int
     , from : Address
