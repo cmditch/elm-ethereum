@@ -94,6 +94,15 @@ init nodePath =
 
 
 {-| -}
+listen : EventSentry msg -> (Msg msg -> msg) -> Sub msg
+listen sentry tagger =
+    (Sub.batch >> Sub.map (mapAll tagger))
+        [ internalMsgs sentry
+        , externalMsgs sentry
+        ]
+
+
+{-| -}
 watch : (Value -> msg) -> LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
 watch onReceive logFilter =
     watch_ False [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter) onReceive
@@ -132,15 +141,6 @@ pendingTxs onReceive =
 unWatchPendingTxs : EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
 unWatchPendingTxs =
     unWatch_ pendingTxsKey
-
-
-{-| -}
-listen : EventSentry msg -> (Msg msg -> msg) -> Sub msg
-listen sentry tagger =
-    (Sub.batch >> Sub.map (mapAll tagger))
-        [ internalMsgs sentry
-        , externalMsgs sentry
-        ]
 
 
 {-| -}
@@ -333,12 +333,19 @@ externalMsgs sentry =
 
 
 mapExternalMsgs : EventSentry msg -> Maybe NodeResponse -> Msg msg
-mapExternalMsgs sentry maybeResponse =
+mapExternalMsgs ((EventSentry sentry) as sentry_) maybeResponse =
     case maybeResponse of
         Just (Event eventMsg) ->
-            case getFilterBySubscriptionId eventMsg.params.subId sentry of
+            case getFilterBySubscriptionId eventMsg.params.subId sentry_ of
                 Just ( _, filterState ) ->
-                    ExternalMsg (filterState.tagger eventMsg.params.result)
+                    let
+                        result =
+                            if sentry.debug then
+                                Debug.log "EventSentry - Incoming Msg" eventMsg.params.result
+                            else
+                                eventMsg.params.result
+                    in
+                        ExternalMsg (filterState.tagger result)
 
                 Nothing ->
                     NoOp

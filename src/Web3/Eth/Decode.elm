@@ -55,11 +55,13 @@ block txsDecoder =
         |> required "miner" address
         |> required "difficulty" bigInt
         |> optional "totalDifficulty" bigInt (BigInt.fromInt 0)
+        -- Noticed nodes will occasionally return null values in block responses. Have only tested this on Infura metamask-mainnet endpoint
         |> required "extraData" string
         |> required "size" hexInt
         |> required "gasLimit" hexInt
         |> required "gasUsed" hexInt
-        |> required "timestamp" hexTime
+        |> optional "timestamp" hexTime 0
+        -- See comment above
         |> optional "transactions" (list txsDecoder) []
         |> optional "uncles" (list string) []
 

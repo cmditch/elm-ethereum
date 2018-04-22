@@ -84,7 +84,12 @@ update msg model =
             model ! []
 
         InitTest ->
-            model ! [ blockCmd, contractCmds, transactionCmd, addressCmd, logCmd ]
+            let
+                ( sentryModel, sentryCmd ) =
+                    EventSentry.watch (toString >> NewResponse) erc20TransferFilter model.eventSentry
+            in
+                { model | eventSentry = sentryModel }
+                    ! [ blockCmd, contractCmds, transactionCmd, addressCmd, logCmd, Cmd.map EventSentryMsg sentryCmd ]
 
         EventSentryMsg subMsg ->
             let
