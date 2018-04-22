@@ -33,7 +33,7 @@ callParams { to, from, gas, gasPrice, value, data } =
     listOfMaybesToVal
         [ ( "to", Maybe.map address to )
         , ( "from", Maybe.map address from )
-        , ( "gas", Maybe.map int gas )
+        , ( "gas", Maybe.map hexInt gas )
         , ( "gasPrice", Maybe.map bigInt gasPrice )
         , ( "value", Maybe.map bigInt value )
         , ( "data", Maybe.map hex data )

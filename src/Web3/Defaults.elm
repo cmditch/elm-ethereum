@@ -1,8 +1,10 @@
 module Web3.Defaults
     exposing
         ( zeroAddress
-        , blockHash
-        , txHash
+        , invalidAddress
+        , emptyBlockHash
+        , emptyTxHash
+        , emptyLogFilter
           --, txParams
           --, logFilter
         )
@@ -16,11 +18,25 @@ zeroAddress =
     Internal.Address "0000000000000000000000000000000000000000"
 
 
-blockHash : BlockHash
-blockHash =
+invalidAddress : Address
+invalidAddress =
+    Internal.Address "invalid address to break things"
+
+
+emptyBlockHash : BlockHash
+emptyBlockHash =
     Internal.BlockHash "0000000000000000000000000000000000000000000000000000000000000000"
 
 
-txHash : TxHash
-txHash =
+emptyTxHash : TxHash
+emptyTxHash =
     Internal.TxHash "0000000000000000000000000000000000000000000000000000000000000000"
+
+
+emptyLogFilter : LogFilter
+emptyLogFilter =
+    { fromBlock = LatestBlock
+    , toBlock = LatestBlock
+    , address = zeroAddress
+    , topics = []
+    }

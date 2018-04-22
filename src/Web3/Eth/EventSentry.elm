@@ -94,14 +94,14 @@ init nodePath =
 
 
 {-| -}
-watch : LogFilter -> (Value -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
-watch logFilter =
-    watch_ False [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter)
+watch : (Value -> msg) -> LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+watch onReceive logFilter =
+    watch_ False [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter) onReceive
 
 
-watchOnce : LogFilter -> (Value -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
-watchOnce logFilter =
-    watch_ True [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter)
+watchOnce : (Value -> msg) -> LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+watchOnce onReceive logFilter =
+    watch_ True [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter) onReceive
 
 
 unWatch : FilterKey -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
@@ -497,7 +497,7 @@ decodeTxHash val =
             txHash
 
         Err error ->
-            Debug.log error Default.txHash
+            Debug.log error Default.emptyTxHash
 
 
 
@@ -534,8 +534,8 @@ log =
 defaultBlockHead : BlockHead
 defaultBlockHead =
     { number = 42
-    , hash = Default.blockHash
-    , parentHash = Default.blockHash
+    , hash = Default.emptyBlockHash
+    , parentHash = Default.emptyBlockHash
     , nonce = ""
     , sha3Uncles = ""
     , logsBloom = ""

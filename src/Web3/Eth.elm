@@ -42,18 +42,18 @@ estimateGas ethNode txParams =
         }
 
 
-getStorageAt : HttpProvider -> Address -> Int -> Task Http.Error BigInt
+getStorageAt : HttpProvider -> Address -> Int -> Task Http.Error String
 getStorageAt ethNode address index =
     getStorageAtBlock ethNode LatestBlock address index
 
 
-getStorageAtBlock : HttpProvider -> BlockId -> Address -> Int -> Task Http.Error BigInt
+getStorageAtBlock : HttpProvider -> BlockId -> Address -> Int -> Task Http.Error String
 getStorageAtBlock ethNode blockId address index =
     RPC.buildRequest
         { url = ethNode
         , method = "eth_getStorageAt"
         , params = [ Encode.address address, Encode.hexInt index, Encode.blockId blockId ]
-        , decoder = Decode.bigInt
+        , decoder = Decode.string
         }
 
 
@@ -88,16 +88,6 @@ send { to, from, gas, gasPrice, value, data, nonce } =
     }
 
 
-getTxReceipt : HttpProvider -> TxHash -> Task Http.Error TxReceipt
-getTxReceipt ethNode txHash =
-    RPC.buildRequest
-        { url = ethNode
-        , method = "eth_getTransactionReceipt"
-        , params = [ Encode.txHash txHash ]
-        , decoder = Decode.txReceipt
-        }
-
-
 getTx : HttpProvider -> TxHash -> Task Http.Error Tx
 getTx ethNode txHash =
     RPC.buildRequest
@@ -105,6 +95,16 @@ getTx ethNode txHash =
         , method = "eth_getTransactionByHash"
         , params = [ Encode.txHash txHash ]
         , decoder = Decode.tx
+        }
+
+
+getTxReceipt : HttpProvider -> TxHash -> Task Http.Error TxReceipt
+getTxReceipt ethNode txHash =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_getTransactionReceipt"
+        , params = [ Encode.txHash txHash ]
+        , decoder = Decode.txReceipt
         }
 
 
@@ -206,46 +206,6 @@ getBlock ethNode blockNum =
         }
 
 
-getBlockTxCountByHash : HttpProvider -> BlockHash -> Task Http.Error Int
-getBlockTxCountByHash ethNode blockHash =
-    RPC.buildRequest
-        { url = ethNode
-        , method = "eth_getBlockTransactionCountByHash"
-        , params = [ Encode.blockHash blockHash ]
-        , decoder = Decode.hexInt
-        }
-
-
-getBlockTxCountByNum : HttpProvider -> Int -> Task Http.Error Int
-getBlockTxCountByNum ethNode blockNumber =
-    RPC.buildRequest
-        { url = ethNode
-        , method = "eth_getBlockTransactionCountByNumber"
-        , params = [ Encode.hexInt blockNumber ]
-        , decoder = Decode.hexInt
-        }
-
-
-getUncleCountByHash : HttpProvider -> BlockHash -> Task Http.Error Int
-getUncleCountByHash ethNode blockHash =
-    RPC.buildRequest
-        { url = ethNode
-        , method = "eth_getUncleCountByBlockHash"
-        , params = [ Encode.blockHash blockHash ]
-        , decoder = Decode.hexInt
-        }
-
-
-getUncleCountByNum : HttpProvider -> Int -> Task Http.Error Int
-getUncleCountByNum ethNode blockNumber =
-    RPC.buildRequest
-        { url = ethNode
-        , method = "eth_getUncleCountByBlockNumber"
-        , params = [ Encode.hexInt blockNumber ]
-        , decoder = Decode.hexInt
-        }
-
-
 getBlockByHash : HttpProvider -> BlockHash -> Task Http.Error (Block TxHash)
 getBlockByHash ethNode blockHash =
     RPC.buildRequest
@@ -276,18 +236,58 @@ getBlockByHashWithTxObjs ethNode blockHash =
         }
 
 
-getUncleByBlockHashAndIndex : HttpProvider -> BlockHash -> Int -> Task Http.Error Uncle
-getUncleByBlockHashAndIndex ethNode blockHash uncleIndex =
+getBlockTxCount : HttpProvider -> Int -> Task Http.Error Int
+getBlockTxCount ethNode blockNumber =
     RPC.buildRequest
         { url = ethNode
-        , method = "eth_getUncleByBlockHashAndIndex"
-        , params = [ Encode.blockHash blockHash, Encode.hexInt uncleIndex ]
+        , method = "eth_getBlockTransactionCountByNumber"
+        , params = [ Encode.hexInt blockNumber ]
+        , decoder = Decode.hexInt
+        }
+
+
+getBlockTxCountByHash : HttpProvider -> BlockHash -> Task Http.Error Int
+getBlockTxCountByHash ethNode blockHash =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_getBlockTransactionCountByHash"
+        , params = [ Encode.blockHash blockHash ]
+        , decoder = Decode.hexInt
+        }
+
+
+getUncleCount : HttpProvider -> Int -> Task Http.Error Int
+getUncleCount ethNode blockNumber =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_getUncleCountByBlockNumber"
+        , params = [ Encode.hexInt blockNumber ]
+        , decoder = Decode.hexInt
+        }
+
+
+getUncleCountByHash : HttpProvider -> BlockHash -> Task Http.Error Int
+getUncleCountByHash ethNode blockHash =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_getUncleCountByBlockHash"
+        , params = [ Encode.blockHash blockHash ]
+        , decoder = Decode.hexInt
+        }
+
+
+getUncleAtIndex : HttpProvider -> Int -> Int -> Task Http.Error Uncle
+getUncleAtIndex ethNode blockNumber uncleIndex =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "eth_getUncleByBlockNumberAndIndex"
+        , params = [ Encode.hexInt blockNumber, Encode.hexInt uncleIndex ]
         , decoder = Decode.uncle
         }
 
 
-getUncleByBlockNumberAndIndex : HttpProvider -> BlockHash -> Int -> Task Http.Error Uncle
-getUncleByBlockNumberAndIndex ethNode blockHash uncleIndex =
+getUncleByBlockHashAtIndex : HttpProvider -> BlockHash -> Int -> Task Http.Error Uncle
+getUncleByBlockHashAtIndex ethNode blockHash uncleIndex =
     RPC.buildRequest
         { url = ethNode
         , method = "eth_getUncleByBlockHashAndIndex"

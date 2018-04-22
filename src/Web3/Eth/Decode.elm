@@ -1,5 +1,6 @@
 module Web3.Eth.Decode exposing (..)
 
+import BigInt
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (required, decode, custom, optional)
 import Web3.Decode exposing (resultToDecoder, hexInt, bigInt, hexTime, hexBool, nonZero)
@@ -53,7 +54,7 @@ block txsDecoder =
         |> required "receiptsRoot" string
         |> required "miner" address
         |> required "difficulty" bigInt
-        |> required "totalDifficulty" bigInt
+        |> optional "totalDifficulty" bigInt (BigInt.fromInt 0)
         |> required "extraData" string
         |> required "size" hexInt
         |> required "gasLimit" hexInt

@@ -26,19 +26,23 @@ toAddress str =
         noZeroX =
             remove0x str
 
-        isLower =
-            isLowerCaseAddress noZeroX
-
-        isUpper =
-            isUpperCaseAddress noZeroX
+        bytes32Address =
+            String.right 40 str
     in
-        if String.length noZeroX < 40 then
+        if String.length noZeroX == 64 && String.all ((==) '0') (String.left 24 noZeroX) then
+            if isLowerCaseAddress bytes32Address || isUpperCaseAddress bytes32Address then
+                toChecksumAddress bytes32Address
+            else if (isChecksumAddress bytes32Address) then
+                Ok <| Internal.Address bytes32Address
+            else
+                Err <| "Given address " ++ quote str ++ " failed the EIP-55 checksum test."
+        else if String.length noZeroX < 40 then
             Err <| "Given address " ++ quote str ++ " is too short"
         else if String.length noZeroX > 40 then
             Err <| "Given address " ++ quote str ++ " is too long"
         else if not (isAddress noZeroX) then
             Err <| "Given address " ++ quote str ++ " contains invalid hex characters."
-        else if isUpper || isLower then
+        else if isLowerCaseAddress noZeroX || isUpperCaseAddress noZeroX then
             toChecksumAddress str
         else if (isChecksumAddress noZeroX) then
             Ok <| Internal.Address noZeroX
@@ -332,3 +336,23 @@ retry { attempts, sleep } myTask =
                     else
                         Task.fail x
                 )
+
+
+unsafeToHex : String -> Hex
+unsafeToHex =
+    remove0x >> Internal.Hex
+
+
+unsafeToAddress : String -> Address
+unsafeToAddress =
+    remove0x >> Internal.Address
+
+
+unsafeToTxHash : String -> TxHash
+unsafeToTxHash =
+    remove0x >> Internal.TxHash
+
+
+unsafeToBlockHash : String -> BlockHash
+unsafeToBlockHash =
+    remove0x >> Internal.BlockHash
