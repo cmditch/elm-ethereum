@@ -2,9 +2,11 @@ module Web3.Eth.TxSentry
     exposing
         ( TxSentry
         , init
+        , listen
         , send
         , sendWithReceipt
-        , listen
+        , CustomSend
+        , customSend
         , withDebug
         , changeNode
         )
@@ -22,6 +24,7 @@ import Web3.Eth.Types exposing (..)
 import Web3.Utils exposing (Retry, retry)
 
 
+{-| -}
 type TxSentry msg
     = TxSentry
         { inPort : (Value -> Msg) -> Sub Msg
@@ -34,6 +37,7 @@ type TxSentry msg
         }
 
 
+{-| -}
 init : ( (Value -> Msg) -> Sub Msg, Value -> Cmd Msg ) -> (Msg -> msg) -> String -> TxSentry msg
 init ( inPort, outPort ) tagger nodePath =
     TxSentry
@@ -47,29 +51,36 @@ init ( inPort, outPort ) tagger nodePath =
         }
 
 
-send : Send -> (Tx -> msg) -> TxSentry msg -> ( TxSentry msg, Cmd msg )
-send txParams onReceiveTx sentry =
-    send_ txParams onReceiveTx Nothing sentry
-
-
-sendWithReceipt : Send -> (Tx -> msg) -> (TxReceipt -> msg) -> TxSentry msg -> ( TxSentry msg, Cmd msg )
-sendWithReceipt txParams onReceiveTx onReceiveTxReceipt sentry =
-    send_ txParams onReceiveTx (Just onReceiveTxReceipt) sentry
-
-
-send_ : Send -> (Tx -> msg) -> Maybe (TxReceipt -> msg) -> TxSentry msg -> ( TxSentry msg, Cmd msg )
-send_ txParams onReceiveTx onReceiveTxReceipt (TxSentry sentry) =
-    let
-        newTxs =
-            Dict.insert sentry.ref (newTxState txParams onReceiveTxReceipt onReceiveTx) sentry.txs
-    in
-        (TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 })
-            ! [ Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref txParams) ]
-
-
+{-| -}
 listen : TxSentry msg -> Sub msg
 listen (TxSentry sentry) =
     Sub.map sentry.tagger (sentry.inPort decodeTxData)
+
+
+{-| -}
+send : Send -> (Tx -> msg) -> TxSentry msg -> ( TxSentry msg, Cmd msg )
+send txParams onBroadcast sentry =
+    send_ txParams { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Nothing } sentry
+
+
+{-| -}
+sendWithReceipt : Send -> (Tx -> msg) -> (TxReceipt -> msg) -> TxSentry msg -> ( TxSentry msg, Cmd msg )
+sendWithReceipt txParams onBroadcast onMined sentry =
+    send_ txParams { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Just onMined } sentry
+
+
+{-| -}
+type alias CustomSend msg =
+    { onSign : Maybe (TxHash -> msg)
+    , onBroadcast : Maybe (Tx -> msg)
+    , onMined : Maybe (TxReceipt -> msg)
+    }
+
+
+{-| -}
+customSend : Send -> CustomSend msg -> TxSentry msg -> ( TxSentry msg, Cmd msg )
+customSend =
+    send_
 
 
 {-| -}
@@ -93,6 +104,16 @@ changeNode newNodePath (TxSentry sentry) =
 -- INTERNAL
 
 
+send_ : Send -> CustomSend msg -> TxSentry msg -> ( TxSentry msg, Cmd msg )
+send_ txParams sendParams (TxSentry sentry) =
+    let
+        newTxs =
+            Dict.insert sentry.ref (newTxState txParams sendParams) sentry.txs
+    in
+        (TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 })
+            ! [ Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref txParams) ]
+
+
 type TxStatus
     = Signing Send
     | Signed TxHash
@@ -102,8 +123,9 @@ type TxStatus
 
 type alias TxState msg =
     { params : Send
-    , txTagger : Tx -> msg
-    , receiptTagger : Maybe (TxReceipt -> msg)
+    , onSignedTagger : Maybe (TxHash -> msg)
+    , onBroadcastTagger : Maybe (Tx -> msg)
+    , onMinedTagger : Maybe (TxReceipt -> msg)
     , status : TxStatus
     }
 
@@ -132,11 +154,24 @@ update msg (TxSentry sentry) =
                     let
                         _ =
                             debugHelp sentry (log.signed txHash ref)
+
+                        txSignedCmd =
+                            case txState.onSignedTagger of
+                                Just txHashToMsg ->
+                                    Task.perform txHashToMsg (Task.succeed txHash)
+
+                                Nothing ->
+                                    Cmd.none
+
+                        txBroadcastCmd =
+                            Cmd.map sentry.tagger <|
+                                Task.attempt (TxSent ref) (pollTxBroadcast sentry.nodePath txHash)
                     in
                         ( TxSentry { sentry | txs = Dict.update ref (txStatusSigned txHash) sentry.txs }
-                        , Cmd.map sentry.tagger <|
-                            Task.attempt (TxSent ref)
-                                (Process.sleep 500 |> Task.andThen (\_ -> Eth.getTx sentry.nodePath txHash))
+                        , Cmd.batch
+                            [ txSignedCmd
+                            , txBroadcastCmd
+                            ]
                         )
 
                 Nothing ->
@@ -152,19 +187,27 @@ update msg (TxSentry sentry) =
                         case Dict.get ref sentry.txs of
                             Just txState ->
                                 let
-                                    watchForConfirmation =
-                                        case txState.receiptTagger of
+                                    txBroadcastCmd =
+                                        case txState.onBroadcastTagger of
+                                            Just txToMsg ->
+                                                Task.perform txToMsg (Task.succeed tx)
+
                                             Nothing ->
                                                 Cmd.none
 
+                                    txMinedCmd =
+                                        case txState.onMinedTagger of
                                             Just _ ->
                                                 Task.attempt (TxMined ref) (pollTxReceipt sentry.nodePath tx.hash)
                                                     |> Cmd.map sentry.tagger
+
+                                            Nothing ->
+                                                Cmd.none
                                 in
                                     ( TxSentry { sentry | txs = Dict.update ref (txStatusSent tx) sentry.txs }
                                     , Cmd.batch
-                                        [ Task.perform txState.txTagger (Task.succeed tx)
-                                        , watchForConfirmation
+                                        [ txBroadcastCmd
+                                        , txMinedCmd
                                         ]
                                     )
 
@@ -189,12 +232,12 @@ update msg (TxSentry sentry) =
                             Just txState ->
                                 let
                                     cmdIfMined =
-                                        case txState.receiptTagger of
+                                        case txState.onMinedTagger of
+                                            Just txReceiptToMsg ->
+                                                Task.perform txReceiptToMsg (Task.succeed txReceipt)
+
                                             Nothing ->
                                                 Cmd.none
-
-                                            Just receiptTagger ->
-                                                Task.perform receiptTagger (Task.succeed txReceipt)
                                 in
                                     ( TxSentry { sentry | txs = Dict.update ref (txStatusMined txReceipt) sentry.txs }
                                     , cmdIfMined
@@ -223,6 +266,17 @@ pollTxReceipt nodePath txHash =
     Eth.getTxReceipt nodePath txHash
         -- polls for 5 minutes every 5 seconds
         |> retry { attempts = 60, sleep = 5 }
+
+
+pollTxBroadcast : String -> TxHash -> Task Http.Error Tx
+pollTxBroadcast nodePath txHash =
+    Process.sleep 250
+        |> Task.andThen
+            (\_ ->
+                Eth.getTx nodePath txHash
+                    -- polls for 30 seconds every 1 second
+                    |> retry { attempts = 30, sleep = 1 }
+            )
 
 
 
@@ -273,11 +327,12 @@ txIdResponseDecoder =
         (Decode.field "txHash" Decode.txHash)
 
 
-newTxState : Send -> Maybe (TxReceipt -> msg) -> (Tx -> msg) -> TxState msg
-newTxState send receiptTagger txTagger =
+newTxState : Send -> CustomSend msg -> TxState msg
+newTxState send { onSign, onBroadcast, onMined } =
     { params = send
-    , txTagger = txTagger
-    , receiptTagger = receiptTagger
+    , onSignedTagger = onSign
+    , onBroadcastTagger = onBroadcast
+    , onMinedTagger = onMined
     , status = Signing send
     }
 

@@ -31,7 +31,7 @@ main =
 
 node =
     { http = "https://mainnet.infura.io/metamask"
-    , ws = "wss://mainnet.infura.io/ws"
+    , ws = "ws://ec2-52-42-145-83.us-west-2.compute.amazonaws.com:8546"
     }
 
 
@@ -86,11 +86,12 @@ update msg model =
         InitTest ->
             let
                 ( sentryModel, sentryCmd ) =
-                    EventSentry.watch (toString >> NewResponse) erc20TransferFilter model.eventSentry
+                    EventSentry.pendingTxs (toString >> NewResponse) model.eventSentry
             in
                 { model | eventSentry = sentryModel }
-                    ! [ blockCmd, contractCmds, transactionCmd, addressCmd, logCmd, Cmd.map EventSentryMsg sentryCmd ]
+                    ! [ Cmd.map EventSentryMsg sentryCmd ]
 
+        --blockCmd, contractCmds, transactionCmd, addressCmd, logCmd, ]
         EventSentryMsg subMsg ->
             let
                 ( subModel, subCmd ) =

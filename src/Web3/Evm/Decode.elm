@@ -6,6 +6,9 @@ module Web3.Evm.Decode
         , toElmDecoder
         , uint
         , bool
+        , dBytes
+        , sBytes
+        , string
         , address
         , dArray
         , sArray
@@ -20,6 +23,7 @@ module Web3.Evm.Decode
 import Base58
 import BigInt exposing (BigInt)
 import Hex
+import String.UTF8 as UTF8
 import String.Extra as String
 import Result.Extra as Result
 import Json.Decode as Decode exposing (Decoder)
@@ -117,6 +121,38 @@ address =
                 |> Result.map (newTape original altered)
 
 
+dBytes : EvmDecoder String
+dBytes =
+    EvmDecoder <|
+        \(Tape original altered) ->
+            take64 altered
+                |> buildBytes original
+                |> Result.map add0x
+                |> Result.map (newTape original altered)
+
+
+sBytes : Int -> EvmDecoder String
+sBytes bytesLen =
+    EvmDecoder <|
+        \(Tape original altered) ->
+            take64 altered
+                |> add0x
+                |> Ok
+                |> Result.map (newTape original altered)
+
+
+string : EvmDecoder String
+string =
+    EvmDecoder <|
+        \(Tape original altered) ->
+            take64 altered
+                |> buildBytes original
+                |> Result.map (String.break 2)
+                |> Result.andThen (List.map Hex.fromString >> Result.combine)
+                |> Result.andThen UTF8.toString
+                |> Result.map (newTape original altered)
+
+
 {-| Decode Dynamically Sized Arrays
 (dArray address) == address[]
 -}
@@ -128,7 +164,6 @@ dArray decoder =
                 |> buildDynArray original
                 |> Result.map (List.map (unpackDecoder decoder))
                 |> Result.andThen Result.combine
-                -- |> Result.map (\list -> ( Tape original (drop64 altered), list ))
                 |> Result.map (newTape original altered)
 
 
@@ -179,10 +214,8 @@ data index evmDecoder =
         |> Decode.field "data"
 
 
-
-{- Useful for decoding data withing events/logs. -}
-
-
+{-| Useful for decoding data withing events/logs.
+-}
 dropBytes : Int -> EvmDecoder a -> EvmDecoder a
 dropBytes location (EvmDecoder decoder) =
     EvmDecoder <|
@@ -197,13 +230,6 @@ dropBytes location (EvmDecoder decoder) =
 andMap is the same as `apply` or `<*>` in Haskell, except initial arguments are flipped to help with elm pipeline syntax.
 
 -}
-
-
-
--- map : (a -> b) -> EvmDecoder a -> EvmDecoder b
--- map f a =
-
-
 map2 : (a -> b -> c) -> EvmDecoder a -> EvmDecoder b -> EvmDecoder c
 map2 f (EvmDecoder decA) (EvmDecoder decB) =
     EvmDecoder <|
@@ -226,40 +252,66 @@ newTape original altered val =
     ( Tape original (drop64 altered), val )
 
 
+{-| Takes the index pointer to the beginning of a given string/bytes value (the first 32 bytes being the data length)
 
-{- Takes the index pointer to the beginning of the array data (the first piece being the array length)
-   and the full return data, and slices out the
+Example -
 
-   Example - Here is a returns(address[],uint256)
+    0000000000000000000000000000000000000000000000000000000000000020 -- Start index of data is 0x20 or byte number 32 / char number 64
+    0000000000000000000000000000000000000000000000000000000000000044 -- First 32 bytes describes the length of the actual data, in this case 68 bytes or 136 chars
+    446f657320746869732077686f6c652073656e74656e6365206d616b6520697420696e20746865206d697820686572653f2021402324255e262a2829203a2920f09f988600000000000000000000000000000000000000000000000000000000  -- Data
 
-           0000000000000000000000000000000000000000000000000000000000000040 -- Start index of address[] (starts at byte 64, or the 128th character)
-           0000000000000000000000000000000000000000000000000000000000000123 -- Some Uint256
-           0000000000000000000000000000000000000000000000000000000000000003 -- Length of address[]
-           000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3 -- First Address
-           0000000000000000000000006A987e3C0cd7Ed478Ce18C4cE00a0B313299365B -- Second Address
-           000000000000000000000000aD9178336d523494914ca37359D2456ef123466c -- Third Address
-
-       buildDynArray fullReturnData startIndex
-           > Ok ["000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3", secondAddress, thirdAddress]
+    136 chars of data, 192 chars total
 
 -}
-
-
-buildDynArray : String -> String -> Result String (List String)
-buildDynArray fullTape startIndex =
+buildBytes : String -> String -> Result String String
+buildBytes fullTape lengthIndex =
     let
-        toIntIndex =
+        hexToLength =
+            Hex.fromString >> Result.map ((*) 2)
+
+        sliceData dataIndex strLength =
+            String.slice dataIndex (dataIndex + (strLength * 2)) fullTape
+    in
+        hexToLength lengthIndex
+            |> Result.andThen
+                (\index ->
+                    String.slice index (index + 64) fullTape
+                        |> Hex.fromString
+                        |> Result.map (\dataLength -> sliceData (index + 64) dataLength)
+                )
+
+
+{-| Takes the index pointer to the beginning of the array data (the first piece being the array length)
+and the full return data, and slices out the
+
+Example - Here is a returns(address[],uint256)
+
+    0000000000000000000000000000000000000000000000000000000000000040 -- Start index of address[] (starts at byte 64, or the 128th character)
+    0000000000000000000000000000000000000000000000000000000000000123 -- Some Uint256
+    0000000000000000000000000000000000000000000000000000000000000003 -- Length of address[]
+    000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3 -- First Address
+    0000000000000000000000006A987e3C0cd7Ed478Ce18C4cE00a0B313299365B -- Second Address
+    000000000000000000000000aD9178336d523494914ca37359D2456ef123466c -- Third Address
+
+    buildDynArray fullReturnData startIndex
+    > Ok ["000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3", secondAddress, thirdAddress]
+
+-}
+buildDynArray : String -> String -> Result String (List String)
+buildDynArray fullTape lengthIndex =
+    let
+        hexToLength =
             Hex.fromString >> Result.map ((*) 2)
 
         sliceData dataIndex arrLength =
             String.slice dataIndex (dataIndex + (arrLength * 64)) fullTape
     in
-        toIntIndex startIndex
+        hexToLength lengthIndex
             |> Result.andThen
                 (\index ->
                     String.slice index (index + 64) fullTape
                         |> Hex.fromString
-                        |> Result.map (sliceData <| index + 64)
+                        |> Result.map (\dataLength -> sliceData (index + 64) dataLength)
                 )
             |> Result.map (String.break 64)
 

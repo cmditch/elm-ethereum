@@ -20,6 +20,11 @@ import Web3.Eth.Types exposing (..)
 import Web3.Types exposing (Hex, IPFSHash)
 
 
+-- Need to benchmark and optimize
+-- Addresses should not be stored as checksummed unless they are already checksummed
+-- Use lower/upper critera
+
+
 toAddress : String -> Result String Address
 toAddress str =
     let
@@ -210,11 +215,6 @@ remove0x str =
         str
 
 
-leftPad : String -> String
-leftPad data =
-    String.padLeft 64 '0' data
-
-
 hexToAscii : String -> Result String String
 hexToAscii str =
     case String.length str % 2 == 0 of
@@ -229,6 +229,10 @@ hexToAscii str =
             Err (quote str ++ " is not ascii hex. Uneven length. Byte pairs required.")
 
 
+
+-- SHA2 Helpers
+
+
 functionSig : String -> String
 functionSig fSig =
     String.toList fSig
@@ -238,6 +242,20 @@ functionSig fSig =
         |> List.map (Hex.toString >> toByteLength)
         |> String.join ""
         |> (++) "0x"
+
+
+keccak256 : String -> String
+keccak256 str =
+    String.toList str
+        |> List.map Char.toCode
+        |> ethereum_keccak_256
+        |> List.map (Hex.toString >> toByteLength)
+        |> String.join ""
+        |> (++) "0x"
+
+
+
+-- IPFS Helpers
 
 
 ipfsHashToString : IPFSHash -> String
@@ -263,16 +281,6 @@ makeIPFSHash str =
     else
         Base58.decode str
             |> Result.andThen (\_ -> Ok <| Internal.IPFSHash str)
-
-
-keccak256 : String -> String
-keccak256 str =
-    String.toList str
-        |> List.map Char.toCode
-        |> ethereum_keccak_256
-        |> List.map (Hex.toString >> toByteLength)
-        |> String.join ""
-        |> (++) "0x"
 
 
 
@@ -336,6 +344,10 @@ retry { attempts, sleep } myTask =
                     else
                         Task.fail x
                 )
+
+
+
+-- Unsafe
 
 
 unsafeToHex : String -> Hex
