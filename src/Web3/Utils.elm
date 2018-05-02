@@ -20,11 +20,6 @@ import Web3.Eth.Types exposing (..)
 import Web3.Types exposing (Hex, IPFSHash)
 
 
--- Need to benchmark and optimize
--- Addresses should not be stored as checksummed unless they are already checksummed
--- Use lower/upper critera
-
-
 toAddress : String -> Result String Address
 toAddress str =
     let
@@ -35,8 +30,8 @@ toAddress str =
             String.right 40 str
     in
         if String.length noZeroX == 64 && String.all ((==) '0') (String.left 24 noZeroX) then
-            if isLowerCaseAddress bytes32Address || isUpperCaseAddress bytes32Address then
-                toChecksumAddress bytes32Address
+            if isUpperCaseAddress bytes32Address || isLowerCaseAddress bytes32Address then
+                Ok <| Internal.Address <| String.toLower bytes32Address
             else if (isChecksumAddress bytes32Address) then
                 Ok <| Internal.Address bytes32Address
             else
@@ -47,8 +42,8 @@ toAddress str =
             Err <| "Given address " ++ quote str ++ " is too long"
         else if not (isAddress noZeroX) then
             Err <| "Given address " ++ quote str ++ " contains invalid hex characters."
-        else if isLowerCaseAddress noZeroX || isUpperCaseAddress noZeroX then
-            toChecksumAddress str
+        else if isUpperCaseAddress noZeroX || isLowerCaseAddress noZeroX then
+            Ok <| Internal.Address <| String.toLower <| str
         else if (isChecksumAddress noZeroX) then
             Ok <| Internal.Address noZeroX
         else
@@ -201,7 +196,7 @@ isHex =
 
 add0x : String -> String
 add0x str =
-    if String.startsWith "0x" str then
+    if String.startsWith "0x" str || String.startsWith "0X" str then
         str
     else
         "0x" ++ str
@@ -209,7 +204,7 @@ add0x str =
 
 remove0x : String -> String
 remove0x str =
-    if String.startsWith "0x" str then
+    if String.startsWith "0x" str || String.startsWith "0X" str then
         String.dropLeft 2 str
     else
         str
