@@ -3,11 +3,12 @@ module Web3.Evm.Encode
         ( Encoding(..)
         , encodeData
         , encode
+        , unsafeEncode
         )
 
 import BigInt exposing (BigInt)
 import Web3.Types exposing (Hex, IPFSHash)
-import Web3.Utils exposing (remove0x, functionSig, ipfsToBytes32)
+import Web3.Utils exposing (add0x, remove0x, functionSig, ipfsToBytes32)
 import Web3.Eth.Types exposing (Address)
 import Web3.Evm.Utils exposing (leftPad)
 import Web3.Internal.Types as Internal
@@ -22,6 +23,7 @@ type Encoding
     | StringE String
     | ListE Encoding
     | IPFSHashE IPFSHash
+    | Custom String
 
 
 encodeData : String -> List Encoding -> Hex
@@ -61,10 +63,18 @@ encode enc =
                 |> leftPad
 
         StringE string ->
-            "convert to UTF8"
+            "not implemeneted yet"
 
         ListE _ ->
             "not implemeneted yet"
 
         IPFSHashE ipfsHash ->
             ipfsToBytes32 ipfsHash
+
+        Custom string ->
+            string
+
+
+unsafeEncode : String -> Hex
+unsafeEncode =
+    add0x >> Internal.Hex

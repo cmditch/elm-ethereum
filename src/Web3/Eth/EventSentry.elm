@@ -103,42 +103,42 @@ listen sentry tagger =
 
 
 {-| -}
-watch : (Value -> msg) -> LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+watch : (Value -> msg) -> LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 watch onReceive logFilter =
     watch_ False [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter) onReceive
 
 
-watchOnce : (Value -> msg) -> LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+watchOnce : (Value -> msg) -> LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 watchOnce onReceive logFilter =
     watch_ True [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter) onReceive
 
 
-unWatch : FilterKey -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
-unWatch =
-    unWatch_
+unWatch : LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd msg )
+unWatch logFilter =
+    unWatch_ (logFilterKey logFilter)
 
 
-newBlocks : (BlockHead -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+newBlocks : (BlockHead -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 newBlocks onReceive =
     watch_ False [ Encode.string "newHeads" ] newBlockHeadsKey (decodeBlockHead >> onReceive)
 
 
-nextBlock : (BlockHead -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+nextBlock : (BlockHead -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 nextBlock onReceive =
     watch_ True [ Encode.string "newHeads" ] newBlockHeadsKey (decodeBlockHead >> onReceive)
 
 
-unWatchNewBlocks : EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+unWatchNewBlocks : EventSentry msg -> ( EventSentry msg, Cmd msg )
 unWatchNewBlocks =
     unWatch_ newBlockHeadsKey
 
 
-pendingTxs : (TxHash -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+pendingTxs : (TxHash -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 pendingTxs onReceive =
     watch_ False [ Encode.string "newPendingTransactions" ] pendingTxsKey (decodeTxHash >> onReceive)
 
 
-unWatchPendingTxs : EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+unWatchPendingTxs : EventSentry msg -> ( EventSentry msg, Cmd msg )
 unWatchPendingTxs =
     unWatch_ pendingTxsKey
 
@@ -172,7 +172,7 @@ type alias RpcId =
 -- Internal
 
 
-watch_ : Bool -> List Value -> FilterKey -> (Value -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+watch_ : Bool -> List Value -> FilterKey -> (Value -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 watch_ isOnce rpcParams filterKey onReceive ((EventSentry sentry) as sentry_) =
     case Dict.get filterKey sentry.filters of
         Nothing ->
@@ -193,7 +193,7 @@ watch_ isOnce rpcParams filterKey onReceive ((EventSentry sentry) as sentry_) =
 
 
 {-| -}
-unWatch_ : FilterKey -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+unWatch_ : FilterKey -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 unWatch_ filterKey ((EventSentry sentry) as sentry_) =
     case Dict.get filterKey sentry.filters of
         Nothing ->
@@ -271,7 +271,7 @@ type Msg msg
     | ExternalMsg msg
 
 
-update : Msg msg -> EventSentry msg -> ( EventSentry msg, Cmd (Msg msg) )
+update : Msg msg -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 update msg ((EventSentry sentry) as sentry_) =
     case msg of
         SubscriptionOpened openedMsg ->

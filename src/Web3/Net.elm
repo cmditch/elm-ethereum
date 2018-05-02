@@ -1,6 +1,7 @@
 module Web3.Net
     exposing
         ( version
+        , clientVersion
         , listening
         , peerCount
         , networkId
@@ -37,6 +38,16 @@ version ethNode =
         , method = "net_version"
         , params = []
         , decoder = networkIdDecoder
+        }
+
+
+clientVersion : HttpProvider -> Task Http.Error String
+clientVersion ethNode =
+    RPC.buildRequest
+        { url = ethNode
+        , method = "web3_clientVersion"
+        , params = []
+        , decoder = Decode.string
         }
 
 

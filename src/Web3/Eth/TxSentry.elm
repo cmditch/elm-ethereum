@@ -58,15 +58,15 @@ listen (TxSentry sentry) =
 
 
 {-| -}
-send : Send -> (Tx -> msg) -> TxSentry msg -> ( TxSentry msg, Cmd msg )
-send txParams onBroadcast sentry =
-    send_ txParams { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Nothing } sentry
+send : (Tx -> msg) -> Send -> TxSentry msg -> ( TxSentry msg, Cmd msg )
+send onBroadcast txParams sentry =
+    send_ { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Nothing } txParams sentry
 
 
 {-| -}
-sendWithReceipt : Send -> (Tx -> msg) -> (TxReceipt -> msg) -> TxSentry msg -> ( TxSentry msg, Cmd msg )
-sendWithReceipt txParams onBroadcast onMined sentry =
-    send_ txParams { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Just onMined } sentry
+sendWithReceipt : (Tx -> msg) -> (TxReceipt -> msg) -> Send -> TxSentry msg -> ( TxSentry msg, Cmd msg )
+sendWithReceipt onBroadcast onMined txParams sentry =
+    send_ { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Just onMined } txParams sentry
 
 
 {-| -}
@@ -78,7 +78,7 @@ type alias CustomSend msg =
 
 
 {-| -}
-customSend : Send -> CustomSend msg -> TxSentry msg -> ( TxSentry msg, Cmd msg )
+customSend : CustomSend msg -> Send -> TxSentry msg -> ( TxSentry msg, Cmd msg )
 customSend =
     send_
 
@@ -104,8 +104,8 @@ changeNode newNodePath (TxSentry sentry) =
 -- INTERNAL
 
 
-send_ : Send -> CustomSend msg -> TxSentry msg -> ( TxSentry msg, Cmd msg )
-send_ txParams sendParams (TxSentry sentry) =
+send_ : CustomSend msg -> Send -> TxSentry msg -> ( TxSentry msg, Cmd msg )
+send_ sendParams txParams (TxSentry sentry) =
     let
         newTxs =
             Dict.insert sentry.ref (newTxState txParams sendParams) sentry.txs
