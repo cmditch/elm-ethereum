@@ -6,7 +6,28 @@
     "source-directories": [
         "./src"
     ],
-    "exposed-modules": [],
+    "exposed-modules": [
+        "Web3.Types",
+        "Web3.Eth",
+        "Web3.Eth.Decode",
+        "Web3.Eth.Encode",
+        "Web3.Eth.EventSentry",
+        "Web3.Eth.TxSentry",
+        "Web3.Eth.Types",
+        "Web3.Evm.Decode",
+        "Web3.Evm.Encode",
+        "Web3.Shh",
+        "Web3.Shh.Decode",
+        "Web3.Shh.Encode",
+        "Web3.Shh.Types",
+        "Web3.ChainEff",
+        "Web3.Decode",
+        "Web3.Encode",
+        "Web3.Defaults",
+        "Web3.JsonRPC",
+        "Web3.Net",
+        "Web3.Utils"
+    ],
     "dependencies": {
         "Chadtech/elm-bool-extra": "1.2.1 <= v < 2.0.0",
         "NoRedInk/elm-decode-pipeline": "3.0.0 <= v < 4.0.0",

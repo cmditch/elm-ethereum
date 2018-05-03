@@ -1,4 +1,35 @@
-module Web3.Eth.Types exposing (..)
+module Web3.Eth.Types
+    exposing
+        ( Address
+        , TxHash
+        , BlockHash
+        , BlockId(..)
+        , Call
+        , Send
+        , Tx
+        , TxReceipt
+        , Block
+        , Uncle
+        , BlockHead
+        , Log
+        , Event
+        , LogFilter
+        , SyncStatus
+        )
+
+{-| Types
+
+
+# Simple
+
+@docs Address, TxHash, BlockHash, BlockId
+
+
+# Complex
+
+@docs Call, Send, Tx, TxReceipt, Block, Uncle, BlockHead, Log, Event, LogFilter, SyncStatus
+
+-}
 
 import BigInt exposing (BigInt)
 import Json.Decode exposing (Decoder)
@@ -7,18 +38,22 @@ import Web3.Internal.Types as Internal
 import Web3.Types exposing (Hex)
 
 
+{-| -}
 type alias Address =
     Internal.Address
 
 
+{-| -}
 type alias TxHash =
     Internal.TxHash
 
 
+{-| -}
 type alias BlockHash =
     Internal.BlockHash
 
 
+{-| -}
 type BlockId
     = BlockIdNum Int
     | BlockIdHash BlockHash
@@ -27,6 +62,7 @@ type BlockId
     | PendingBlock
 
 
+{-| -}
 type alias Call a =
     { to : Maybe Address
     , from : Maybe Address
@@ -39,6 +75,7 @@ type alias Call a =
     }
 
 
+{-| -}
 type alias Send =
     { to : Maybe Address
     , from : Maybe Address
@@ -50,12 +87,7 @@ type alias Send =
     }
 
 
-
--- type Tx
---     = Mined MinedTx
---     | Pending PendingTx
-
-
+{-| -}
 type alias Tx =
     { hash : TxHash
     , nonce : Int
@@ -71,6 +103,7 @@ type alias Tx =
     }
 
 
+{-| -}
 type alias TxReceipt =
     { hash : TxHash
     , index : Int
@@ -110,10 +143,12 @@ type alias Block a =
     }
 
 
+{-| -}
 type alias Uncle =
     Block ()
 
 
+{-| -}
 type alias BlockHead =
     { number : Int
     , hash : BlockHash
@@ -148,6 +183,7 @@ type alias Log =
     }
 
 
+{-| -}
 type alias Event a =
     { address : Address
     , data : String
@@ -172,6 +208,7 @@ type alias LogFilter =
     }
 
 
+{-| -}
 type alias SyncStatus =
     { startingBlock : Int
     , currentBlock : Int

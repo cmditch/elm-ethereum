@@ -10,6 +10,10 @@ module Web3.Net
         , NetworkId(..)
         )
 
+{-| Net RPC methods
+@docs version, clientVersion, listening, peerCount, networkId, name, networkIdDecoder, NetworkId
+-}
+
 import Json.Decode as Decode exposing (Decoder)
 import Http
 import Task exposing (Task)
@@ -18,6 +22,7 @@ import Web3.Decode as Decode
 import Web3.JsonRPC as RPC
 
 
+{-| -}
 type NetworkId
     = Mainnet
     | Expanse
@@ -31,6 +36,11 @@ type NetworkId
     | Private Int
 
 
+{-| Get the current network id.
+
+    Ok Mainnet
+
+-}
 version : HttpProvider -> Task Http.Error NetworkId
 version ethNode =
     RPC.buildRequest
@@ -41,6 +51,11 @@ version ethNode =
         }
 
 
+{-| Get the current client version.
+
+    Ok "Mist/v0.9.3/darwin/go1.4.1"
+
+-}
 clientVersion : HttpProvider -> Task Http.Error String
 clientVersion ethNode =
     RPC.buildRequest
@@ -51,6 +66,8 @@ clientVersion ethNode =
         }
 
 
+{-| Returns true if the node is actively listening for network connections.
+-}
 listening : HttpProvider -> Task Http.Error Bool
 listening ethNode =
     RPC.buildRequest
@@ -61,6 +78,8 @@ listening ethNode =
         }
 
 
+{-| Get the number of peers currently connected to the client.
+-}
 peerCount : HttpProvider -> Task Http.Error Int
 peerCount ethNode =
     RPC.buildRequest
@@ -71,12 +90,16 @@ peerCount ethNode =
         }
 
 
+{-| Decode a stringy int into it's NetworkId
+-}
 networkIdDecoder : Decoder NetworkId
 networkIdDecoder =
     (String.toInt >> Result.map networkId)
         |> Decode.resultToDecoder
 
 
+{-| Convert an int into it's NetworkId
+-}
 networkId : Int -> NetworkId
 networkId networkId =
     case networkId of
@@ -111,6 +134,8 @@ networkId networkId =
             Private networkId
 
 
+{-| Get a NetworkId's name
+-}
 name : NetworkId -> String
 name networkId =
     case networkId of

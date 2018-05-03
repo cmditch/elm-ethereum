@@ -21,9 +21,5 @@ type IPFSHash
     = IPFSHash String
 
 
-
--- vVv    Keep in Library?   vVv
-
-
 type Hex
     = Hex String

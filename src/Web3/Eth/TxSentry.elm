@@ -1,6 +1,8 @@
 module Web3.Eth.TxSentry
     exposing
         ( TxSentry
+        , Msg
+        , update
         , init
         , listen
         , send
@@ -10,6 +12,30 @@ module Web3.Eth.TxSentry
         , withDebug
         , changeNode
         )
+
+{-|
+
+
+# Core
+
+@docs TxSentry, Msg, update, init, listen
+
+
+# Send Txs
+
+@docs send, sendWithReceipt
+
+
+# Custom Send
+
+@docs CustomSend, customSend
+
+
+# Utils
+
+@docs withDebug, changeNode
+
+-}
 
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Value, Decoder)
@@ -134,6 +160,7 @@ type alias TxState msg =
 -- UPDATE
 
 
+{-| -}
 type Msg
     = NoOp
     | ErrorDecoding String
@@ -142,6 +169,7 @@ type Msg
     | TxMined Int (Result Http.Error TxReceipt)
 
 
+{-| -}
 update : Msg -> TxSentry msg -> ( TxSentry msg, Cmd msg )
 update msg (TxSentry sentry) =
     case msg of

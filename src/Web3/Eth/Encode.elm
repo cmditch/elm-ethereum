@@ -1,4 +1,27 @@
-module Web3.Eth.Encode exposing (..)
+module Web3.Eth.Encode
+    exposing
+        ( address
+        , txHash
+        , blockHash
+        , callParams
+        , sendParams
+        , blockId
+        , logFilter
+        )
+
+{-| Eth Encoders
+
+
+# Simple
+
+@docs address, txHash, blockHash
+
+
+# Complex
+
+@docs callParams, sendParams, blockId, logFilter
+
+-}
 
 import Hex
 import Json.Encode exposing (Value, int, list, string, object, null)
@@ -8,26 +31,25 @@ import Web3.Eth.Types exposing (..)
 import Web3.Encode exposing (hex, bigInt, hexInt)
 
 
+{-| -}
 address : Address -> Value
 address =
     addressToString >> string
 
 
+{-| -}
 txHash : TxHash -> Value
 txHash =
     txHashToString >> string
 
 
-addressList : List Address -> Value
-addressList =
-    List.map address >> list
-
-
+{-| -}
 blockHash : BlockHash -> Value
 blockHash =
     blockHashToString >> string
 
 
+{-| -}
 callParams : Call a -> Value
 callParams { to, from, gas, gasPrice, value, data } =
     listOfMaybesToVal
@@ -40,6 +62,7 @@ callParams { to, from, gas, gasPrice, value, data } =
         ]
 
 
+{-| -}
 sendParams : Send -> Value
 sendParams { to, from, gas, gasPrice, value, data, nonce } =
     listOfMaybesToVal
@@ -53,6 +76,7 @@ sendParams { to, from, gas, gasPrice, value, data, nonce } =
         ]
 
 
+{-| -}
 blockId : BlockId -> Value
 blockId blockId =
     case blockId of
@@ -74,6 +98,7 @@ blockId blockId =
             string "pending"
 
 
+{-| -}
 logFilter : LogFilter -> Value
 logFilter logFilter =
     object
@@ -84,7 +109,6 @@ logFilter logFilter =
         ]
 
 
-{-| -}
 topicsList : List (Maybe String) -> Value
 topicsList topicsList =
     let
@@ -97,3 +121,8 @@ topicsList topicsList =
                     null
     in
         List.map toVal topicsList |> list
+
+
+addressList : List Address -> Value
+addressList =
+    List.map address >> list

@@ -3,8 +3,11 @@ module Web3.Evm.Encode
         ( Encoding(..)
         , encodeData
         , encode
-        , unsafeEncode
         )
+
+{-| Encode before sending RPC Calls
+@docs Encoding, encodeData, encode
+-}
 
 import BigInt exposing (BigInt)
 import Web3.Types exposing (Hex, IPFSHash)
@@ -14,6 +17,7 @@ import Web3.Evm.Utils exposing (leftPad)
 import Web3.Internal.Types as Internal
 
 
+{-| -}
 type Encoding
     = AddressE Address
     | UintE BigInt
@@ -26,6 +30,7 @@ type Encoding
     | Custom String
 
 
+{-| -}
 encodeData : String -> List Encoding -> Hex
 encodeData sig encodings =
     let
@@ -39,6 +44,7 @@ encodeData sig encodings =
         Internal.Hex <| sigHash ++ byteCodeEncodings
 
 
+{-| -}
 encode : Encoding -> String
 encode enc =
     case enc of
@@ -73,8 +79,3 @@ encode enc =
 
         Custom string ->
             string
-
-
-unsafeEncode : String -> Hex
-unsafeEncode =
-    add0x >> Internal.Hex

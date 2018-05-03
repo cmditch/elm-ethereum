@@ -1,4 +1,10 @@
-module Web3.Shh.Encode exposing (..)
+module Web3.Shh.Encode exposing (post)
+
+{-| Whisper Encoders
+
+@docs post
+
+-}
 
 import Json.Encode exposing (Value, int, list, string, object, null)
 import Web3.Encode exposing (hexInt)
@@ -6,6 +12,7 @@ import Web3.Shh.Types exposing (Post)
 import Web3.Internal.Utils exposing (listOfMaybesToVal)
 
 
+{-| -}
 post : Post -> Value
 post { to, from, topics, payload, priority, ttl } =
     listOfMaybesToVal

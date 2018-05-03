@@ -14,12 +14,34 @@ module Web3.ChainEff
         , unWatch
         )
 
+{-| For dApp Single Page Applications
+If your EventSentry or TxSentry live at the top level of your model, and you are sending txs or listening to event in your sub-pages,
+use ChainEff. See examples.
+
+
+# Core
+
+@docs ChainEff, Sentry, execute, batch, none, map
+
+
+# TxSentry
+
+@docs sendTx, sendWithReceipt, customSend
+
+
+# EventSentry
+
+@docs watchEvent, watchEventOnce, unWatch
+
+-}
+
 import Json.Decode exposing (Value)
 import Web3.Eth.EventSentry as EventSentry
 import Web3.Eth.TxSentry as TxSentry
 import Web3.Eth.Types exposing (..)
 
 
+{-| -}
 type ChainEff msg
     = SendTx (Tx -> msg) Send
     | SendWithReceipt (Tx -> msg) (TxReceipt -> msg) Send
@@ -31,25 +53,30 @@ type ChainEff msg
     | None
 
 
+{-| -}
 type alias Sentry msg =
     ( TxSentry.TxSentry msg, EventSentry.EventSentry msg )
 
 
+{-| -}
 execute : Sentry msg -> ChainEff msg -> ( Sentry msg, Cmd msg )
 execute sentry chainEff =
     executeHelp [] sentry [ chainEff ]
 
 
+{-| -}
 batch : List (ChainEff msg) -> ChainEff msg
 batch =
     Many
 
 
+{-| -}
 none : ChainEff msg
 none =
     None
 
 
+{-| -}
 map : (subMsg -> msg) -> ChainEff subMsg -> ChainEff msg
 map f subEff =
     case subEff of
@@ -85,31 +112,37 @@ map f subEff =
             None
 
 
+{-| -}
 sendTx : (Tx -> msg) -> Send -> ChainEff msg
 sendTx =
     SendTx
 
 
+{-| -}
 sendWithReceipt : (Tx -> msg) -> (TxReceipt -> msg) -> Send -> ChainEff msg
 sendWithReceipt =
     SendWithReceipt
 
 
+{-| -}
 customSend : TxSentry.CustomSend msg -> Send -> ChainEff msg
 customSend =
     CustomSend
 
 
+{-| -}
 watchEvent : (Value -> msg) -> LogFilter -> ChainEff msg
 watchEvent =
     WatchEvent
 
 
+{-| -}
 watchEventOnce : (Value -> msg) -> LogFilter -> ChainEff msg
 watchEventOnce =
     WatchEventOnce
 
 
+{-| -}
 unWatch : LogFilter -> ChainEff msg
 unWatch =
     UnWatch

@@ -19,6 +19,35 @@ module Web3.Eth.EventSentry
         , withDebug
         )
 
+{-| Listen to contract events, and other chain activity
+
+
+# Types
+
+@docs EventSentry, Msg, FilterKey
+
+
+# Core
+
+@docs init, update, changeNode, listen, withDebug
+
+
+# Contract Events/Logs
+
+@docs watch, watchOnce, unWatch, logFilterKey
+
+
+# Blocks
+
+@docs newBlocks, unWatchNewBlocks, nextBlock
+
+
+# Pending Transactions
+
+@docs pendingTxs, unWatchPendingTxs
+
+-}
+
 import BigInt
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Value, Decoder)
@@ -70,6 +99,7 @@ import WebSocket as WS
 -- API
 
 
+{-| -}
 type EventSentry msg
     = EventSentry
         { nodePath : String
@@ -81,6 +111,7 @@ type EventSentry msg
         }
 
 
+{-| -}
 init : String -> EventSentry msg
 init nodePath =
     EventSentry
@@ -108,36 +139,43 @@ watch onReceive logFilter =
     watch_ False [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter) onReceive
 
 
+{-| -}
 watchOnce : (Value -> msg) -> LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 watchOnce onReceive logFilter =
     watch_ True [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter) onReceive
 
 
+{-| -}
 unWatch : LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 unWatch logFilter =
     unWatch_ (logFilterKey logFilter)
 
 
+{-| -}
 newBlocks : (BlockHead -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 newBlocks onReceive =
     watch_ False [ Encode.string "newHeads" ] newBlockHeadsKey (decodeBlockHead >> onReceive)
 
 
+{-| -}
 nextBlock : (BlockHead -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 nextBlock onReceive =
     watch_ True [ Encode.string "newHeads" ] newBlockHeadsKey (decodeBlockHead >> onReceive)
 
 
+{-| -}
 unWatchNewBlocks : EventSentry msg -> ( EventSentry msg, Cmd msg )
 unWatchNewBlocks =
     unWatch_ newBlockHeadsKey
 
 
+{-| -}
 pendingTxs : (TxHash -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 pendingTxs onReceive =
     watch_ False [ Encode.string "newPendingTransactions" ] pendingTxsKey (decodeTxHash >> onReceive)
 
 
+{-| -}
 unWatchPendingTxs : EventSentry msg -> ( EventSentry msg, Cmd msg )
 unWatchPendingTxs =
     unWatch_ pendingTxsKey
@@ -149,6 +187,7 @@ withDebug (EventSentry sentry) =
     EventSentry { sentry | debug = True }
 
 
+{-| -}
 changeNode : String -> EventSentry msg -> EventSentry msg
 changeNode newNodePath (EventSentry eventSentry) =
     EventSentry { eventSentry | nodePath = newNodePath }
@@ -192,7 +231,6 @@ watch_ isOnce rpcParams filterKey onReceive ((EventSentry sentry) as sentry_) =
             ( sentry_, Cmd.none )
 
 
-{-| -}
 unWatch_ : FilterKey -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 unWatch_ filterKey ((EventSentry sentry) as sentry_) =
     case Dict.get filterKey sentry.filters of
@@ -263,6 +301,7 @@ type alias FilterState msg =
 --- UPDATE
 
 
+{-| -}
 type Msg msg
     = NoOp
     | SubscriptionOpened OpenedMsg
@@ -271,6 +310,7 @@ type Msg msg
     | ExternalMsg msg
 
 
+{-| -}
 update : Msg msg -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 update msg ((EventSentry sentry) as sentry_) =
     case msg of
@@ -422,6 +462,7 @@ makeFilter isOnce onReceive rpcId =
     }
 
 
+{-| -}
 logFilterKey : LogFilter -> FilterKey
 logFilterKey { address, topics } =
     let

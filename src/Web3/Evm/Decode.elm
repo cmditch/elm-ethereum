@@ -6,10 +6,10 @@ module Web3.Evm.Decode
         , toElmDecoder
         , uint
         , bool
+        , address
         , dBytes
         , sBytes
         , string
-        , address
         , dArray
         , sArray
         , ipfsHash
@@ -17,8 +17,15 @@ module Web3.Evm.Decode
         , data
         , andMap
         , map2
-          -- , unpackDecoder
         )
+
+{-| Decode RPC Responses
+
+@docs EvmDecoder, evmDecode, runDecoder, toElmDecoder
+@docs uint, bool, address, dBytes, sBytes, string, dArray, sArray, ipfsHash
+@docs topic, data, andMap, map2
+
+-}
 
 import Base58
 import BigInt exposing (BigInt)
@@ -30,9 +37,11 @@ import Json.Decode as Decode exposing (Decoder)
 import Web3.Decode exposing (resultToDecoder)
 import Web3.Eth.Types exposing (Address)
 import Web3.Types exposing (IPFSHash)
+import Web3.Evm.Utils exposing (take64, drop64)
 import Web3.Utils exposing (add0x, remove0x, toAddress, makeIPFSHash)
 
 
+{-| -}
 type EvmDecoder a
     = EvmDecoder (Tape -> Result String ( Tape, a ))
 
@@ -53,11 +62,13 @@ type Tape
     = Tape String String
 
 
+{-| -}
 evmDecode : a -> EvmDecoder a
 evmDecode val =
     EvmDecoder (\tape -> Ok ( tape, val ))
 
 
+{-| -}
 runDecoder : EvmDecoder a -> String -> Result String a
 runDecoder (EvmDecoder evmDecoder) evmString =
     remove0x evmString
@@ -66,6 +77,7 @@ runDecoder (EvmDecoder evmDecoder) evmString =
         |> Result.map Tuple.second
 
 
+{-| -}
 toElmDecoder : EvmDecoder a -> Decoder a
 toElmDecoder =
     runDecoder >> resultToDecoder
@@ -75,6 +87,7 @@ toElmDecoder =
 -- Decoders
 
 
+{-| -}
 uint : EvmDecoder BigInt
 uint =
     EvmDecoder <|
@@ -86,6 +99,7 @@ uint =
                 |> Result.map (newTape original altered)
 
 
+{-| -}
 bool : EvmDecoder Bool
 bool =
     let
@@ -112,6 +126,7 @@ bool =
                     |> Result.map (newTape original altered)
 
 
+{-| -}
 address : EvmDecoder Address
 address =
     EvmDecoder <|
@@ -121,6 +136,7 @@ address =
                 |> Result.map (newTape original altered)
 
 
+{-| -}
 dBytes : EvmDecoder String
 dBytes =
     EvmDecoder <|
@@ -131,6 +147,7 @@ dBytes =
                 |> Result.map (newTape original altered)
 
 
+{-| -}
 sBytes : Int -> EvmDecoder String
 sBytes bytesLen =
     EvmDecoder <|
@@ -141,6 +158,7 @@ sBytes bytesLen =
                 |> Result.map (newTape original altered)
 
 
+{-| -}
 string : EvmDecoder String
 string =
     EvmDecoder <|
@@ -214,8 +232,10 @@ data index evmDecoder =
         |> Decode.field "data"
 
 
-{-| Useful for decoding data withing events/logs.
--}
+
+-- Useful for decoding data withing events/logs.
+
+
 dropBytes : Int -> EvmDecoder a -> EvmDecoder a
 dropBytes location (EvmDecoder decoder) =
     EvmDecoder <|
@@ -242,6 +262,7 @@ map2 f (EvmDecoder decA) (EvmDecoder decB) =
                     )
 
 
+{-| -}
 andMap : EvmDecoder a -> EvmDecoder (a -> b) -> EvmDecoder b
 andMap dVal dFunc =
     map2 (\f v -> f v) dFunc dVal
@@ -252,17 +273,20 @@ newTape original altered val =
     ( Tape original (drop64 altered), val )
 
 
-{-| Takes the index pointer to the beginning of a given string/bytes value (the first 32 bytes being the data length)
 
-Example -
+{- Takes the index pointer to the beginning of a given string/bytes value (the first 32 bytes being the data length)
 
-    0000000000000000000000000000000000000000000000000000000000000020 -- Start index of data is 0x20 or byte number 32 / char number 64
-    0000000000000000000000000000000000000000000000000000000000000044 -- First 32 bytes describes the length of the actual data, in this case 68 bytes or 136 chars
-    446f657320746869732077686f6c652073656e74656e6365206d616b6520697420696e20746865206d697820686572653f2021402324255e262a2829203a2920f09f988600000000000000000000000000000000000000000000000000000000  -- Data
+   Example -
 
-    136 chars of data, 192 chars total
+       0000000000000000000000000000000000000000000000000000000000000020 -- Start index of data is 0x20 or byte number 32 / char number 64
+       0000000000000000000000000000000000000000000000000000000000000044 -- First 32 bytes describes the length of the actual data, in this case 68 bytes or 136 chars
+       446f657320746869732077686f6c652073656e74656e6365206d616b6520697420696e20746865206d697820686572653f2021402324255e262a2829203a2920f09f988600000000000000000000000000000000000000000000000000000000  -- Data
+
+       136 chars of data, 192 chars total
 
 -}
+
+
 buildBytes : String -> String -> Result String String
 buildBytes fullTape lengthIndex =
     let
@@ -281,22 +305,25 @@ buildBytes fullTape lengthIndex =
                 )
 
 
-{-| Takes the index pointer to the beginning of the array data (the first piece being the array length)
-and the full return data, and slices out the
 
-Example - Here is a returns(address[],uint256)
+{- Takes the index pointer to the beginning of the array data (the first piece being the array length)
+   and the full return data, and slices out the
 
-    0000000000000000000000000000000000000000000000000000000000000040 -- Start index of address[] (starts at byte 64, or the 128th character)
-    0000000000000000000000000000000000000000000000000000000000000123 -- Some Uint256
-    0000000000000000000000000000000000000000000000000000000000000003 -- Length of address[]
-    000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3 -- First Address
-    0000000000000000000000006A987e3C0cd7Ed478Ce18C4cE00a0B313299365B -- Second Address
-    000000000000000000000000aD9178336d523494914ca37359D2456ef123466c -- Third Address
+   Example - Here is a returns(address[],uint256)
 
-    buildDynArray fullReturnData startIndex
-    > Ok ["000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3", secondAddress, thirdAddress]
+       0000000000000000000000000000000000000000000000000000000000000040 -- Start index of address[] (starts at byte 64, or the 128th character)
+       0000000000000000000000000000000000000000000000000000000000000123 -- Some Uint256
+       0000000000000000000000000000000000000000000000000000000000000003 -- Length of address[]
+       000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3 -- First Address
+       0000000000000000000000006A987e3C0cd7Ed478Ce18C4cE00a0B313299365B -- Second Address
+       000000000000000000000000aD9178336d523494914ca37359D2456ef123466c -- Third Address
+
+       buildDynArray fullReturnData startIndex
+       > Ok ["000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3", secondAddress, thirdAddress]
 
 -}
+
+
 buildDynArray : String -> String -> Result String (List String)
 buildDynArray fullTape lengthIndex =
     let
@@ -316,24 +343,13 @@ buildDynArray fullTape lengthIndex =
             |> Result.map (String.break 64)
 
 
-{-| Applies decoder to value without bothering with Tape State
-Useful for mapping over lists built from dynamic types
+
+{- Applies decoder to value without bothering with Tape State
+   Useful for mapping over lists built from dynamic types
 -}
+
+
 unpackDecoder : EvmDecoder a -> String -> Result String a
 unpackDecoder (EvmDecoder decoder) val =
     decoder (Tape "" val)
         |> Result.map Tuple.second
-
-
-
--- Utils
-
-
-take64 : String -> String
-take64 =
-    String.left 64
-
-
-drop64 : String -> String
-drop64 =
-    String.dropLeft 64

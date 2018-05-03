@@ -1,4 +1,32 @@
-module Web3.Eth.Decode exposing (..)
+module Web3.Eth.Decode
+    exposing
+        ( address
+        , txHash
+        , blockHash
+        , hex
+        , block
+        , uncle
+        , blockHead
+        , tx
+        , txReceipt
+        , log
+        , event
+        , syncStatus
+        )
+
+{-| Eth Decoders
+
+
+# Simple
+
+@docs address, txHash, blockHash, hex
+
+
+# Complex
+
+@docs block, uncle, blockHead, tx, txReceipt, log, event, syncStatus
+
+-}
 
 import BigInt
 import Json.Decode as Decode exposing (..)
@@ -7,9 +35,6 @@ import Web3.Decode exposing (resultToDecoder, hexInt, bigInt, hexTime, hexBool, 
 import Web3.Types exposing (..)
 import Web3.Eth.Types exposing (..)
 import Web3.Utils exposing (remove0x, toAddress, toHex, toTxHash, toBlockHash)
-
-
--- Rudimentary Types
 
 
 {-| -}
@@ -36,10 +61,7 @@ hex =
     resultToDecoder toHex
 
 
-
--- Record Types
-
-
+{-| -}
 block : Decoder a -> Decoder (Block a)
 block txsDecoder =
     decode Block
@@ -66,11 +88,13 @@ block txsDecoder =
         |> optional "uncles" (list string) []
 
 
+{-| -}
 uncle : Decoder (Block ())
 uncle =
     block (succeed ())
 
 
+{-| -}
 blockHead : Decoder BlockHead
 blockHead =
     decode BlockHead
@@ -157,6 +181,7 @@ event returnDataDecoder =
         |> custom returnDataDecoder
 
 
+{-| -}
 syncStatus : Decoder (Maybe SyncStatus)
 syncStatus =
     decode SyncStatus

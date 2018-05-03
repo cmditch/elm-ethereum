@@ -1,4 +1,14 @@
-module Web3.Shh.Decode exposing (whisperId)
+module Web3.Shh.Decode
+    exposing
+        ( whisperId
+        , toWhisperId
+        )
+
+{-| Whisper Decoders
+
+@docs whisperId, toWhisperId
+
+-}
 
 import Json.Decode as Decode exposing (string, Decoder)
 import Web3.Shh.Types exposing (WhisperId)
@@ -7,11 +17,13 @@ import Web3.Decode exposing (resultToDecoder)
 import Web3.Utils exposing (isHex)
 
 
+{-| -}
 whisperId : Decoder WhisperId
 whisperId =
     resultToDecoder toWhisperId
 
 
+{-| -}
 toWhisperId : String -> Result String WhisperId
 toWhisperId str =
     case isHex str && String.length str == 122 of
