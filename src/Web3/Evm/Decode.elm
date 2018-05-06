@@ -4,6 +4,7 @@ module Web3.Evm.Decode
         , evmDecode
         , runDecoder
         , toElmDecoder
+        , toElmDecoderWithDebug
         , uint
         , bool
         , address
@@ -21,7 +22,7 @@ module Web3.Evm.Decode
 
 {-| Decode RPC Responses
 
-@docs EvmDecoder, evmDecode, runDecoder, toElmDecoder
+@docs EvmDecoder, evmDecode, runDecoder, toElmDecoder, toElmDecoderWithDebug
 @docs uint, bool, address, dBytes, sBytes, string, dArray, sArray, ipfsHash
 @docs topic, data, andMap, map2
 
@@ -69,18 +70,33 @@ evmDecode val =
 
 
 {-| -}
-runDecoder : EvmDecoder a -> String -> Result String a
-runDecoder (EvmDecoder evmDecoder) evmString =
-    remove0x evmString
-        |> (\a -> Tape a a)
-        |> evmDecoder
-        |> Result.map Tuple.second
+runDecoder : Maybe String -> EvmDecoder a -> String -> Result String a
+runDecoder debug (EvmDecoder evmDecoder) evmString =
+    let
+        str =
+            case debug of
+                Just function ->
+                    Debug.log ("Debug Contract Call Response " ++ function) evmString
+
+                Nothing ->
+                    evmString
+    in
+        remove0x str
+            |> (\a -> Tape a a)
+            |> evmDecoder
+            |> Result.map Tuple.second
 
 
 {-| -}
 toElmDecoder : EvmDecoder a -> Decoder a
 toElmDecoder =
-    runDecoder >> resultToDecoder
+    runDecoder Nothing >> resultToDecoder
+
+
+{-| -}
+toElmDecoderWithDebug : String -> EvmDecoder a -> Decoder a
+toElmDecoderWithDebug functionName =
+    runDecoder (Just functionName) >> resultToDecoder
 
 
 

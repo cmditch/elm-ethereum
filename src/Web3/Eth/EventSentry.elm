@@ -107,7 +107,7 @@ type EventSentry msg
         , rpcIdToFKey : Dict RpcId FilterKey
         , subIdToFKey : Dict SubscriptionId FilterKey
         , debug : Bool
-        , idRef : RpcId
+        , ref : RpcId
         }
 
 
@@ -120,7 +120,7 @@ init nodePath =
         , rpcIdToFKey = Dict.empty
         , subIdToFKey = Dict.empty
         , debug = False
-        , idRef = 1
+        , ref = 1
         }
 
 
@@ -217,13 +217,13 @@ watch_ isOnce rpcParams filterKey onReceive ((EventSentry sentry) as sentry_) =
         Nothing ->
             ( EventSentry
                 { sentry
-                    | filters = Dict.insert filterKey (makeFilter isOnce onReceive sentry.idRef) sentry.filters
-                    , rpcIdToFKey = Dict.insert sentry.idRef filterKey sentry.rpcIdToFKey
-                    , idRef = sentry.idRef + 1
+                    | filters = Dict.insert filterKey (makeFilter isOnce onReceive sentry.ref) sentry.filters
+                    , rpcIdToFKey = Dict.insert sentry.ref filterKey sentry.rpcIdToFKey
+                    , ref = sentry.ref + 1
                 }
             , Cmd.batch
                 [ WS.send sentry.nodePath <|
-                    Encode.encode 0 (RPC.encode sentry.idRef "eth_subscribe" rpcParams)
+                    Encode.encode 0 (RPC.encode sentry.ref "eth_subscribe" rpcParams)
                 ]
             )
 
@@ -249,10 +249,10 @@ unWatch_ filterKey ((EventSentry sentry) as sentry_) =
                                 | filters = Dict.remove filterKey sentry.filters
                                 , rpcIdToFKey = Dict.remove filterState.rpcId sentry.rpcIdToFKey
                                 , subIdToFKey = Dict.remove subId sentry.subIdToFKey
-                                , idRef = sentry.idRef + 1
+                                , ref = sentry.ref + 1
                             }
                         , Cmd.batch
-                            [ WS.send sentry.nodePath (closeFilterRpc sentry.idRef subId) ]
+                            [ WS.send sentry.nodePath (closeFilterRpc sentry.ref subId) ]
                         )
 
                 Nothing ->

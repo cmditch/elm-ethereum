@@ -2,11 +2,12 @@ module Web3.Evm.Encode
     exposing
         ( Encoding(..)
         , encodeData
+        , encodeDataWithDebug
         , encode
         )
 
 {-| Encode before sending RPC Calls
-@docs Encoding, encodeData, encode
+@docs Encoding, encodeData, encodeDataWithDebug, encode
 -}
 
 import BigInt exposing (BigInt)
@@ -32,16 +33,31 @@ type Encoding
 
 {-| -}
 encodeData : String -> List Encoding -> Hex
-encodeData sig encodings =
-    let
-        sigHash =
-            functionSig sig
+encodeData =
+    encodeData_ False
 
+
+{-| -}
+encodeDataWithDebug : String -> List Encoding -> Hex
+encodeDataWithDebug =
+    encodeData_ True
+
+
+{-| -}
+encodeData_ : Bool -> String -> List Encoding -> Hex
+encodeData_ isDebug sig encodings =
+    let
         byteCodeEncodings =
             List.map encode encodings
                 |> String.join ""
+
+        data =
+            if isDebug then
+                Debug.log ("Debug Contract Call " ++ sig) (functionSig sig ++ byteCodeEncodings)
+            else
+                functionSig sig ++ byteCodeEncodings
     in
-        Internal.Hex <| sigHash ++ byteCodeEncodings
+        Internal.Hex data
 
 
 {-| -}

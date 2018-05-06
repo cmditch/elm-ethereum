@@ -3,8 +3,8 @@ module Web3.Eth.Encode
         ( address
         , txHash
         , blockHash
-        , callParams
-        , sendParams
+        , txCall
+        , txSend
         , blockId
         , logFilter
         )
@@ -19,7 +19,7 @@ module Web3.Eth.Encode
 
 # Complex
 
-@docs callParams, sendParams, blockId, logFilter
+@docs txCall, txSend, blockId, logFilter
 
 -}
 
@@ -50,8 +50,8 @@ blockHash =
 
 
 {-| -}
-callParams : Call a -> Value
-callParams { to, from, gas, gasPrice, value, data } =
+txCall : Call a -> Value
+txCall { to, from, gas, gasPrice, value, data } =
     listOfMaybesToVal
         [ ( "to", Maybe.map address to )
         , ( "from", Maybe.map address from )
@@ -63,8 +63,8 @@ callParams { to, from, gas, gasPrice, value, data } =
 
 
 {-| -}
-sendParams : Send -> Value
-sendParams { to, from, gas, gasPrice, value, data, nonce } =
+txSend : Send -> Value
+txSend { to, from, gas, gasPrice, value, data, nonce } =
     listOfMaybesToVal
         [ ( "to", Maybe.map address to )
         , ( "from", Maybe.map address from )

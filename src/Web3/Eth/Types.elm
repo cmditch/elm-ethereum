@@ -22,12 +22,12 @@ module Web3.Eth.Types
 
 # Simple
 
-@docs Address, TxHash, BlockHash, BlockId
+@docs Address, TxHash, BlockHash
 
 
 # Complex
 
-@docs Call, Send, Tx, TxReceipt, Block, Uncle, BlockHead, Log, Event, LogFilter, SyncStatus
+@docs Call, Send, Tx, TxReceipt, BlockId ,Block, Uncle, BlockHead, Log, Event, LogFilter, SyncStatus
 
 -}
 
@@ -51,15 +51,6 @@ type alias TxHash =
 {-| -}
 type alias BlockHash =
     Internal.BlockHash
-
-
-{-| -}
-type BlockId
-    = BlockIdNum Int
-    | BlockIdHash BlockHash
-    | EarliestBlock
-    | LatestBlock
-    | PendingBlock
 
 
 {-| -}
@@ -117,6 +108,15 @@ type alias TxReceipt =
     , root : Maybe String
     , status : Maybe Bool
     }
+
+
+{-| -}
+type BlockId
+    = BlockIdNum Int
+    | BlockIdHash BlockHash
+    | EarliestBlock
+    | LatestBlock
+    | PendingBlock
 
 
 {-| -}

@@ -121,7 +121,7 @@ callAtBlock ethNode blockId txParams =
     RPC.buildRequest
         { url = ethNode
         , method = "eth_call"
-        , params = [ Encode.callParams txParams, Encode.blockId blockId ]
+        , params = [ Encode.txCall txParams, Encode.blockId blockId ]
         , decoder = txParams.decoder
         }
 
@@ -137,7 +137,7 @@ estimateGas ethNode txParams =
     RPC.buildRequest
         { url = ethNode
         , method = "eth_estimateGas"
-        , params = [ Encode.callParams txParams ]
+        , params = [ Encode.txCall txParams ]
         , decoder = Decode.hexInt
         }
 
@@ -266,7 +266,7 @@ sendTx ethNode txParams =
     RPC.buildRequest
         { url = ethNode
         , method = "eth_sendTransaction"
-        , params = [ Encode.sendParams txParams ]
+        , params = [ Encode.txSend txParams ]
         , decoder = Decode.txHash
         }
 
