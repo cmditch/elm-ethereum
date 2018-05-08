@@ -122,9 +122,9 @@ toAddress str =
         else if not (isAddress noZeroX) then
             Err <| "Given address " ++ quote str ++ " contains invalid hex characters."
         else if isUpperCaseAddress noZeroX || isLowerCaseAddress noZeroX then
-            Ok <| Internal.Address <| String.toLower <| str
+            Ok <| Internal.Address (String.toLower noZeroX)
         else if (isChecksumAddress noZeroX) then
-            Ok <| Internal.Address noZeroX
+            Ok <| Internal.Address (String.toLower noZeroX)
         else
             Err <| "Given address " ++ quote str ++ " failed the EIP-55 checksum test."
 
@@ -141,7 +141,7 @@ toChecksumAddress str =
 {-| -}
 addressToString : Address -> String
 addressToString (Internal.Address address) =
-    add0x (String.toLower address |> checksumIt)
+    (add0x << checksumIt) address
 
 
 {-| -}
@@ -377,11 +377,11 @@ unsafeToBlockHash =
 
 -- Internal
 -- Checksum helpers
-{- Takes first 20 bytes of keccak'd address, and converts each hex char to an int
-   Packs this list into a tuple with the split up address chars so a comparison can be made between the two.
+
+
+{-| Takes first 20 bytes of keccak'd address, and converts each hex char to an int
+Packs this list into a tuple with the split up address chars so a comparison can be made between the two.
 -}
-
-
 checksumHelper : String -> ( List Char, List Int )
 checksumHelper address =
     let
