@@ -4,7 +4,7 @@ import Eth
 import Eth.Decode as Decode
 import Eth.Types exposing (..)
 import Eth.Sentry.Tx as TxSentry exposing (..)
-import Eth.Utils exposing (gwei, unsafeToAddress)
+import Eth.Units exposing (gwei)
 import Html exposing (..)
 import Html.Events exposing (onClick)
 import Http
@@ -29,7 +29,7 @@ type alias Model =
     , blockNumber : Maybe Int
     , tx : Maybe Tx
     , txReceipt : Maybe TxReceipt
-    , blockDepth : BlockDepth
+    , blockDepth : String
     , errors : List String
     }
 
@@ -41,7 +41,7 @@ init =
     , blockNumber = Nothing
     , tx = Nothing
     , txReceipt = Nothing
-    , blockDepth = Unmined
+    , blockDepth = ""
     , errors = []
     }
         ! [ Task.perform PollBlock (Task.succeed <| Ok 0) ]
@@ -93,7 +93,7 @@ type Msg
     | InitTx
     | WatchTx Tx
     | WatchTxReceipt TxReceipt
-    | WatchTxBlockDepth BlockDepth
+    | TrackTx TxTracker
     | NoOp
 
 
@@ -134,7 +134,7 @@ update msg model =
                             TxSentry.customSend
                                 { onSign = Nothing
                                 , onBroadcast = Just WatchTx
-                                , onMined = Just ( WatchTxReceipt, Just ( 5, WatchTxBlockDepth ) )
+                                , onMined = Just ( WatchTxReceipt, Just ( 5, TrackTx ) )
                                 }
                                 txParams
                                 model.txSentry
@@ -150,8 +150,8 @@ update msg model =
         WatchTxReceipt txReceipt ->
             { model | txReceipt = Just txReceipt } ! []
 
-        WatchTxBlockDepth blockDepth ->
-            { model | blockDepth = blockDepth } ! []
+        TrackTx blockDepth ->
+            { model | blockDepth = toString blockDepth } ! []
 
         NoOp ->
             model ! []

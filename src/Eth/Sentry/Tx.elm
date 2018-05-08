@@ -8,7 +8,7 @@ module Eth.Sentry.Tx
         , send
         , sendWithReceipt
         , CustomSend
-        , BlockDepth(..)
+        , TxTracker
         , customSend
         , withDebug
         , changeNode
@@ -29,7 +29,7 @@ module Eth.Sentry.Tx
 
 # Custom Send
 
-@docs CustomSend, BlockDepth, customSend
+@docs CustomSend, TxTracker, customSend
 
 
 # Utils
@@ -108,17 +108,21 @@ sendWithReceipt onBroadcast onMined txParams sentry =
 type alias CustomSend msg =
     { onSign : Maybe (TxHash -> msg)
     , onBroadcast : Maybe (Tx -> msg)
-    , onMined : Maybe ( TxReceipt -> msg, Maybe ( Int, BlockDepth -> msg ) )
+    , onMined : Maybe ( TxReceipt -> msg, Maybe ( Int, TxTracker -> msg ) )
     }
 
 
 {-| For checking whether a tx has reached a certain block depth (# of confirmations) in a customSend
 -}
-type BlockDepth
-    = Unmined
-    | Depth Int
-    | DeepEnough Int
-    | Error String
+type alias TxTracker =
+    { currentDepth : Int
+    , minedInBlock : Int
+    , stopWatchingAtBlock : Int
+    , lastCheckedBlock : Int
+    , txHash : TxHash
+    , doneWatching : Bool
+    , reOrg : Bool
+    }
 
 
 {-| -}
@@ -169,7 +173,7 @@ type alias TxState msg =
     { params : Send
     , onSignedTagger : Maybe (TxHash -> msg)
     , onBroadcastTagger : Maybe (Tx -> msg)
-    , onMinedTagger : Maybe ( TxReceipt -> msg, Maybe ( Int, BlockDepth -> msg ) )
+    , onMinedTagger : Maybe ( TxReceipt -> msg, Maybe ( Int, TxTracker -> msg ) )
     , status : TxStatus
     }
 
@@ -184,7 +188,7 @@ type Msg
     | TxSigned { ref : Int, txHash : TxHash }
     | TxSent Int (Result Http.Error Tx)
     | TxMined Int (Result Http.Error TxReceipt)
-    | TxBlockDepth Int TxHash Int Int Int (Result Http.Error Int)
+    | TrackTx Int TxTracker (Result Http.Error Int)
     | ErrorDecoding String
 
 
@@ -283,14 +287,24 @@ update msg (TxSentry sentry) =
                                     Just ( txReceiptToMsg, Nothing ) ->
                                         Task.perform txReceiptToMsg (Task.succeed txReceipt)
 
-                                    Just ( txReceiptToMsg, Just ( blockDepth, blockDepthToMsg ) ) ->
-                                        Cmd.batch
-                                            [ Task.attempt (TxBlockDepth ref txReceipt.hash blockDepth txReceipt.blockNumber txReceipt.blockNumber)
-                                                (Eth.getBlockNumber sentry.nodePath)
-                                                |> Cmd.map sentry.tagger
-                                            , Task.perform txReceiptToMsg (Task.succeed txReceipt)
-                                            , Task.perform blockDepthToMsg (Task.succeed <| Depth 1)
-                                            ]
+                                    Just ( txReceiptToMsg, Just ( depthParam, blockDepthToMsg ) ) ->
+                                        let
+                                            txTracker =
+                                                { currentDepth = 1
+                                                , minedInBlock = txReceipt.blockNumber
+                                                , stopWatchingAtBlock = txReceipt.blockNumber + (depthParam - 1)
+                                                , lastCheckedBlock = txReceipt.blockNumber
+                                                , txHash = txReceipt.hash
+                                                , doneWatching = False
+                                                , reOrg = False
+                                                }
+                                        in
+                                            Cmd.batch
+                                                [ Task.attempt (TrackTx ref txTracker) (Eth.getBlockNumber sentry.nodePath)
+                                                    |> Cmd.map sentry.tagger
+                                                , Task.perform txReceiptToMsg (Task.succeed txReceipt)
+                                                , Task.perform blockDepthToMsg (Task.succeed txTracker)
+                                                ]
 
                                     Nothing ->
                                         Cmd.none
@@ -309,25 +323,40 @@ update msg (TxSentry sentry) =
             in
                 ( TxSentry sentry, Cmd.none )
 
-        TxBlockDepth ref txHash blockDepth minedOn lastCheckedBlockNum (Ok newBlockNum) ->
-            if newBlockNum - minedOn == blockDepth - 1 then
+        TrackTx ref txTracker (Ok newBlockNum) ->
+            if newBlockNum == txTracker.stopWatchingAtBlock then
                 -- if block depth is reached, send DeepEnough msg
-                case getBlockDepthToMsg sentry.txs ref of
+                case getTxTrackerToMsg sentry.txs ref of
                     Just blockDepthToMsg ->
-                        ( TxSentry sentry
-                        , Task.perform blockDepthToMsg
-                            (Eth.getTxReceipt sentry.nodePath txHash
-                                |> Task.andThen (\_ -> Task.succeed <| DeepEnough blockDepth)
-                                |> Task.onError (\_ -> Task.succeed <| Error "Tx lost! Tx re-broadcast is required due to chain re-org.")
+                        let
+                            newTxTracker =
+                                { txTracker
+                                    | lastCheckedBlock = newBlockNum
+                                    , currentDepth = (newBlockNum - txTracker.minedInBlock) + 1
+                                    , doneWatching = True
+                                }
+                        in
+                            ( TxSentry sentry
+                            , Task.perform blockDepthToMsg
+                                (Eth.getTxReceipt sentry.nodePath txTracker.txHash
+                                    |> Task.andThen (\_ -> Task.succeed newTxTracker)
+                                    |> Task.onError
+                                        (\_ ->
+                                            (Task.succeed <|
+                                                Debug.log
+                                                    "TxTracker - Possible Chain ReOrg"
+                                                    { newTxTracker | reOrg = True }
+                                            )
+                                        )
+                                )
                             )
-                        )
 
                     Nothing ->
                         ( TxSentry sentry, Cmd.none )
-            else if lastCheckedBlockNum == newBlockNum then
+            else if newBlockNum == txTracker.lastCheckedBlock then
                 -- else keep polling for new block
                 ( TxSentry sentry
-                , Task.attempt (TxBlockDepth ref txHash blockDepth minedOn lastCheckedBlockNum)
+                , Task.attempt (TrackTx ref txTracker)
                     (Process.sleep 2000
                         |> Task.andThen (\_ -> Eth.getBlockNumber sentry.nodePath)
                     )
@@ -336,29 +365,35 @@ update msg (TxSentry sentry) =
             else
                 -- If the newly polled blockNumber /= the previously polled blockNumber,
                 -- let the user know a new blockDepth has been reached.
-                case getBlockDepthToMsg sentry.txs ref of
+                case getTxTrackerToMsg sentry.txs ref of
                     Just blockDepthToMsg ->
-                        ( TxSentry sentry
-                        , Cmd.batch
-                            [ Task.attempt (TxBlockDepth ref txHash blockDepth minedOn newBlockNum)
-                                (Process.sleep 2000
-                                    |> Task.andThen (\_ -> Eth.getBlockNumber sentry.nodePath)
-                                )
-                                |> Cmd.map sentry.tagger
-                            , Task.perform blockDepthToMsg (Task.succeed <| Depth (newBlockNum - minedOn + 1))
-                            ]
-                        )
+                        let
+                            newTxTracker =
+                                { txTracker
+                                    | lastCheckedBlock = newBlockNum
+                                    , currentDepth = (newBlockNum - txTracker.minedInBlock) + 1
+                                }
+                        in
+                            ( TxSentry sentry
+                            , Cmd.batch
+                                [ Task.attempt (TrackTx ref newTxTracker)
+                                    (Process.sleep 2000
+                                        |> Task.andThen (\_ -> Eth.getBlockNumber sentry.nodePath)
+                                    )
+                                    |> Cmd.map sentry.tagger
+                                , Task.perform blockDepthToMsg (Task.succeed newTxTracker)
+                                ]
+                            )
 
                     Nothing ->
                         ( TxSentry sentry, Cmd.none )
 
-        TxBlockDepth ref _ _ _ _ (Err error) ->
-            case getBlockDepthToMsg sentry.txs ref of
-                Just blockDepthToMsg ->
-                    ( TxSentry sentry, Task.perform blockDepthToMsg (Task.succeed <| Error (toString error)) )
-
-                Nothing ->
-                    ( TxSentry sentry, Cmd.none )
+        TrackTx ref _ (Err error) ->
+            let
+                _ =
+                    Debug.log "TxTracker" ("Error getting latest block. Info: " ++ toString error)
+            in
+                ( TxSentry sentry, Cmd.none )
 
         ErrorDecoding error ->
             let
@@ -383,17 +418,6 @@ pollTxReceipt nodePath txHash =
             |> retry { attempts = 60, sleep = 5 }
 
 
-
--- if requiredConfirmations > 1, poll blockNumber accordingly
--- |> Task.andThen
---     (\txReceipt ->
---         pollTxConfirmations nodePath
---             requiredConfirmations
---             txReceipt.blockNumber
---             txReceipt
---     )
-
-
 pollTxBroadcast : HttpProvider -> TxHash -> Task Http.Error Tx
 pollTxBroadcast nodePath txHash =
     Process.sleep 250
@@ -406,31 +430,6 @@ pollTxBroadcast nodePath txHash =
 
 
 
--- pollTxConfirmations : HttpProvider -> Int -> Int -> TxReceipt -> Task Http.Error TxReceipt
--- pollTxConfirmations nodePath requiredConfirmations currentBlock txReceipt =
---     let
---         _ =
---             Debug.log "pollTxConf"
---                 ("Watching Transaction for " ++ toString requiredConfirmations ++ " confirmations. Currently at block " ++ toString currentBlock)
---     in
---         if requiredConfirmations < 1 then
---             let
---                 _ =
---                     Debug.log "Invalid requiredConfirmations Param"
---                         requiredConfirmations
---             in
---                 Task.succeed txReceipt
---         else if currentBlock - (requiredConfirmations - 1) == txReceipt.blockNumber then
---             Task.succeed txReceipt
---         else
---             Process.sleep 5000
---                 |> Task.andThen (\_ -> Eth.getBlockNumber nodePath)
---                 |> Task.andThen
---                     (\blockNum ->
---                         Eth.getTxReceipt nodePath txReceipt.hash
---                             |> Task.andThen (\txReceipt -> pollTxConfirmations nodePath requiredConfirmations blockNum txReceipt)
---                             |> Task.mapError (\_ -> Http.BadUrl "Tx lost! Tx rebroadcast required due to chain re-org.")
---                     )
 {- Dict Helpers -}
 
 
@@ -449,12 +448,12 @@ txStatusMined txReceipt =
     Maybe.map (\txState -> { txState | status = Mined txReceipt })
 
 
-getBlockDepthToMsg : Dict Int (TxState msg) -> Int -> Maybe (BlockDepth -> msg)
-getBlockDepthToMsg txs ref =
+getTxTrackerToMsg : Dict Int (TxState msg) -> Int -> Maybe (TxTracker -> msg)
+getTxTrackerToMsg txs ref =
     Dict.get ref txs
         |> Maybe.andThen (\txState -> txState.onMinedTagger)
         |> Maybe.andThen (\onMined -> Tuple.second onMined)
-        |> Maybe.map (\( _, blockDepthToMsg ) -> blockDepthToMsg)
+        |> Maybe.map (\( _, txTracker ) -> txTracker)
 
 
 
