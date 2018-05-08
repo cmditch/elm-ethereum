@@ -98,7 +98,12 @@ import Time
 -- Address
 
 
-{-| -}
+{-| Make an Address
+
+All lowercase or uppercase strings, shaped like addresses, will result in `Ok`.
+Mixed case strings will return `Err` if checksum is invalid.
+
+-}
 toAddress : String -> Result String Address
 toAddress str =
     let
@@ -107,12 +112,16 @@ toAddress str =
 
         bytes32Address =
             String.right 40 str
+
+        emptyZerosInBytes32 =
+            String.left 24 noZeroX
     in
-        if String.length noZeroX == 64 && String.all ((==) '0') (String.left 24 noZeroX) then
+        -- Address is always stored in lowercase and without "0x"
+        if String.length noZeroX == 64 && String.all ((==) '0') emptyZerosInBytes32 then
             if isUpperCaseAddress bytes32Address || isLowerCaseAddress bytes32Address then
                 Ok <| Internal.Address <| String.toLower bytes32Address
-            else if (isChecksumAddress bytes32Address) then
-                Ok <| Internal.Address bytes32Address
+            else if (isChecksumStringyAddress bytes32Address) then
+                Ok <| Internal.Address <| String.toLower bytes32Address
             else
                 Err <| "Given address " ++ quote str ++ " failed the EIP-55 checksum test."
         else if String.length noZeroX < 40 then
@@ -123,7 +132,7 @@ toAddress str =
             Err <| "Given address " ++ quote str ++ " contains invalid hex characters."
         else if isUpperCaseAddress noZeroX || isLowerCaseAddress noZeroX then
             Ok <| Internal.Address (String.toLower noZeroX)
-        else if (isChecksumAddress noZeroX) then
+        else if (isChecksumStringyAddress noZeroX) then
             Ok <| Internal.Address (String.toLower noZeroX)
         else
             Err <| "Given address " ++ quote str ++ " failed the EIP-55 checksum test."
@@ -138,7 +147,8 @@ toChecksumAddress str =
         Err <| "Given address " ++ quote str ++ " is not a valid Ethereum address."
 
 
-{-| -}
+{-| Returns Checksummed Address
+-}
 addressToString : Address -> String
 addressToString (Internal.Address address) =
     (add0x << checksumIt) address
@@ -151,8 +161,14 @@ isAddress =
 
 
 {-| -}
-isChecksumAddress : String -> Bool
-isChecksumAddress str =
+isChecksumAddress : Address -> Bool
+isChecksumAddress (Internal.Address address) =
+    isChecksumStringyAddress address
+
+
+{-| -}
+isChecksumStringyAddress : String -> Bool
+isChecksumStringyAddress str =
     let
         checksumTestChar addrChar hashInt =
             if hashInt >= 8 && Char.isLower addrChar || hashInt < 8 && Char.isUpper addrChar then
@@ -359,7 +375,7 @@ unsafeToHex =
 {-| -}
 unsafeToAddress : String -> Address
 unsafeToAddress =
-    remove0x >> Internal.Address
+    remove0x >> String.toLower >> Internal.Address
 
 
 {-| -}
