@@ -17,14 +17,13 @@ module Evm.Decode
         , topic
         , data
         , andMap
-        , map2
         )
 
 {-| Decode RPC Responses
 
 @docs EvmDecoder, evmDecode, runDecoder, toElmDecoder, toElmDecoderWithDebug
 @docs uint, bool, address, dBytes, sBytes, string, dArray, sArray, ipfsHash
-@docs topic, data, andMap, map2
+@docs andMap, topic, data
 
 -}
 
@@ -34,11 +33,11 @@ import Eth.Decode exposing (resultToDecoder)
 import Eth.Types exposing (IPFSHash, Address)
 import Eth.Utils exposing (add0x, remove0x, toAddress, makeIPFSHash)
 import Hex
+import Internal.Utils exposing (..)
 import String.UTF8 as UTF8
 import String.Extra as String
 import Result.Extra as Result
 import Json.Decode as Decode exposing (Decoder)
-import Evm.Utils exposing (take64, drop64)
 
 
 {-| -}
@@ -46,18 +45,16 @@ type EvmDecoder a
     = EvmDecoder (Tape -> Result String ( Tape, a ))
 
 
+{-|
 
-{- Tape == Tape Original Altered
+    Tape == Tape Original Altered
 
-   Altered  :  Tape that is being read and eaten up in 32 byte / 64 character chunks, and passed down to the next decoder
+    Altered : Tape that is being read and eaten up in 32 byte / 64 character chunks, and passed down to the next decoder
 
-   Oringal  :  Untouched copy of the initial input string, i.e., the full hex return from a JSON RPC Call.
+    Original : Untouched copy of the initial input string, i.e., the full hex return from a JSON RPC Call.
                This remains untouched during the entire decoding process,
                and is needed to help grab dynamic solidity values, such as 'bytes', 'address[]', or 'uint256[]'
-
 -}
-
-
 type Tape
     = Tape String String
 
@@ -247,10 +244,8 @@ data index evmDecoder =
         |> Decode.field "data"
 
 
-
--- Useful for decoding data withing events/logs.
-
-
+{-| Useful for decoding data withing events/logs.
+-}
 dropBytes : Int -> EvmDecoder a -> EvmDecoder a
 dropBytes location (EvmDecoder decoder) =
     EvmDecoder <|
@@ -288,10 +283,9 @@ newTape original altered val =
     ( Tape original (drop64 altered), val )
 
 
+{-| Takes the index pointer to the beginning of a given string/bytes value (the first 32 bytes being the data length)
 
-{- Takes the index pointer to the beginning of a given string/bytes value (the first 32 bytes being the data length)
-
-   Example -
+Example -
 
        0000000000000000000000000000000000000000000000000000000000000020 -- Start index of data is 0x20 or byte number 32 / char number 64
        0000000000000000000000000000000000000000000000000000000000000044 -- First 32 bytes describes the length of the actual data, in this case 68 bytes or 136 chars
@@ -300,8 +294,6 @@ newTape original altered val =
        136 chars of data, 192 chars total
 
 -}
-
-
 buildBytes : String -> String -> Result String String
 buildBytes fullTape lengthIndex =
     let
@@ -320,11 +312,10 @@ buildBytes fullTape lengthIndex =
                 )
 
 
+{-| Takes the index pointer to the beginning of the array data (the first piece being the array length)
+and the full return data, and slices out the
 
-{- Takes the index pointer to the beginning of the array data (the first piece being the array length)
-   and the full return data, and slices out the
-
-   Example - Here is a returns(address[],uint256)
+Example - Here is a returns(address[],uint256)
 
        0000000000000000000000000000000000000000000000000000000000000040 -- Start index of address[] (starts at byte 64, or the 128th character)
        0000000000000000000000000000000000000000000000000000000000000123 -- Some Uint256
@@ -337,8 +328,6 @@ buildBytes fullTape lengthIndex =
        > Ok ["000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3", secondAddress, thirdAddress]
 
 -}
-
-
 buildDynArray : String -> String -> Result String (List String)
 buildDynArray fullTape lengthIndex =
     let
@@ -358,12 +347,9 @@ buildDynArray fullTape lengthIndex =
             |> Result.map (String.break 64)
 
 
-
-{- Applies decoder to value without bothering with Tape State
-   Useful for mapping over lists built from dynamic types
+{-| Applies decoder to value without bothering with Tape State
+Useful for mapping over lists built from dynamic types
 -}
-
-
 unpackDecoder : EvmDecoder a -> String -> Result String a
 unpackDecoder (EvmDecoder decoder) val =
     decoder (Tape "" val)

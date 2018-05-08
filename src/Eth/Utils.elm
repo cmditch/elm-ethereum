@@ -32,7 +32,7 @@ module Eth.Utils
         , valueToMsg
         )
 
-{-| Conversion, Unit, and Application utilities
+{-| String/Type Conversion and Application Helpers
 
 
 # Address

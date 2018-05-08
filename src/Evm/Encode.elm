@@ -7,18 +7,25 @@ module Evm.Encode
         )
 
 {-| Encode before sending RPC Calls
+
 @docs Encoding, encodeData, encodeDataWithDebug, encode
+
 -}
 
 import BigInt exposing (BigInt)
 import Eth.Types exposing (Hex, IPFSHash)
 import Eth.Utils exposing (add0x, remove0x, functionSig, ipfsToBytes32)
 import Eth.Types exposing (Address)
-import Evm.Utils exposing (leftPad)
 import Internal.Types as Internal
+import Internal.Utils exposing (..)
 
 
-{-| -}
+{-| Not yet implemented :
+
+    -- DO NOT USE
+    DBytesE, BytesE, StringE, ListE
+
+-}
 type Encoding
     = AddressE Address
     | UintE BigInt

@@ -4,7 +4,7 @@ module Eth.Units
         , eth
         )
 
-{-| Conversion, Unit, and Application utilities
+{-| Conversions and Helpers
 
 
 # Units

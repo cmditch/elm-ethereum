@@ -550,16 +550,16 @@ newBlockHeadsKey =
     ( "new", "heads" )
 
 
-debugHelp sentry log val =
+debugHelp sentry logText val =
     if sentry.debug then
-        Debug.log log val
+        Debug.log ("EventSentry - " ++ logText) val
     else
         val
 
 
 log =
-    { subOpened = "EventSentry - Subscription Opened"
-    , subClosed = "EventSentry - Subscription Closed"
+    { subOpened = "Subscription Opened"
+    , subClosed = "Subscription Closed"
     }
 
 

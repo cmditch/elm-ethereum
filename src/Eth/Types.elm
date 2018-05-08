@@ -3,6 +3,7 @@ module Eth.Types
         ( Address
         , TxHash
         , BlockHash
+        , IPFSHash
         , BlockId(..)
         , Call
         , Send
@@ -18,7 +19,6 @@ module Eth.Types
         , HttpProvider
         , FilterId
         , Hex
-        , IPFSHash
         )
 
 {-| Types
@@ -26,7 +26,7 @@ module Eth.Types
 
 # Simple
 
-@docs Address, TxHash, BlockHash
+@docs Address, TxHash, BlockHash, Hex
 
 
 # Complex
@@ -36,7 +36,7 @@ module Eth.Types
 
 # Misc
 
-@docs HttpProvider, FilterId, Hex, IPFSHash
+@docs HttpProvider, FilterId, IPFSHash
 
 -}
 

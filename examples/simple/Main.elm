@@ -134,7 +134,7 @@ update msg model =
                             TxSentry.customSend
                                 { onSign = Nothing
                                 , onBroadcast = Just WatchTx
-                                , onMined = Just ( WatchTxReceipt, Just ( 5, TrackTx ) )
+                                , onMined = Just ( WatchTxReceipt, Just ( 3, TrackTx ) )
                                 }
                                 txParams
                                 model.txSentry
