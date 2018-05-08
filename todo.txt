@@ -1,0 +1,146 @@
+
+Web3.Eth.getTxReceipt
+Web3.Eth.blockNumber
+Web3.Eth.getBalance
+Web3.Eth.getStorageAt
+Web3.Eth.getTxCount
+Web3.Eth.getBlockTxCountByHash
+Web3.Eth....
+
+
+Web3.Eth.EventSentry
+Web3.Eth.TxSentry
+
+
+Web3.ChainEff
+
+
+Web3.Default.zeroAddress
+Web3.Default.txParams
+
+
+Web3.Utils.toAddress
+Web3.Utils.isChecksumAddress
+Web3.Utils.toHex
+Web3.Utils.remove0x
+Web3.Utils.add0x
+
+
+Web3.Eth.Decoder.txReceipt
+Web3.Eth.Decoder.block
+Web3.Eth.Decoder.tx
+
+
+Web3.Eth.Encoder.txReceipt
+Web3.Eth.Encoder.tx
+
+
+Web3.Contract.Decoder
+Web3.Contract.Encoder
+
+
+------------------------------------------------------------------------------------------------
+
+
+[ ] - Create opqaue types and functions
+
+  [X] - type Address = Address (String, Bool)
+        toAddress       : String -> Result String Address
+        toString        : Address -> String
+        isChecksummed   : Address -> Bool
+
+    type TxId = TxId String
+        toTxId : String -> Result String TxId
+        toString : TxId -> String
+
+    ...
+
+
+[ ] - Finish out the TxSentry
+    ...
+
+
+[ ] - Finish out the EventSentry
+    ...
+
+
+[ ] - Finsh out ChainEff
+    [ ] - Make ChainEff.Sentry tuple full of Maybes and handle unwrapping internally
+          Create helper functions to create specific sentry's, or a lower level generic creation function
+
+          ChainEff.eventSentry  : EventSentry msg -> Sentry msg
+          ChainEff.txSentry     : TxSentry msg -> Sentry msg
+          ChainEff.customSentry : Maybe (EventSentry msg) -> Maybe (TxSentry msg) -> Sentry Msg
+
+
+[ ] - Finish out EVM decoder
+    [ ] - int
+
+
+
+[ ] - Add the rest of the RPC calls, and the necessary decoders/encoders
+
+-- Takes block parameter (earliest, latest, pending, etc.)
+[ ]  eth_getBalance
+[ ]  eth_getCode
+[ ]  eth_getTransactionCount
+[ ]  eth_getStorageAt
+[ ]  eth_call
+
+[ ]  web3_clientVersion
+[ ]  web3_sha3
+[ ]  net_version
+[ ]  net_peerCount
+[ ]  net_listening
+[ ]  eth_protocolVersion
+[ ]  eth_syncing
+[ ]  eth_coinbase
+[ ]  eth_mining
+[ ]  eth_hashrate
+[ ]  eth_gasPrice
+[ ]  eth_accounts
+[ ]  eth_blockNumber
+[ ]  eth_getBlockTransactionCountByHash
+[ ]  eth_getBlockTransactionCountByNumber
+[ ]  eth_getUncleCountByBlockHash
+[ ]  eth_getUncleCountByBlockNumber
+[ ]  eth_sign
+[ ]  eth_sendTransaction
+[ ]  eth_sendRawTransaction
+[ ]  eth_estimateGas
+[ ]  eth_getBlockByHash
+[ ]  eth_getBlockByNumber
+[ ]  eth_getTransactionByHash
+[ ]  eth_getTransactionByBlockHashAndIndex
+[ ]  eth_getTransactionByBlockNumberAndIndex
+[ ]  eth_getTransactionReceipt
+[ ]  eth_getUncleByBlockHashAndIndex
+[ ]  eth_getUncleByBlockNumberAndIndex
+[ ]  eth_getCompilers
+[ ]  eth_compileLLL
+[ ]  eth_compileSolidity
+[ ]  eth_compileSerpent
+[ ]  eth_newFilter
+[ ]  eth_newBlockFilter
+[ ]  eth_newPendingTransactionFilter
+[ ]  eth_uninstallFilter
+[ ]  eth_getFilterChanges
+[ ]  eth_getFilterLogs
+[ ]  eth_getLogs
+[ ]  eth_getWork
+[ ]  eth_submitWork
+[ ]  eth_submitHashrate
+[ ]  db_putString
+[ ]  db_getString
+[ ]  db_putHex
+[ ]  db_getHex
+[ ]  shh_post
+[ ]  shh_version
+[ ]  shh_newIdentity
+[ ]  shh_hasIdentity
+[ ]  shh_newGroup
+[ ]  shh_addToGroup
+[ ]  shh_newFilter
+[ ]  shh_uninstallFilter
+[ ]  shh_getFilterChanges
+[ ]  shh_getMessages
