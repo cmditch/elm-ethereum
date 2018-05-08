@@ -46,12 +46,13 @@ module Eth.Decode
 -}
 
 import BigInt exposing (BigInt)
+import Eth.Types exposing (..)
+import Eth.Utils exposing (toAddress, toHex, toTxHash, toBlockHash)
 import Hex
+import Internal.Utils exposing (remove0x)
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (required, decode, custom, optional)
 import Time exposing (Time)
-import Eth.Types exposing (..)
-import Eth.Utils exposing (remove0x, toAddress, toHex, toTxHash, toBlockHash)
 
 
 -- Simple

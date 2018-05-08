@@ -36,7 +36,7 @@ import Hex
 import Json.Encode as Encode exposing (Value, int, list, string, object, null)
 import Eth.Types exposing (..)
 import Eth.Utils exposing (..)
-import Internal.Utils exposing (listOfMaybesToVal)
+import Internal.Utils exposing (..)
 
 
 -- Simple

@@ -31,7 +31,7 @@ import Base58
 import BigInt exposing (BigInt)
 import Eth.Decode exposing (resultToDecoder)
 import Eth.Types exposing (IPFSHash, Address)
-import Eth.Utils exposing (add0x, remove0x, toAddress, makeIPFSHash)
+import Eth.Utils exposing (toAddress, makeIPFSHash)
 import Hex
 import Internal.Utils exposing (..)
 import String.UTF8 as UTF8

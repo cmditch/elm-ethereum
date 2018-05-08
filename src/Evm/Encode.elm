@@ -3,18 +3,17 @@ module Evm.Encode
         ( Encoding(..)
         , encodeData
         , encodeDataWithDebug
-        , encode
         )
 
 {-| Encode before sending RPC Calls
 
-@docs Encoding, encodeData, encodeDataWithDebug, encode
+@docs Encoding, encodeData, encodeDataWithDebug
 
 -}
 
 import BigInt exposing (BigInt)
 import Eth.Types exposing (Hex, IPFSHash)
-import Eth.Utils exposing (add0x, remove0x, functionSig, ipfsToBytes32)
+import Eth.Utils exposing (functionSig, ipfsToBytes32)
 import Eth.Types exposing (Address)
 import Internal.Types as Internal
 import Internal.Utils exposing (..)
@@ -48,6 +47,10 @@ encodeData =
 encodeDataWithDebug : String -> List Encoding -> Hex
 encodeDataWithDebug =
     encodeData_ True
+
+
+
+-- Internal
 
 
 {-| -}

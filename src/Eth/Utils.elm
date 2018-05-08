@@ -5,8 +5,6 @@ module Eth.Utils
         , addressToString
         , isAddress
         , isChecksumAddress
-        , isLowerCaseAddress
-        , isUpperCaseAddress
         , toHex
         , hexToString
         , isHex
@@ -14,8 +12,6 @@ module Eth.Utils
         , txHashToString
         , toBlockHash
         , blockHashToString
-        , add0x
-        , remove0x
         , hexToAscii
         , functionSig
         , keccak256
@@ -27,6 +23,7 @@ module Eth.Utils
         , unsafeToAddress
         , unsafeToTxHash
         , unsafeToBlockHash
+        , unsafeToIPFSHash
         , Retry
         , retry
         , valueToMsg
@@ -37,12 +34,12 @@ module Eth.Utils
 
 # Address
 
-@docs toAddress, toChecksumAddress, addressToString, isAddress, isChecksumAddress, isLowerCaseAddress, isUpperCaseAddress
+@docs toAddress, toChecksumAddress, addressToString, isAddress, isChecksumAddress
 
 
 # Hex
 
-@docs toHex, hexToString, isHex, hexToAscii, add0x, remove0x
+@docs toHex, hexToString, isHex, hexToAscii
 
 
 # Transaction Hash
@@ -67,7 +64,7 @@ module Eth.Utils
 
 # Unsafe
 
-@docs unsafeToHex, unsafeToAddress, unsafeToTxHash, unsafeToBlockHash
+@docs unsafeToHex, unsafeToAddress, unsafeToTxHash, unsafeToBlockHash, unsafeToIPFSHash
 
 
 # Application Helpers
@@ -83,7 +80,7 @@ import Char
 import Eth.Types exposing (..)
 import Hex
 import Internal.Types as Internal
-import Internal.Utils as Internal exposing (quote, toByteLength)
+import Internal.Utils as Internal exposing (..)
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
 import Keccak exposing (ethereum_keccak_256)
@@ -237,24 +234,6 @@ hexToAscii str =
             Err (quote str ++ " is not ascii hex. Uneven length. Byte pairs required.")
 
 
-{-| -}
-add0x : String -> String
-add0x str =
-    if String.startsWith "0x" str || String.startsWith "0X" str then
-        str
-    else
-        "0x" ++ str
-
-
-{-| -}
-remove0x : String -> String
-remove0x str =
-    if String.startsWith "0x" str || String.startsWith "0X" str then
-        String.dropLeft 2 str
-    else
-        str
-
-
 
 -- Tx Hash
 
@@ -388,6 +367,12 @@ unsafeToTxHash =
 unsafeToBlockHash : String -> BlockHash
 unsafeToBlockHash =
     remove0x >> Internal.BlockHash
+
+
+{-| -}
+unsafeToIPFSHash : String -> IPFSHash
+unsafeToIPFSHash =
+    remove0x >> Internal.IPFSHash
 
 
 
