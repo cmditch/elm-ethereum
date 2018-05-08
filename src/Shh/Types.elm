@@ -1,4 +1,4 @@
-module Web3.Shh.Types
+module Shh.Types
     exposing
         ( WhisperId
         , Post
@@ -10,7 +10,7 @@ module Web3.Shh.Types
 
 -}
 
-import Web3.Internal.Types as Internal
+import Internal.Types as Internal
 
 
 {-| -}

@@ -7,13 +7,14 @@ import Html exposing (Html)
 
 -- Internal
 
+import Eth.Sentry.Event as EventSentry exposing (EventSentry)
+import Eth.Types exposing (..)
+import Eth
+import Eth.Decode as Decode
+import Eth.Utils as Utils exposing (functionSig, unsafeToHex)
+import Eth.Units exposing (eth, gwei)
 import Task
 import Process
-import Web3.Eth.EventSentry as EventSentry exposing (EventSentry)
-import Web3.Eth.Types exposing (..)
-import Web3.Eth as Eth
-import Web3.Eth.Decode as Decode
-import Web3.Utils as Utils exposing (eth, gwei, functionSig, unsafeToHex)
 
 
 -- Program
@@ -31,7 +32,7 @@ main =
 
 node =
     { http = "https://mainnet.infura.io/metamask"
-    , ws = "ws://ec2-52-42-145-83.us-west-2.compute.amazonaws.com:8546"
+    , ws = "wss://mainnet.infura.io/ws"
     }
 
 
@@ -50,7 +51,9 @@ init : ( Model, Cmd Msg )
 init =
     { responses = []
     , pendingTxHashes = []
-    , eventSentry = EventSentry.init node.ws |> EventSentry.withDebug
+    , eventSentry =
+        EventSentry.init EventSentryMsg node.ws
+            |> EventSentry.withDebug
     }
         ! [ Task.perform (\_ -> InitTest) (Task.succeed ()) ]
 
@@ -70,84 +73,69 @@ view model =
 
 
 type Msg
-    = NoOp
-    | InitTest
-    | EventSentryMsg (EventSentry.Msg Msg)
-    | PendingTx TxHash
+    = InitTest
+    | WatchOnce
     | NewResponse String
+    | EventSentryMsg EventSentry.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
-            model ! []
-
         InitTest ->
-            let
-                ( sentryModel, sentryCmd ) =
-                    EventSentry.pendingTxs (toString >> NewResponse) model.eventSentry
-            in
-                { model | eventSentry = sentryModel }
-                    ! [ Cmd.map EventSentryMsg sentryCmd ]
+            model
+                ! [ logCmd
+                  , addressCmd
+                  , transactionCmd
+                  , blockCmd
+                  , contractCmds
+                  , watchOnceEvent
+                  ]
 
-        --blockCmd, contractCmds, transactionCmd, addressCmd, logCmd, ]
+        WatchOnce ->
+            let
+                ( subModel, subCmd ) =
+                    EventSentry.watchOnce (toString >> (++) "WatchOnce Cmd: \n\t" >> NewResponse)
+                        erc20TransferFilter2
+                        model.eventSentry
+            in
+                { model | eventSentry = subModel }
+                    ! [ subCmd ]
+
+        NewResponse response ->
+            { model | responses = response :: model.responses } ! []
+
         EventSentryMsg subMsg ->
             let
                 ( subModel, subCmd ) =
                     EventSentry.update subMsg model.eventSentry
             in
-                { model | eventSentry = subModel } ! [ Cmd.map EventSentryMsg subCmd ]
-
-        PendingTx txHash ->
-            { model | pendingTxHashes = txHash :: model.pendingTxHashes }
-                ! []
-
-        NewResponse response ->
-            { model | responses = response :: model.responses } ! []
+                { model | eventSentry = subModel } ! [ subCmd ]
 
 
 
--- Data
+-- Subs
 
 
-erc20TransferFilter : LogFilter
-erc20TransferFilter =
-    { fromBlock = BlockIdNum 5488303
-    , toBlock = LatestBlock
-    , address = Utils.unsafeToAddress "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C"
-    , topics = [ Just "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" ]
-    }
-
-
-erc20Contract : Address
-erc20Contract =
-    Utils.unsafeToAddress "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2"
-
-
-wrappedEthContract : Address
-wrappedEthContract =
-    Utils.unsafeToAddress "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-
-
-txHash : TxHash
-txHash =
-    Utils.unsafeToTxHash "0x5c9b0f9c6c32d2690771169ec62dd648fef7bce3d45fe8a6505d99fdcbade27a"
-
-
-blockHash : BlockHash
-blockHash =
-    Utils.unsafeToBlockHash "0x4f4b2cedbf641cf7213ea9612ed549ed39732ce3eb640500ca813af41ab16cd1"
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        [ EventSentry.listen model.eventSentry ]
 
 
 
 -- Test Cmds
 
 
+watchOnceEvent : Cmd Msg
+watchOnceEvent =
+    Task.perform (\_ -> WatchOnce) (Task.succeed ())
+
+
 logCmd : Cmd Msg
 logCmd =
     Eth.getLogs node.http erc20TransferFilter
-        |> Task.attempt (toString >> NewResponse)
+        |> Task.attempt (toString >> (++) "Log Cmds: \n\t" >> NewResponse)
 
 
 addressCmd : Cmd Msg
@@ -157,7 +145,7 @@ addressCmd =
         |> Task.andThen (\_ -> Process.sleep 700)
         |> Task.andThen (\_ -> Eth.getTxCount node.http wrappedEthContract)
         |> Task.andThen (\_ -> Eth.getTxCountAtBlock node.http (BlockIdNum 4620856) wrappedEthContract)
-        |> Task.attempt (toString >> NewResponse)
+        |> Task.attempt (toString >> (++) "Address Cmds: \n\t" >> NewResponse)
 
 
 transactionCmd : Cmd Msg
@@ -169,7 +157,7 @@ transactionCmd =
                 Eth.getTxByBlockHashAndIndex node.http txReceipt.blockHash 0
                     |> Task.andThen (\_ -> Eth.getTxByBlockNumberAndIndex node.http txReceipt.blockNumber 0)
             )
-        |> Task.attempt (toString >> NewResponse)
+        |> Task.attempt (toString >> (++) "Tx Cmds: \n\t" >> NewResponse)
 
 
 blockCmd : Cmd Msg
@@ -190,7 +178,7 @@ blockCmd =
                     |> Task.andThen (\_ -> Process.sleep 500)
                     |> Task.andThen (\_ -> Eth.getUncleByBlockHashAtIndex node.http block.hash 0)
             )
-        |> Task.attempt (toString >> NewResponse)
+        |> Task.attempt (toString >> (++) "Block Cmds: \n\t" >> NewResponse)
 
 
 contractCmds : Cmd Msg
@@ -215,17 +203,49 @@ contractCmds =
             |> Task.andThen (\_ -> Process.sleep 500)
             |> Task.andThen (\_ -> Eth.getCode node.http erc20Contract)
             |> Task.andThen (\_ -> Eth.getCodeAtBlock node.http (BlockIdNum 4620856) erc20Contract)
-            |> Task.attempt (toString >> NewResponse)
+            |> Task.attempt (toString >> (++) "Contract Cmds: \n\t" >> NewResponse)
 
 
 
--- Subs
+-- Data
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.batch
-        [ EventSentry.listen model.eventSentry EventSentryMsg ]
+erc20TransferFilter : LogFilter
+erc20TransferFilter =
+    { fromBlock = BlockIdNum 5488303
+    , toBlock = BlockIdNum 5488353
+    , address = Utils.unsafeToAddress "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C"
+    , topics = [ Just "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" ]
+    }
+
+
+erc20TransferFilter2 : LogFilter
+erc20TransferFilter2 =
+    { fromBlock = LatestBlock
+    , toBlock = LatestBlock
+    , address = Utils.unsafeToAddress "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C"
+    , topics = [ Just "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" ]
+    }
+
+
+erc20Contract : Address
+erc20Contract =
+    Utils.unsafeToAddress "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2"
+
+
+wrappedEthContract : Address
+wrappedEthContract =
+    Utils.unsafeToAddress "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+
+
+txHash : TxHash
+txHash =
+    Utils.unsafeToTxHash "0x5c9b0f9c6c32d2690771169ec62dd648fef7bce3d45fe8a6505d99fdcbade27a"
+
+
+blockHash : BlockHash
+blockHash =
+    Utils.unsafeToBlockHash "0x4f4b2cedbf641cf7213ea9612ed549ed39732ce3eb640500ca813af41ab16cd1"
 
 
 

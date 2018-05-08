@@ -1,4 +1,4 @@
-module Web3.Shh.Encode exposing (post)
+module Shh.Encode exposing (post)
 
 {-| Whisper Encoders
 
@@ -7,9 +7,9 @@ module Web3.Shh.Encode exposing (post)
 -}
 
 import Json.Encode exposing (Value, int, list, string, object, null)
-import Web3.Encode exposing (hexInt)
-import Web3.Shh.Types exposing (Post)
-import Web3.Internal.Utils exposing (listOfMaybesToVal)
+import Eth.Encode exposing (hexInt)
+import Internal.Utils exposing (listOfMaybesToVal)
+import Shh.Types exposing (Post)
 
 
 {-| -}

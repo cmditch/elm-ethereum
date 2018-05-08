@@ -1,4 +1,4 @@
-module Web3.Shh.Decode
+module Shh.Decode
     exposing
         ( whisperId
         , toWhisperId
@@ -11,10 +11,10 @@ module Web3.Shh.Decode
 -}
 
 import Json.Decode as Decode exposing (string, Decoder)
-import Web3.Shh.Types exposing (WhisperId)
-import Web3.Internal.Types as Internal
-import Web3.Decode exposing (resultToDecoder)
-import Web3.Utils exposing (isHex)
+import Internal.Types as Internal
+import Eth.Decode exposing (resultToDecoder)
+import Eth.Utils exposing (isHex)
+import Shh.Types exposing (WhisperId)
 
 
 {-| -}

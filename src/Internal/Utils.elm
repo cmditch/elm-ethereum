@@ -1,4 +1,4 @@
-module Web3.Internal.Utils exposing (..)
+module Internal.Utils exposing (..)
 
 import Json.Encode as Encode exposing (Value)
 

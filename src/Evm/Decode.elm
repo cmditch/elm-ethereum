@@ -1,4 +1,4 @@
-module Web3.Evm.Decode
+module Evm.Decode
     exposing
         ( EvmDecoder
         , evmDecode
@@ -30,16 +30,15 @@ module Web3.Evm.Decode
 
 import Base58
 import BigInt exposing (BigInt)
+import Eth.Decode exposing (resultToDecoder)
+import Eth.Types exposing (IPFSHash, Address)
+import Eth.Utils exposing (add0x, remove0x, toAddress, makeIPFSHash)
 import Hex
 import String.UTF8 as UTF8
 import String.Extra as String
 import Result.Extra as Result
 import Json.Decode as Decode exposing (Decoder)
-import Web3.Decode exposing (resultToDecoder)
-import Web3.Eth.Types exposing (Address)
-import Web3.Types exposing (IPFSHash)
-import Web3.Evm.Utils exposing (take64, drop64)
-import Web3.Utils exposing (add0x, remove0x, toAddress, makeIPFSHash)
+import Evm.Utils exposing (take64, drop64)
 
 
 {-| -}

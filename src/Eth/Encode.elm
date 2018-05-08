@@ -1,4 +1,4 @@
-module Web3.Eth.Encode
+module Eth.Encode
     exposing
         ( address
         , txHash
@@ -7,6 +7,9 @@ module Web3.Eth.Encode
         , txSend
         , blockId
         , logFilter
+        , bigInt
+        , hex
+        , hexInt
         )
 
 {-| Eth Encoders
@@ -21,14 +24,22 @@ module Web3.Eth.Encode
 
 @docs txCall, txSend, blockId, logFilter
 
+
+# Rudiments
+
+@docs bigInt, hex, hexInt
+
 -}
 
+import BigInt exposing (BigInt)
 import Hex
-import Json.Encode exposing (Value, int, list, string, object, null)
-import Web3.Internal.Utils exposing (listOfMaybesToVal)
-import Web3.Utils exposing (..)
-import Web3.Eth.Types exposing (..)
-import Web3.Encode exposing (hex, bigInt, hexInt)
+import Json.Encode as Encode exposing (Value, int, list, string, object, null)
+import Eth.Types exposing (..)
+import Eth.Utils exposing (..)
+import Internal.Utils exposing (listOfMaybesToVal)
+
+
+-- Simple
 
 
 {-| -}
@@ -47,6 +58,10 @@ txHash =
 blockHash : BlockHash -> Value
 blockHash =
     blockHashToString >> string
+
+
+
+-- Complex
 
 
 {-| -}
@@ -123,6 +138,23 @@ topicsList topicsList =
         List.map toVal topicsList |> list
 
 
-addressList : List Address -> Value
-addressList =
-    List.map address >> list
+
+-- Rudiments
+
+
+{-| -}
+bigInt : BigInt -> Value
+bigInt =
+    BigInt.toHexString >> add0x >> Encode.string
+
+
+{-| -}
+hex : Hex -> Value
+hex =
+    hexToString >> Encode.string
+
+
+{-| -}
+hexInt : Int -> Value
+hexInt =
+    Hex.toString >> add0x >> Encode.string

@@ -1,4 +1,4 @@
-module Web3.ChainEff
+module Eth.ChainEff
     exposing
         ( ChainEff
         , Sentry
@@ -36,9 +36,9 @@ use ChainEff. See examples.
 -}
 
 import Json.Decode exposing (Value)
-import Web3.Eth.EventSentry as EventSentry
-import Web3.Eth.TxSentry as TxSentry
-import Web3.Eth.Types exposing (..)
+import Eth.Sentry.Event as EventSentry
+import Eth.Sentry.Tx as TxSentry
+import Eth.Types exposing (..)
 
 
 {-| -}

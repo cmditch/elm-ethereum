@@ -1,4 +1,4 @@
-module Web3.Internal.Types exposing (..)
+module Internal.Types exposing (..)
 
 
 type Address

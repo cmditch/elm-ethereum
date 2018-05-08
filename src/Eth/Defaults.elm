@@ -1,4 +1,4 @@
-module Web3.Defaults
+module Eth.Defaults
     exposing
         ( zeroAddress
         , invalidAddress
@@ -14,8 +14,8 @@ For those withDefault shenanigans.
 
 -}
 
-import Web3.Internal.Types as Internal
-import Web3.Eth.Types exposing (..)
+import Internal.Types as Internal
+import Eth.Types exposing (..)
 
 
 {-| -}

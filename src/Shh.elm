@@ -1,4 +1,4 @@
-module Web3.Shh
+module Shh
     exposing
         ( version
         , post
@@ -14,12 +14,12 @@ module Web3.Shh
 import Json.Decode as Decode
 import Http
 import Task exposing (Task)
-import Web3.Decode as Decode
-import Web3.Types exposing (..)
-import Web3.Shh.Types exposing (Post, WhisperId)
-import Web3.Shh.Encode as Encode
-import Web3.Shh.Decode as Decode
-import Web3.JsonRPC as RPC
+import Eth.Decode as Decode
+import Eth.Types exposing (..)
+import Eth.JsonRPC as RPC
+import Shh.Types exposing (Post, WhisperId)
+import Shh.Encode as Encode
+import Shh.Decode as Decode
 
 
 {-| -}

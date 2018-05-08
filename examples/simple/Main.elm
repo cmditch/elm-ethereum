@@ -1,16 +1,16 @@
 port module Main exposing (..)
 
+import Eth
+import Eth.Decode as Decode
+import Eth.Types exposing (..)
+import Eth.Sentry.Tx as TxSentry exposing (..)
+import Eth.Utils exposing (gwei, unsafeToAddress)
 import Html exposing (..)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode as Decode exposing (Value)
 import Process
 import Task
-import Web3.Eth as Eth
-import Web3.Eth.Decode as Decode
-import Web3.Eth.Types exposing (..)
-import Web3.Eth.TxSentry as TxSentry exposing (..)
-import Web3.Utils exposing (gwei, unsafeToAddress)
 
 
 main : Program Never Model Msg

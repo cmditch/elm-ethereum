@@ -1,4 +1,4 @@
-module Web3.Eth.TxSentry
+module Eth.Sentry.Tx
     exposing
         ( TxSentry
         , Msg
@@ -45,12 +45,11 @@ import Maybe.Extra as Maybe
 import Task exposing (Task)
 import Http
 import Process
-import Web3.Eth as Eth
-import Web3.Eth.Encode as Encode
-import Web3.Eth.Decode as Decode
-import Web3.Eth.Types exposing (..)
-import Web3.Types exposing (HttpProvider)
-import Web3.Utils exposing (Retry, retry)
+import Eth
+import Eth.Encode as Encode
+import Eth.Decode as Decode
+import Eth.Types exposing (..)
+import Eth.Utils exposing (Retry, retry)
 
 
 {-| -}

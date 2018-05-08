@@ -1,11 +1,6 @@
-module Web3.Utils
+module Eth.Utils
     exposing
-        ( gwei
-        , eth
-        , Retry
-        , retry
-        , valToMsg
-        , toAddress
+        ( toAddress
         , toChecksumAddress
         , addressToString
         , isAddress
@@ -32,19 +27,12 @@ module Web3.Utils
         , unsafeToAddress
         , unsafeToTxHash
         , unsafeToBlockHash
+        , Retry
+        , retry
+        , valueToMsg
         )
 
 {-| Conversion, Unit, and Application utilities
-
-
-# Unit
-
-@docs gwei, eth
-
-
-# Application
-
-@docs Retry, retry, valToMsg
 
 
 # Address
@@ -81,13 +69,21 @@ module Web3.Utils
 
 @docs unsafeToHex, unsafeToAddress, unsafeToTxHash, unsafeToBlockHash
 
+
+# Application Helpers
+
+@docs Retry, retry, valueToMsg
+
 -}
 
 import Base58
 import BigInt exposing (BigInt)
 import Bool.Extra exposing (all)
 import Char
+import Eth.Types exposing (..)
 import Hex
+import Internal.Types as Internal
+import Internal.Utils as Internal exposing (quote, toByteLength)
 import Json.Encode as Encode exposing (Value)
 import Json.Decode as Decode exposing (Decoder)
 import Keccak exposing (ethereum_keccak_256)
@@ -97,75 +93,6 @@ import Result.Extra as Result
 import String.Extra as String
 import Task exposing (Task)
 import Time
-import Web3.Internal.Types as Internal
-import Web3.Internal.Utils as Internal exposing (quote, toByteLength)
-import Web3.Eth.Types exposing (..)
-import Web3.Types exposing (Hex, IPFSHash)
-
-
--- Units
-
-
-{-| -}
-gwei : Int -> BigInt
-gwei =
-    BigInt.fromInt >> BigInt.mul (BigInt.fromInt 1000000000)
-
-
-{-| -}
-eth : Int -> BigInt
-eth =
-    let
-        oneEth =
-            BigInt.mul (BigInt.fromInt 100) (BigInt.fromInt 10000000000000000)
-    in
-        BigInt.fromInt >> (BigInt.mul oneEth)
-
-
-
--- App
-
-
-{-| -}
-type alias Retry =
-    { attempts : Int
-    , sleep : Float
-    }
-
-
-{-| -}
-retry : Retry -> Task x a -> Task x a
-retry { attempts, sleep } myTask =
-    let
-        remaining =
-            attempts - 1
-    in
-        myTask
-            |> Task.onError
-                (\x ->
-                    if remaining > 0 then
-                        Process.sleep (sleep * Time.second)
-                            |> Task.andThen (\_ -> retry (Retry remaining sleep) myTask)
-                    else
-                        Task.fail x
-                )
-
-
-{-| Help with decoding past a result straight into a Msg
--}
-valToMsg : (a -> msg) -> (String -> msg) -> Decoder a -> (Value -> msg)
-valToMsg successMsg failureMsg decoder =
-    let
-        resultToMessage result =
-            case result of
-                Ok val ->
-                    successMsg val
-
-                Err error ->
-                    failureMsg error
-    in
-        resultToMessage << Decode.decodeValue decoder
-
 
 
 -- Address
@@ -383,6 +310,11 @@ isSha256 =
     Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9a-fA-F]{64}$")
 
 
+lowLevelKeccak256 : List Int -> List Int
+lowLevelKeccak256 =
+    ethereum_keccak_256
+
+
 
 -- IPFS
 
@@ -481,3 +413,48 @@ checksumIt : String -> String
 checksumIt str =
     uncurry (List.map2 compareCharToHash) (checksumHelper str)
         |> String.fromList
+
+
+
+-- App
+
+
+{-| -}
+type alias Retry =
+    { attempts : Int
+    , sleep : Float
+    }
+
+
+{-| -}
+retry : Retry -> Task x a -> Task x a
+retry { attempts, sleep } myTask =
+    let
+        remaining =
+            attempts - 1
+    in
+        myTask
+            |> Task.onError
+                (\x ->
+                    if remaining > 0 then
+                        Process.sleep (sleep * Time.second)
+                            |> Task.andThen (\_ -> retry (Retry remaining sleep) myTask)
+                    else
+                        Task.fail x
+                )
+
+
+{-| Help with decoding past a result straight into a Msg
+-}
+valueToMsg : (a -> msg) -> (String -> msg) -> Decoder a -> (Value -> msg)
+valueToMsg successMsg failureMsg decoder =
+    let
+        resultToMessage result =
+            case result of
+                Ok val ->
+                    successMsg val
+
+                Err error ->
+                    failureMsg error
+    in
+        resultToMessage << Decode.decodeValue decoder

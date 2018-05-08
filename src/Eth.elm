@@ -1,4 +1,4 @@
-module Web3.Eth
+module Eth
     exposing
         ( call
         , callAtBlock
@@ -85,16 +85,13 @@ See the [official docs][rpc-docs] for reference.
 -}
 
 import BigInt exposing (BigInt)
+import Eth.Types exposing (..)
+import Eth.Encode as Encode
+import Eth.Decode as Decode
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Task exposing (Task)
-import Web3.Types exposing (..)
-import Web3.Eth.Types exposing (..)
-import Web3.Eth.Encode as Encode
-import Web3.Eth.Decode as Decode
-import Web3.Decode as Decode
-import Web3.Encode as Encode
 import Web3.JsonRPC as RPC
 
 

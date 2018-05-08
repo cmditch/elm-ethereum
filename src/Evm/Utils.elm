@@ -1,4 +1,4 @@
-module Web3.Evm.Utils exposing (..)
+module Evm.Utils exposing (..)
 
 
 take64 : String -> String

@@ -1,4 +1,4 @@
-module Web3.Net
+module Eth.Net
     exposing
         ( version
         , clientVersion
@@ -10,15 +10,17 @@ module Web3.Net
         , NetworkId(..)
         )
 
-{-| Net RPC methods
+{-| NetworkId and RPC Methods
+
 @docs version, clientVersion, listening, peerCount, networkId, name, networkIdDecoder, NetworkId
+
 -}
 
 import Json.Decode as Decode exposing (Decoder)
 import Http
 import Task exposing (Task)
-import Web3.Types exposing (HttpProvider)
-import Web3.Decode as Decode
+import Eth.Types exposing (HttpProvider)
+import Eth.Decode as Decode
 import Web3.JsonRPC as RPC
 
 
