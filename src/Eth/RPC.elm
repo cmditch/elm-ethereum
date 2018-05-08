@@ -1,14 +1,12 @@
-module Web3.JsonRPC
+module Eth.RPC
     exposing
         ( RpcRequest
-        , buildRequest
-        , defaultRPCBody
-        , rpcBody
-        , encode
+        , toTask
+        , toHttpBody
         )
 
 {-| Json RPC Helpers
-@docs RpcRequest, buildRequest, defaultRPCBody, rpcBody, encode
+@docs RpcRequest, toTask, toHttpBody
 -}
 
 import Json.Decode as Decode exposing (Decoder)
@@ -27,26 +25,19 @@ type alias RpcRequest a =
 
 
 {-| -}
-buildRequest : RpcRequest a -> Task Http.Error a
-buildRequest { url, method, params, decoder } =
-    Http.post url (defaultRPCBody method params) (Decode.field "result" decoder)
+toTask : RpcRequest a -> Task Http.Error a
+toTask { url, method, params, decoder } =
+    Http.post url (rpcBody 1 method params) (Decode.field "result" decoder)
         |> Http.toTask
 
 
 {-| -}
-defaultRPCBody : String -> List Value -> Http.Body
-defaultRPCBody =
-    rpcBody 1
-
-
-{-| -}
-rpcBody : Int -> String -> List Value -> Http.Body
-rpcBody id method params =
+toHttpBody : Int -> String -> List Value -> Http.Body
+toHttpBody id method params =
     encode id method params
         |> Http.jsonBody
 
 
-{-| -}
 encode : Int -> String -> List Value -> Value
 encode id method params =
     object
