@@ -216,7 +216,7 @@ toHex str =
     if isHex str then
         Ok <| Internal.Hex (remove0x str)
     else
-        Err <| "Given hex " ++ quote str ++ " is not valid."
+        Err <| "Something in here is not very hexy: " ++ quote str
 
 
 {-| -}
@@ -244,6 +244,23 @@ hexToAscii str =
 
         False ->
             Err (quote str ++ " is not ascii hex. Uneven length. Byte pairs required.")
+
+
+{-| -}
+hexAppend : Hex -> Hex -> Hex
+hexAppend (Internal.Hex hex1) (Internal.Hex hex2) =
+    Internal.Hex <| hex1 ++ hex2
+
+
+{-| -}
+hexConcat : List Hex -> Hex
+hexConcat hexList =
+    let
+        reducer (Internal.Hex hex) accum =
+            hex ++ accum
+    in
+        List.foldr reducer "" hexList
+            |> Internal.Hex
 
 
 
