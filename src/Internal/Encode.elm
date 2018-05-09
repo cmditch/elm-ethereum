@@ -1,4 +1,4 @@
-module Eth.Encode
+module Internal.Encode
     exposing
         ( address
         , txHash
@@ -11,25 +11,6 @@ module Eth.Encode
         , hex
         , hexInt
         )
-
-{-| Eth Encoders
-
-
-# Simple
-
-@docs address, txHash, blockHash
-
-
-# Complex
-
-@docs txCall, txSend, blockId, logFilter
-
-
-# Rudiments
-
-@docs bigInt, hex, hexInt
-
--}
 
 import BigInt exposing (BigInt)
 import Hex
@@ -124,13 +105,13 @@ logFilter logFilter =
         ]
 
 
-topicsList : List (Maybe String) -> Value
+topicsList : List (Maybe Hex) -> Value
 topicsList topicsList =
     let
         toVal val =
             case val of
-                Just str ->
-                    string str
+                Just hex ->
+                    string (hexToString hex)
 
                 Nothing ->
                     null

@@ -34,8 +34,8 @@ drop64 =
     String.dropLeft 64
 
 
-leftPad : String -> String
-leftPad data =
+leftPadTo64 : String -> String
+leftPadTo64 data =
     String.padLeft 64 '0' data
 
 

@@ -9,7 +9,7 @@ module Shh
         , version
         )
 
-{-| Whipser API (Under Construction)
+{-| Whipser API (Use at your own risk! Under Construction)
 
 
 # Whisper messaging
@@ -24,16 +24,16 @@ module Shh
 -}
 
 import Eth.Decode as Decode
-import Eth.Encode as Encode
 import Eth.Types exposing (..)
 import Eth.Utils exposing (..)
-import Json.Decode as Decode exposing (Decoder)
-import Json.Encode as Encode exposing (Value)
 import Http
+import Internal.Encode as Encode
 import Internal.Types as Internal
 import Internal.Utils exposing (listOfMaybesToVal)
+import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode exposing (Value)
 import Task exposing (Task)
-import Web3.JsonRPC as RPC
+import Eth.RPC as RPC
 
 
 -- Whisper Messaging

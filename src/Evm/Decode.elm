@@ -10,7 +10,7 @@ module Evm.Decode
         , staticArray
         , dynamicArray
         , ipfsHash
-        , evmDecode
+        , decode
         , andMap
         , toElmDecoder
         , toElmDecoderWithDebug
@@ -34,7 +34,7 @@ module Evm.Decode
 
 # Arrays
 
-@docs staticArray, dynamicArray,
+@docs staticArray, dynamicArray
 
 
 # Special
@@ -44,7 +44,7 @@ module Evm.Decode
 
 # Run Decoders
 
-@docs evmDecode, andMap, toElmDecoder, toElmDecoderWithDebug, fromString
+@docs decode, andMap, toElmDecoder, toElmDecoderWithDebug, fromString
 
 
 # Events/Logs
@@ -62,7 +62,7 @@ import Base58
 import BigInt exposing (BigInt)
 import Eth.Decode exposing (resultToDecoder)
 import Eth.Types exposing (IPFSHash, Address)
-import Eth.Utils exposing (toAddress, makeIPFSHash)
+import Eth.Utils as U exposing (toAddress)
 import Hex
 import Internal.Utils exposing (..)
 import String.UTF8 as UTF8
@@ -105,8 +105,8 @@ andMap dVal dFunc =
 
 
 {-| -}
-decodeString : EvmDecoder a -> String -> Result String a
-decodeString =
+fromString : EvmDecoder a -> String -> Result String a
+fromString =
     decodeStringWithDebug Nothing
 
 
@@ -237,8 +237,8 @@ string =
 
 
 {-| -}
-sBytes : Int -> EvmDecoder String
-sBytes bytesLen =
+staticBytes : Int -> EvmDecoder String
+staticBytes bytesLen =
     EvmDecoder <|
         \(Tape original altered) ->
             take64 altered
@@ -248,8 +248,8 @@ sBytes bytesLen =
 
 
 {-| -}
-dBytes : EvmDecoder String
-dBytes =
+dynamicBytes : EvmDecoder String
+dynamicBytes =
     EvmDecoder <|
         \(Tape original altered) ->
             take64 altered
@@ -265,13 +265,13 @@ dBytes =
 {-| Decode Statically Sized Arrays
 (sArray 10 uint) == uint256[10]
 -}
-sArray : Int -> EvmDecoder a -> EvmDecoder (List a)
-sArray arrSize decoder =
+staticArray : Int -> EvmDecoder a -> EvmDecoder (List a)
+staticArray arrSize decoder =
     EvmDecoder <|
         \(Tape original altered) ->
             String.left (arrSize * 64) altered
                 |> String.break 64
-                |> List.map (decodeString decoder)
+                |> List.map (fromString decoder)
                 |> Result.combine
                 |> Result.map (\list -> ( Tape original (String.dropLeft (arrSize * 64) altered), list ))
 
@@ -279,13 +279,13 @@ sArray arrSize decoder =
 {-| Decode Dynamically Sized Arrays
 (dArray address) == address[]
 -}
-dArray : EvmDecoder a -> EvmDecoder (List a)
-dArray decoder =
+dynamicArray : EvmDecoder a -> EvmDecoder (List a)
+dynamicArray decoder =
     EvmDecoder <|
         \(Tape original altered) ->
             take64 altered
                 |> buildDynArray original
-                |> Result.map (List.map (decodeString decoder))
+                |> Result.map (List.map (fromString decoder))
                 |> Result.andThen Result.combine
                 |> Result.map (newTape original altered)
 
@@ -306,7 +306,7 @@ ipfsHash =
                 |> BigInt.fromString
                 |> Maybe.map Base58.encode
                 |> Result.fromMaybe "Error Encoding IPFS Hash from BigInt"
-                |> Result.andThen makeIPFSHash
+                |> Result.andThen U.toIPFSHash
                 |> Result.map (newTape original altered)
 
 

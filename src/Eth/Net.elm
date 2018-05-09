@@ -16,12 +16,12 @@ module Eth.Net
 
 -}
 
-import Json.Decode as Decode exposing (Decoder)
-import Http
-import Task exposing (Task)
 import Eth.Types exposing (HttpProvider)
 import Eth.Decode as Decode
-import Web3.JsonRPC as RPC
+import Eth.RPC as RPC
+import Http
+import Json.Decode as Decode exposing (Decoder)
+import Task exposing (Task)
 
 
 {-| -}

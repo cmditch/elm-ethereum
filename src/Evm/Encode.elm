@@ -19,10 +19,10 @@ module Evm.Encode
 
 import BigInt exposing (BigInt)
 import Eth.Types exposing (Hex, IPFSHash)
-import Eth.Utils exposing (functionSig, ipfsToBytes32)
+import Eth.Utils as U exposing (functionSig, ipfsToBytes32)
 import Eth.Types exposing (Address)
 import Internal.Types as Internal
-import Internal.Utils exposing (..)
+import Internal.Utils as IU exposing (..)
 
 
 {-| Not yet implemented :
@@ -75,9 +75,9 @@ encodeFunctionCall_ isDebug sig encodings =
 
         data =
             if isDebug then
-                Debug.log ("Debug Contract Call " ++ sig) (functionSig sig ++ byteCodeEncodings)
+                Debug.log ("Debug Contract Call " ++ sig) (U.hexToString (U.functionSig sig) ++ byteCodeEncodings)
             else
-                functionSig sig ++ byteCodeEncodings
+                (IU.remove0x <| U.hexToString <| U.functionSig sig) ++ byteCodeEncodings
     in
         Internal.Hex data
 
@@ -87,24 +87,24 @@ lowLevelEncode : Encoding -> String
 lowLevelEncode enc =
     case enc of
         AddressE (Internal.Address address) ->
-            leftPad address
+            IU.leftPadTo64 address
 
         UintE uint ->
             BigInt.toHexString uint
-                |> leftPad
+                |> IU.leftPadTo64
 
         BoolE True ->
-            leftPad "1"
+            IU.leftPadTo64 "1"
 
         BoolE False ->
-            leftPad "0"
+            IU.leftPadTo64 "0"
 
         DBytesE _ ->
             "not implemeneted yet"
 
         BytesE string ->
-            remove0x string
-                |> leftPad
+            IU.remove0x string
+                |> IU.leftPadTo64
 
         StringE string ->
             "not implemeneted yet"
@@ -113,7 +113,8 @@ lowLevelEncode enc =
             "not implemeneted yet"
 
         IPFSHashE ipfsHash ->
-            ipfsToBytes32 ipfsHash
+            U.ipfsToBytes32 ipfsHash
+                |> \(Internal.Hex zerolessHex) -> zerolessHex
 
         Custom string ->
             string

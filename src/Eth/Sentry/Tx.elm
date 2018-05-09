@@ -39,17 +39,17 @@ module Eth.Sentry.Tx
 -}
 
 import Dict exposing (Dict)
-import Json.Decode as Decode exposing (Value, Decoder)
-import Json.Encode as Encode
-import Maybe.Extra as Maybe
-import Task exposing (Task)
-import Http
-import Process
 import Eth
-import Eth.Encode as Encode
 import Eth.Decode as Decode
 import Eth.Types exposing (..)
 import Eth.Utils exposing (Retry, retry, txHashToString)
+import Http
+import Internal.Encode as Encode
+import Json.Decode as Decode exposing (Value, Decoder)
+import Json.Encode as Encode
+import Maybe.Extra as Maybe
+import Process
+import Task exposing (Task)
 
 
 {-| -}

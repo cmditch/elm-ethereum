@@ -86,13 +86,13 @@ See the [official docs][rpc-docs] for reference.
 
 import BigInt exposing (BigInt)
 import Eth.Types exposing (..)
-import Eth.Encode as Encode
 import Eth.Decode as Decode
+import Eth.RPC as RPC
 import Http
+import Internal.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Task exposing (Task)
-import Web3.JsonRPC as RPC
 
 
 -- Contracts
