@@ -1,13 +1,19 @@
 module Evm.Encode
     exposing
         ( Encoding(..)
-        , encodeData
-        , encodeDataWithDebug
+        , encodeFunctionCall
+        , encodeFunctionCallWithDebug
+        , encode
         )
 
 {-| Encode before sending RPC Calls
 
-@docs Encoding, encodeData, encodeDataWithDebug
+@docs Encoding, encodeFunctionCall, encodeFunctionCallWithDebug
+
+
+# Low-Level
+
+@docs encode
 
 -}
 
@@ -38,15 +44,21 @@ type Encoding
 
 
 {-| -}
-encodeData : String -> List Encoding -> Hex
-encodeData =
-    encodeData_ False
+encodeFunctionCall : String -> List Encoding -> Hex
+encodeFunctionCall =
+    encodeFunctionCall_ False
 
 
 {-| -}
-encodeDataWithDebug : String -> List Encoding -> Hex
-encodeDataWithDebug =
-    encodeData_ True
+encodeFunctionCallWithDebug : String -> List Encoding -> Hex
+encodeFunctionCallWithDebug =
+    encodeFunctionCall_ True
+
+
+{-| -}
+encode : Encoding -> Hex
+encode =
+    lowLevelEncode >> Internal.Hex
 
 
 
@@ -54,11 +66,11 @@ encodeDataWithDebug =
 
 
 {-| -}
-encodeData_ : Bool -> String -> List Encoding -> Hex
-encodeData_ isDebug sig encodings =
+encodeFunctionCall_ : Bool -> String -> List Encoding -> Hex
+encodeFunctionCall_ isDebug sig encodings =
     let
         byteCodeEncodings =
-            List.map encode encodings
+            List.map lowLevelEncode encodings
                 |> String.join ""
 
         data =
@@ -71,8 +83,8 @@ encodeData_ isDebug sig encodings =
 
 
 {-| -}
-encode : Encoding -> String
-encode enc =
+lowLevelEncode : Encoding -> String
+lowLevelEncode enc =
     case enc of
         AddressE (Internal.Address address) ->
             leftPad address

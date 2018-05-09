@@ -65,7 +65,7 @@ See the [official docs][rpc-docs] for reference.
 
 # Address/Accounts
 
-@docs getBalance, getTxCount, getBalanceAtBlock, getTxCountAtBlock
+@docs getBalance, getBalanceAtBlock, getTxCount, getTxCountAtBlock
 
 
 # Blocks
