@@ -4,15 +4,16 @@ module Eth.Net
         , clientVersion
         , listening
         , peerCount
-        , networkId
-        , name
-        , networkIdDecoder
+        , toId
+        , idToInt
+        , idToString
+        , idDecoder
         , NetworkId(..)
         )
 
 {-| NetworkId and RPC Methods
 
-@docs version, clientVersion, listening, peerCount, networkId, name, networkIdDecoder, NetworkId
+@docs NetworkId, version, clientVersion, listening, peerCount, toId, idToInt, idToString, idDecoder
 
 -}
 
@@ -49,7 +50,7 @@ version ethNode =
         { url = ethNode
         , method = "net_version"
         , params = []
-        , decoder = networkIdDecoder
+        , decoder = idDecoder
         }
 
 
@@ -94,17 +95,17 @@ peerCount ethNode =
 
 {-| Decode a stringy int into it's NetworkId
 -}
-networkIdDecoder : Decoder NetworkId
-networkIdDecoder =
-    (String.toInt >> Result.map networkId)
+idDecoder : Decoder NetworkId
+idDecoder =
+    (String.toInt >> Result.map toId)
         |> Decode.resultToDecoder
 
 
 {-| Convert an int into it's NetworkId
 -}
-networkId : Int -> NetworkId
-networkId networkId =
-    case networkId of
+toId : Int -> NetworkId
+toId idInt =
+    case idInt of
         1 ->
             Mainnet
 
@@ -133,13 +134,49 @@ networkId networkId =
             ETCTest
 
         _ ->
-            Private networkId
+            Private idInt
+
+
+{-| Convert an int into it's NetworkId
+-}
+idToInt : NetworkId -> Int
+idToInt networkId =
+    case networkId of
+        Mainnet ->
+            1
+
+        Expanse ->
+            2
+
+        Ropsten ->
+            3
+
+        Rinkeby ->
+            4
+
+        RskMain ->
+            30
+
+        RskTest ->
+            31
+
+        Kovan ->
+            42
+
+        ETCMain ->
+            41
+
+        ETCTest ->
+            62
+
+        Private id ->
+            id
 
 
 {-| Get a NetworkId's name
 -}
-name : NetworkId -> String
-name networkId =
+idToString : NetworkId -> String
+idToString networkId =
     case networkId of
         Mainnet ->
             "Mainnet"

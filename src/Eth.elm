@@ -158,14 +158,14 @@ Note: The decoder for a call is baked into the Call record for a simpler develop
 -}
 call : HttpProvider -> Call a -> Task Http.Error a
 call ethNode txParams =
-    callAtBlock ethNode LatestBlock txParams
+    callAtBlock ethNode txParams LatestBlock
 
 
 {-| Call a function on an Ethereum contract from a particular point in history.
 Adding some more documentation.
 -}
-callAtBlock : HttpProvider -> BlockId -> Call a -> Task Http.Error a
-callAtBlock ethNode blockId txParams =
+callAtBlock : HttpProvider -> Call a -> BlockId -> Task Http.Error a
+callAtBlock ethNode txParams blockId =
     RPC.toTask
         { url = ethNode
         , method = "eth_call"
@@ -195,13 +195,13 @@ See Ethereum JSON-RPC methods for specification on retrieving data from complex 
 -}
 getStorageAt : HttpProvider -> Address -> Int -> Task Http.Error String
 getStorageAt ethNode address index =
-    getStorageAtBlock ethNode LatestBlock address index
+    getStorageAtBlock ethNode address index LatestBlock
 
 
 {-| Returns the value from a storage position at a given address, at a certain block height.
 -}
-getStorageAtBlock : HttpProvider -> BlockId -> Address -> Int -> Task Http.Error String
-getStorageAtBlock ethNode blockId address index =
+getStorageAtBlock : HttpProvider -> Address -> Int -> BlockId -> Task Http.Error String
+getStorageAtBlock ethNode address index blockId =
     RPC.toTask
         { url = ethNode
         , method = "eth_getStorageAt"
@@ -214,13 +214,13 @@ getStorageAtBlock ethNode blockId address index =
 -}
 getCode : HttpProvider -> Address -> Task Http.Error String
 getCode ethNode address =
-    getCodeAtBlock ethNode LatestBlock address
+    getCodeAtBlock ethNode address LatestBlock
 
 
 {-| Returns the bytecode from a contract at a given address, at a certain block height.
 -}
-getCodeAtBlock : HttpProvider -> BlockId -> Address -> Task Http.Error String
-getCodeAtBlock ethNode blockId address =
+getCodeAtBlock : HttpProvider -> Address -> BlockId -> Task Http.Error String
+getCodeAtBlock ethNode address blockId =
     RPC.toTask
         { url = ethNode
         , method = "eth_getCode"
@@ -354,13 +354,13 @@ Returns Wei amount as BigInt
 -}
 getBalance : HttpProvider -> Address -> Task Http.Error BigInt
 getBalance ethNode address =
-    getBalanceAtBlock ethNode LatestBlock address
+    getBalanceAtBlock ethNode address LatestBlock
 
 
 {-| Get the balance of a given address/account, at a certain block height
 -}
-getBalanceAtBlock : HttpProvider -> BlockId -> Address -> Task Http.Error BigInt
-getBalanceAtBlock ethNode blockId address =
+getBalanceAtBlock : HttpProvider -> Address -> BlockId -> Task Http.Error BigInt
+getBalanceAtBlock ethNode address blockId =
     RPC.toTask
         { url = ethNode
         , method = "eth_getBalance"
@@ -373,13 +373,13 @@ getBalanceAtBlock ethNode blockId address =
 -}
 getTxCount : HttpProvider -> Address -> Task Http.Error Int
 getTxCount ethNode address =
-    getTxCountAtBlock ethNode LatestBlock address
+    getTxCountAtBlock ethNode address LatestBlock
 
 
 {-| Get the number of transactions sent from a given address/account at a given block height.
 -}
-getTxCountAtBlock : HttpProvider -> BlockId -> Address -> Task Http.Error Int
-getTxCountAtBlock ethNode blockId address =
+getTxCountAtBlock : HttpProvider -> Address -> BlockId -> Task Http.Error Int
+getTxCountAtBlock ethNode address blockId =
     RPC.toTask
         { url = ethNode
         , method = "eth_getTransactionCount"
