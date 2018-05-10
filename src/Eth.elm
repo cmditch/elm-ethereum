@@ -12,6 +12,7 @@ module Eth
         , getTxByBlockHashAndIndex
         , getTxByBlockNumberAndIndex
         , send
+        , encodeSend
         , sendTx
         , sendRawTx
         , getBalance
@@ -55,12 +56,61 @@ See the [official docs][rpc-docs] for reference.
 
 # Contracts
 
+If you're making Eth transactions, you'll need to build a `Call`,
+and send to a wallet like MetaMask via `Eth.Sentry.Tx`.
+
+    ( newSentry, sentryCmd ) =
+        myCallParams
+            |> Eth.send
+            |> Eth.encodeSend
+            |> TxSentry.send TxSendResponse model.txSentry
+
+But most likely you're interacting with a contract,
+what most dApps are typically engaged in. Use [elm-ethereum-generator](https://github.com/cmditch/elm-ethereum-generator)
+to auto-generate the necessary `Elm <-> Contract` interface from a contract's ABI.
+
+    myCallParams : Call BigInt
+    myCallParams =
+        let
+            data =
+                Evm.encodeFunctionCall
+                    "petKitten(uint256)"
+                    [ UintE someBigInt ]
+        in
+            { to = Just cryptoKittyContract
+            , from = Nothing
+            , gas = Nothing
+            , gasPrice = Nothing
+            , value = Just (eth 3)
+            , data = Just data
+            , nonce = Nothing
+            , decoder = Evm.toElmDecoder Evm.uint
+            }
+
+
+    type Msg
+        = PetKitten
+        | KittenResponse (Result Http.Error BigInt)
+
+
+    update msg model =
+        case msg of
+            PetKitten ->
+                ( model
+                , Eth.call model.nodeUrl myCallParams
+                    |> Task.attempt KittenResponse
+                )
+
+            KittenResponse result ->
+                case result of
+                    ...
+
 @docs call, estimateGas, getStorageAt, getCode, callAtBlock, getStorageAtBlock, getCodeAtBlock
 
 
 # Transactions
 
-@docs getTx, getTxReceipt, send, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
+@docs getTx, getTxReceipt, send, encodeSend, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
 
 
 # Address/Accounts
@@ -91,7 +141,7 @@ import Eth.RPC as RPC
 import Http
 import Internal.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
-import Json.Encode as Encode
+import Json.Encode as Encode exposing (Value)
 import Task exposing (Task)
 
 
@@ -104,35 +154,6 @@ Useful for reading data from contracts, or simulating a transaction before doing
 Use the elm-web3-contract code generator to produce an interface for a smart contract from it's ABI.
 
 Note: The decoder for a call is baked into the Call record for a simpler developer experience.
-
-You might manually use a `Call` for sending Eth somewhere, but for contract interactions,
-typically most of your dApp, use [elm-ethereum-generator](https://github.com/cmditch/elm-ethereum-generator) to code generate `Call`s from a contract's ABI.
-
-    myCallParams : Call BigInt
-    myCallParams =
-        { to = Just cryptoKittyContract
-        , from = Nothing
-        , gas = Nothing
-        , gasPrice = Nothing
-        , value = Just (eth 3)
-        , data = Just <| Evm.encodeFunctionCall "petKitten(uint256)" [ UintE someBigInt ]
-        , nonce = Nothing
-        , decoder = Evm.toElmDecoder Evm.uint
-        }
-
-
-    type Msg
-        = PetKitten
-        | KittenResponse (Result Http.Error BigInt)
-
-
-    update msg model =
-        PetKitten ->
-            model ! [ Task.attempt KittenResponse <| Eth.call model.nodeUrl myCallParams ]
-
-        KittenResponse result ->
-            case result of
-                ...
 
 -}
 call : HttpProvider -> Call a -> Task Http.Error a
@@ -212,6 +233,35 @@ getCodeAtBlock ethNode blockId address =
 -- Transactions
 
 
+{-| Prepare a Call to be executed on chain.
+Used in `Eth.Sentry.Tx`, a means to interact with MetaMask.
+-}
+send : Call a -> Send
+send { to, from, gas, gasPrice, value, data, nonce } =
+    { to = to
+    , from = from
+    , gas = gas
+    , gasPrice = gasPrice
+    , value = value
+    , data = data
+    , nonce = nonce
+    }
+
+
+{-| -}
+encodeSend : Send -> Value
+encodeSend { to, from, gas, gasPrice, value, data, nonce } =
+    Encode.listOfMaybesToVal
+        [ ( "to", Maybe.map Encode.address to )
+        , ( "from", Maybe.map Encode.address from )
+        , ( "gas", Maybe.map Encode.hexInt gas )
+        , ( "gasPrice", Maybe.map Encode.bigInt gasPrice )
+        , ( "value", Maybe.map Encode.bigInt value )
+        , ( "data", Maybe.map Encode.hex data )
+        , ( "nonce", Maybe.map Encode.hexInt nonce )
+        ]
+
+
 {-| Get transaction information from it's hash.
 Includes pre-execution info: value, nonce, data/input, gas, gasPrice, to, and from.
 -}
@@ -266,34 +316,19 @@ getTxByBlockNumberAndIndex ethNode blockNumber txIndex =
         }
 
 
-{-| Prepare a Call to be executed on chain.
+{-| Execute a transaction on chain.
 Only useful if your keys live on the node your talking too.
 
 NOTE: You probably don't need this.
 If you're writing a proper dApp, look at using the TxSentry to interface with wallets like MetaMask.
 
 -}
-send : Call a -> Send
-send { to, from, gas, gasPrice, value, data, nonce } =
-    { to = to
-    , from = from
-    , gas = gas
-    , gasPrice = gasPrice
-    , value = value
-    , data = data
-    , nonce = nonce
-    }
-
-
-{-| Execute a transaction on chain.
-See send
--}
 sendTx : HttpProvider -> Send -> Task Http.Error TxHash
 sendTx ethNode txParams =
     RPC.toTask
         { url = ethNode
         , method = "eth_sendTransaction"
-        , params = [ Encode.txSend txParams ]
+        , params = [ encodeSend txParams ]
         , decoder = Decode.txHash
         }
 

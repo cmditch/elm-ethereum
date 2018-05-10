@@ -29,7 +29,7 @@ import Eth.Utils exposing (..)
 import Http
 import Internal.Encode as Encode
 import Internal.Types as Internal
-import Internal.Utils exposing (listOfMaybesToVal)
+import Internal.Encode exposing (listOfMaybesToVal)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 import Task exposing (Task)

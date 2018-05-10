@@ -33,6 +33,14 @@ blockHash =
 -- Complex
 
 
+listOfMaybesToVal : List ( String, Maybe Value ) -> Value
+listOfMaybesToVal keyValueList =
+    keyValueList
+        |> List.filter (\( k, v ) -> v /= Nothing)
+        |> List.map (\( k, v ) -> ( k, Maybe.withDefault Encode.null v ))
+        |> Encode.object
+
+
 {-| -}
 txCall : Call a -> Value
 txCall { to, from, gas, gasPrice, value, data } =
@@ -43,20 +51,6 @@ txCall { to, from, gas, gasPrice, value, data } =
         , ( "gasPrice", Maybe.map bigInt gasPrice )
         , ( "value", Maybe.map bigInt value )
         , ( "data", Maybe.map hex data )
-        ]
-
-
-{-| -}
-txSend : Send -> Value
-txSend { to, from, gas, gasPrice, value, data, nonce } =
-    listOfMaybesToVal
-        [ ( "to", Maybe.map address to )
-        , ( "from", Maybe.map address from )
-        , ( "gas", Maybe.map hexInt gas )
-        , ( "gasPrice", Maybe.map bigInt gasPrice )
-        , ( "value", Maybe.map bigInt value )
-        , ( "data", Maybe.map hex data )
-        , ( "nonce", Maybe.map hexInt nonce )
         ]
 
 

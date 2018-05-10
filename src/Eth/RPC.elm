@@ -7,12 +7,12 @@ module Eth.RPC
         )
 
 {-| Json RPC Helpers
-@docs RpcRequest, toTask, toHttpBody
+@docs RpcRequest, toTask
 
 
 # Low Level
 
-@docs encode
+@docs encode, toHttpBody
 
 -}
 
@@ -38,15 +38,15 @@ toTask { url, method, params, decoder } =
         |> Http.toTask
 
 
+
+-- Low Level
+
+
 {-| -}
 toHttpBody : Int -> String -> List Value -> Http.Body
 toHttpBody id method params =
     encode id method params
         |> Http.jsonBody
-
-
-
--- Low Level
 
 
 {-| -}

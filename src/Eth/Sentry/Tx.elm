@@ -86,8 +86,8 @@ listen (TxSentry sentry) =
 
 
 {-| -}
-send : (Tx -> msg) -> Send -> TxSentry msg -> ( TxSentry msg, Cmd msg )
-send onBroadcast txParams sentry =
+send : (Tx -> msg) -> TxSentry msg -> Send -> ( TxSentry msg, Cmd msg )
+send onBroadcast sentry txParams =
     send_ { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Nothing } txParams sentry
 
 
@@ -477,7 +477,7 @@ encodeTxData : Int -> Send -> Value
 encodeTxData ref send =
     Encode.object
         [ ( "ref", Encode.int ref )
-        , ( "txParams", Encode.txSend send )
+        , ( "txParams", Eth.encodeSend send )
         ]
 
 
