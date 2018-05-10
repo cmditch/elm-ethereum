@@ -16,12 +16,12 @@ module Eth.Net
 
 -}
 
-import Json.Decode as Decode exposing (Decoder)
-import Http
-import Task exposing (Task)
 import Eth.Types exposing (HttpProvider)
 import Eth.Decode as Decode
-import Web3.JsonRPC as RPC
+import Eth.RPC as RPC
+import Http
+import Json.Decode as Decode exposing (Decoder)
+import Task exposing (Task)
 
 
 {-| -}
@@ -45,7 +45,7 @@ type NetworkId
 -}
 version : HttpProvider -> Task Http.Error NetworkId
 version ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "net_version"
         , params = []
@@ -60,7 +60,7 @@ version ethNode =
 -}
 clientVersion : HttpProvider -> Task Http.Error String
 clientVersion ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "web3_clientVersion"
         , params = []
@@ -72,7 +72,7 @@ clientVersion ethNode =
 -}
 listening : HttpProvider -> Task Http.Error Bool
 listening ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "net_listening"
         , params = []
@@ -84,7 +84,7 @@ listening ethNode =
 -}
 peerCount : HttpProvider -> Task Http.Error Int
 peerCount ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "net_peerCount"
         , params = []

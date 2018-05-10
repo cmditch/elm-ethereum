@@ -50,15 +50,15 @@ module Eth.Sentry.Event
 
 import BigInt
 import Dict exposing (Dict)
-import Json.Decode as Decode exposing (Value, Decoder)
-import Json.Encode as Encode
-import Eth.Utils exposing (keccak256, addressToString)
+import Eth.Decode as Decode
+import Eth.Utils as U exposing (keccak256, addressToString)
 import Eth.Defaults as Default
 import Eth.Types exposing (..)
-import Eth.Decode as Decode
-import Eth.Encode as Encode
+import Eth.RPC as RPC
+import Internal.Encode as Encode
+import Json.Decode as Decode exposing (Value, Decoder)
+import Json.Encode as Encode
 import Task
-import Web3.JsonRPC as RPC
 import WebSocket as WS
 
 
@@ -211,6 +211,7 @@ logFilterKey { address, topics } =
         eventTopic =
             List.head topics
                 |> Maybe.andThen identity
+                |> Maybe.map U.hexToString
                 |> Maybe.withDefault ""
     in
         ( addressToString address, eventTopic )

@@ -1,35 +1,42 @@
 module Shh
     exposing
         ( Post
-        , version
         , post
-        , newIdentity
         , WhisperId
+        , newIdentity
         , whisperIdToString
         , toWhisperId
+        , version
         )
 
-{-| Whipser API
+{-| Whipser API (Use at your own risk! Under Construction)
 
-@docs Post
 
-@docs version, post, newIdentity
+# Whisper messaging
 
-@docs WhisperId, whisperIdToString, toWhisperId
+@docs Post, post
+
+
+# Whisper Id's
+
+@docs WhisperId, newIdentity, whisperIdToString, toWhisperId, version
 
 -}
 
 import Eth.Decode as Decode
-import Eth.Encode as Encode
 import Eth.Types exposing (..)
 import Eth.Utils exposing (..)
+import Http
+import Internal.Encode as Encode
+import Internal.Types as Internal
+import Internal.Encode exposing (listOfMaybesToVal)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
-import Http
-import Internal.Types as Internal
-import Internal.Utils exposing (listOfMaybesToVal)
 import Task exposing (Task)
-import Web3.JsonRPC as RPC
+import Eth.RPC as RPC
+
+
+-- Whisper Messaging
 
 
 {-| -}
@@ -44,20 +51,9 @@ type alias Post =
 
 
 {-| -}
-version : HttpProvider -> Task Http.Error Int
-version ethNode =
-    RPC.buildRequest
-        { url = ethNode
-        , method = "shh_version"
-        , params = []
-        , decoder = Decode.stringInt
-        }
-
-
-{-| -}
 post : HttpProvider -> Post -> Task Http.Error Bool
 post ethNode post =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "shh_post"
         , params = [ encodePost post ]
@@ -65,20 +61,24 @@ post ethNode post =
         }
 
 
-{-| -}
-newIdentity : HttpProvider -> Task Http.Error WhisperId
-newIdentity ethNode =
-    RPC.buildRequest
-        { url = ethNode
-        , method = "shh_newIdentity"
-        , params = []
-        , decoder = Decode.resultToDecoder toWhisperId
-        }
+
+-- Whisper Id's
 
 
 {-| -}
 type alias WhisperId =
     Internal.WhisperId
+
+
+{-| -}
+newIdentity : HttpProvider -> Task Http.Error WhisperId
+newIdentity ethNode =
+    RPC.toTask
+        { url = ethNode
+        , method = "shh_newIdentity"
+        , params = []
+        , decoder = Decode.resultToDecoder toWhisperId
+        }
 
 
 {-| -}
@@ -96,6 +96,17 @@ toWhisperId str =
 
         False ->
             Err <| "Couldn't convert " ++ str ++ "into whisper id"
+
+
+{-| -}
+version : HttpProvider -> Task Http.Error Int
+version ethNode =
+    RPC.toTask
+        { url = ethNode
+        , method = "shh_version"
+        , params = []
+        , decoder = Decode.stringInt
+        }
 
 
 

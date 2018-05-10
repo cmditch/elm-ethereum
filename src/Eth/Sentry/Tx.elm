@@ -39,17 +39,17 @@ module Eth.Sentry.Tx
 -}
 
 import Dict exposing (Dict)
-import Json.Decode as Decode exposing (Value, Decoder)
-import Json.Encode as Encode
-import Maybe.Extra as Maybe
-import Task exposing (Task)
-import Http
-import Process
 import Eth
-import Eth.Encode as Encode
 import Eth.Decode as Decode
 import Eth.Types exposing (..)
 import Eth.Utils exposing (Retry, retry, txHashToString)
+import Http
+import Internal.Encode as Encode
+import Json.Decode as Decode exposing (Value, Decoder)
+import Json.Encode as Encode
+import Maybe.Extra as Maybe
+import Process
+import Task exposing (Task)
 
 
 {-| -}
@@ -86,8 +86,8 @@ listen (TxSentry sentry) =
 
 
 {-| -}
-send : (Tx -> msg) -> Send -> TxSentry msg -> ( TxSentry msg, Cmd msg )
-send onBroadcast txParams sentry =
+send : (Tx -> msg) -> TxSentry msg -> Send -> ( TxSentry msg, Cmd msg )
+send onBroadcast sentry txParams =
     send_ { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Nothing } txParams sentry
 
 
@@ -477,7 +477,7 @@ encodeTxData : Int -> Send -> Value
 encodeTxData ref send =
     Encode.object
         [ ( "ref", Encode.int ref )
-        , ( "txParams", Encode.txSend send )
+        , ( "txParams", Eth.encodeSend send )
         ]
 
 

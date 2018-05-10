@@ -132,8 +132,7 @@ type alias TxReceipt =
 
 {-| -}
 type BlockId
-    = BlockIdNum Int
-    | BlockIdHash BlockHash
+    = BlockNum Int
     | EarliestBlock
     | LatestBlock
     | PendingBlock
@@ -193,7 +192,7 @@ type alias BlockHead =
 type alias Log =
     { address : Address
     , data : String
-    , topics : List String
+    , topics : List Hex
     , removed : Bool
     , logIndex : Int
     , transactionIndex : Int
@@ -207,7 +206,7 @@ type alias Log =
 type alias Event a =
     { address : Address
     , data : String
-    , topics : List String
+    , topics : List Hex
     , removed : Bool
     , logIndex : Int
     , transactionIndex : Int
@@ -224,7 +223,7 @@ type alias LogFilter =
     { fromBlock : BlockId
     , toBlock : BlockId
     , address : Address
-    , topics : List (Maybe String)
+    , topics : List (Maybe Hex)
     }
 
 

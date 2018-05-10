@@ -1,37 +1,68 @@
 module Evm.Decode
     exposing
         ( EvmDecoder
-        , evmDecode
-        , runDecoder
-        , toElmDecoder
-        , toElmDecoderWithDebug
         , uint
         , bool
         , address
-        , dBytes
-        , sBytes
         , string
-        , dArray
-        , sArray
+        , staticBytes
+        , dynamicBytes
+        , staticArray
+        , dynamicArray
         , ipfsHash
+        , decode
+        , andMap
+        , toElmDecoder
+        , toElmDecoderWithDebug
+        , fromString
         , topic
         , data
-        , andMap
         )
 
 {-| Decode RPC Responses
 
-@docs EvmDecoder, evmDecode, runDecoder, toElmDecoder, toElmDecoderWithDebug
-@docs uint, bool, address, dBytes, sBytes, string, dArray, sArray, ipfsHash
-@docs andMap, topic, data
+
+# Primitives
+
+@docs EvmDecoder, uint, bool, address, string
+
+
+# Bytes
+
+@docs staticBytes, dynamicBytes
+
+
+# Arrays
+
+@docs staticArray, dynamicArray
+
+
+# Special
+
+@docs ipfsHash
+
+
+# Run Decoders
+
+@docs decode, andMap, toElmDecoder, toElmDecoderWithDebug, fromString
+
+
+# Events/Logs
+
+@docs topic, data
 
 -}
+
+--
+-- Take inspiration from Json.Decode.Pipeline
+-- and Json.Decode
+--
 
 import Base58
 import BigInt exposing (BigInt)
 import Eth.Decode exposing (resultToDecoder)
 import Eth.Types exposing (IPFSHash, Address)
-import Eth.Utils exposing (toAddress, makeIPFSHash)
+import Eth.Utils as U exposing (toAddress)
 import Hex
 import Internal.Utils exposing (..)
 import String.UTF8 as UTF8
@@ -59,15 +90,45 @@ type Tape
     = Tape String String
 
 
-{-| -}
-evmDecode : a -> EvmDecoder a
-evmDecode val =
+{-| Similar to Json.Decode.Pipeline.decode
+also a synonym for Json.Decode.succeed
+-}
+decode : a -> EvmDecoder a
+decode val =
     EvmDecoder (\tape -> Ok ( tape, val ))
 
 
 {-| -}
-runDecoder : Maybe String -> EvmDecoder a -> String -> Result String a
-runDecoder debug (EvmDecoder evmDecoder) evmString =
+andMap : EvmDecoder a -> EvmDecoder (a -> b) -> EvmDecoder b
+andMap dVal dFunc =
+    map2 (\f v -> f v) dFunc dVal
+
+
+{-| -}
+fromString : EvmDecoder a -> String -> Result String a
+fromString =
+    decodeStringWithDebug Nothing
+
+
+{-| -}
+toElmDecoder : EvmDecoder a -> Decoder a
+toElmDecoder =
+    decodeStringWithDebug Nothing >> resultToDecoder
+
+
+{-| -}
+toElmDecoderWithDebug : String -> EvmDecoder a -> Decoder a
+toElmDecoderWithDebug functionName =
+    decodeStringWithDebug (Just functionName) >> resultToDecoder
+
+
+
+-- Internal Runners
+
+
+{-| -}
+decodeStringWithDebug : Maybe String -> EvmDecoder a -> String -> Result String a
+decodeStringWithDebug debug (EvmDecoder evmDecoder) evmString =
     let
         str =
             case debug of
@@ -84,19 +145,29 @@ runDecoder debug (EvmDecoder evmDecoder) evmString =
 
 
 {-| -}
-toElmDecoder : EvmDecoder a -> Decoder a
-toElmDecoder =
-    runDecoder Nothing >> resultToDecoder
+map : (a -> b) -> EvmDecoder a -> EvmDecoder b
+map f (EvmDecoder decA) =
+    EvmDecoder <|
+        \tape0 ->
+            decA tape0
+                |> Result.map (Tuple.mapSecond f)
 
 
 {-| -}
-toElmDecoderWithDebug : String -> EvmDecoder a -> Decoder a
-toElmDecoderWithDebug functionName =
-    runDecoder (Just functionName) >> resultToDecoder
+map2 : (a -> b -> c) -> EvmDecoder a -> EvmDecoder b -> EvmDecoder c
+map2 f (EvmDecoder decA) (EvmDecoder decB) =
+    EvmDecoder <|
+        \tape0 ->
+            decA tape0
+                |> Result.andThen
+                    (\( tape1, vA ) ->
+                        decB tape1
+                            |> Result.map (Tuple.mapSecond (f vA))
+                    )
 
 
 
--- Decoders
+-- Primitives
 
 
 {-| -}
@@ -149,28 +220,6 @@ address =
 
 
 {-| -}
-dBytes : EvmDecoder String
-dBytes =
-    EvmDecoder <|
-        \(Tape original altered) ->
-            take64 altered
-                |> buildBytes original
-                |> Result.map add0x
-                |> Result.map (newTape original altered)
-
-
-{-| -}
-sBytes : Int -> EvmDecoder String
-sBytes bytesLen =
-    EvmDecoder <|
-        \(Tape original altered) ->
-            take64 altered
-                |> add0x
-                |> Ok
-                |> Result.map (newTape original altered)
-
-
-{-| -}
 string : EvmDecoder String
 string =
     EvmDecoder <|
@@ -183,32 +232,66 @@ string =
                 |> Result.map (newTape original altered)
 
 
-{-| Decode Dynamically Sized Arrays
-(dArray address) == address[]
--}
-dArray : EvmDecoder a -> EvmDecoder (List a)
-dArray decoder =
+
+-- Bytes
+
+
+{-| -}
+staticBytes : Int -> EvmDecoder String
+staticBytes bytesLen =
     EvmDecoder <|
         \(Tape original altered) ->
             take64 altered
-                |> buildDynArray original
-                |> Result.map (List.map (unpackDecoder decoder))
-                |> Result.andThen Result.combine
+                |> add0x
+                |> Ok
                 |> Result.map (newTape original altered)
+
+
+{-| -}
+dynamicBytes : EvmDecoder String
+dynamicBytes =
+    EvmDecoder <|
+        \(Tape original altered) ->
+            take64 altered
+                |> buildBytes original
+                |> Result.map add0x
+                |> Result.map (newTape original altered)
+
+
+
+-- Arrays
 
 
 {-| Decode Statically Sized Arrays
 (sArray 10 uint) == uint256[10]
 -}
-sArray : Int -> EvmDecoder a -> EvmDecoder (List a)
-sArray arrSize decoder =
+staticArray : Int -> EvmDecoder a -> EvmDecoder (List a)
+staticArray arrSize decoder =
     EvmDecoder <|
         \(Tape original altered) ->
             String.left (arrSize * 64) altered
                 |> String.break 64
-                |> List.map (unpackDecoder decoder)
+                |> List.map (fromString decoder)
                 |> Result.combine
                 |> Result.map (\list -> ( Tape original (String.dropLeft (arrSize * 64) altered), list ))
+
+
+{-| Decode Dynamically Sized Arrays
+(dArray address) == address[]
+-}
+dynamicArray : EvmDecoder a -> EvmDecoder (List a)
+dynamicArray decoder =
+    EvmDecoder <|
+        \(Tape original altered) ->
+            take64 altered
+                |> buildDynArray original
+                |> Result.map (List.map (fromString decoder))
+                |> Result.andThen Result.combine
+                |> Result.map (newTape original altered)
+
+
+
+-- Special
 
 
 {-| Decodes bytes32 into IPFS Hash (assuming use of 32 byte sha256)
@@ -223,8 +306,12 @@ ipfsHash =
                 |> BigInt.fromString
                 |> Maybe.map Base58.encode
                 |> Result.fromMaybe "Error Encoding IPFS Hash from BigInt"
-                |> Result.andThen makeIPFSHash
+                |> Result.andThen U.toIPFSHash
                 |> Result.map (newTape original altered)
+
+
+
+-- Events/Logs
 
 
 {-| Useful for decoding data withing events/logs.
@@ -244,40 +331,11 @@ data index evmDecoder =
         |> Decode.field "data"
 
 
-{-| Useful for decoding data withing events/logs.
--}
-dropBytes : Int -> EvmDecoder a -> EvmDecoder a
-dropBytes location (EvmDecoder decoder) =
-    EvmDecoder <|
-        \(Tape original altered) ->
-            String.dropLeft (location * 64) altered
-                |> Tape original
-                |> decoder
 
-
-{-| Chain and Map Decoders
-
-andMap is the same as `apply` or `<*>` in Haskell, except initial arguments are flipped to help with elm pipeline syntax.
-
--}
-map2 : (a -> b -> c) -> EvmDecoder a -> EvmDecoder b -> EvmDecoder c
-map2 f (EvmDecoder decA) (EvmDecoder decB) =
-    EvmDecoder <|
-        \tape0 ->
-            decA tape0
-                |> Result.andThen
-                    (\( tape1, vA ) ->
-                        decB tape1
-                            |> Result.map (Tuple.mapSecond (f vA))
-                    )
+-- Internal
 
 
 {-| -}
-andMap : EvmDecoder a -> EvmDecoder (a -> b) -> EvmDecoder b
-andMap dVal dFunc =
-    map2 (\f v -> f v) dFunc dVal
-
-
 newTape : String -> String -> a -> ( Tape, a )
 newTape original altered val =
     ( Tape original (drop64 altered), val )
@@ -347,10 +405,12 @@ buildDynArray fullTape lengthIndex =
             |> Result.map (String.break 64)
 
 
-{-| Applies decoder to value without bothering with Tape State
-Useful for mapping over lists built from dynamic types
+{-| Useful for decoding data withing events/logs.
 -}
-unpackDecoder : EvmDecoder a -> String -> Result String a
-unpackDecoder (EvmDecoder decoder) val =
-    decoder (Tape "" val)
-        |> Result.map Tuple.second
+dropBytes : Int -> EvmDecoder a -> EvmDecoder a
+dropBytes location (EvmDecoder decoder) =
+    EvmDecoder <|
+        \(Tape original altered) ->
+            String.dropLeft (location * 64) altered
+                |> Tape original
+                |> decoder

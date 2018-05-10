@@ -1,35 +1,4 @@
-module Eth.Encode
-    exposing
-        ( address
-        , txHash
-        , blockHash
-        , txCall
-        , txSend
-        , blockId
-        , logFilter
-        , bigInt
-        , hex
-        , hexInt
-        )
-
-{-| Eth Encoders
-
-
-# Simple
-
-@docs address, txHash, blockHash
-
-
-# Complex
-
-@docs txCall, txSend, blockId, logFilter
-
-
-# Rudiments
-
-@docs bigInt, hex, hexInt
-
--}
+module Internal.Encode exposing (..)
 
 import BigInt exposing (BigInt)
 import Hex
@@ -64,6 +33,14 @@ blockHash =
 -- Complex
 
 
+listOfMaybesToVal : List ( String, Maybe Value ) -> Value
+listOfMaybesToVal keyValueList =
+    keyValueList
+        |> List.filter (\( k, v ) -> v /= Nothing)
+        |> List.map (\( k, v ) -> ( k, Maybe.withDefault Encode.null v ))
+        |> Encode.object
+
+
 {-| -}
 txCall : Call a -> Value
 txCall { to, from, gas, gasPrice, value, data } =
@@ -78,30 +55,13 @@ txCall { to, from, gas, gasPrice, value, data } =
 
 
 {-| -}
-txSend : Send -> Value
-txSend { to, from, gas, gasPrice, value, data, nonce } =
-    listOfMaybesToVal
-        [ ( "to", Maybe.map address to )
-        , ( "from", Maybe.map address from )
-        , ( "gas", Maybe.map hexInt gas )
-        , ( "gasPrice", Maybe.map bigInt gasPrice )
-        , ( "value", Maybe.map bigInt value )
-        , ( "data", Maybe.map hex data )
-        , ( "nonce", Maybe.map hexInt nonce )
-        ]
-
-
-{-| -}
 blockId : BlockId -> Value
 blockId blockId =
     case blockId of
-        BlockIdNum num ->
+        BlockNum num ->
             Hex.toString num
                 |> add0x
                 |> string
-
-        BlockIdHash hash ->
-            blockHash hash
 
         EarliestBlock ->
             string "earliest"
@@ -124,13 +84,13 @@ logFilter logFilter =
         ]
 
 
-topicsList : List (Maybe String) -> Value
+topicsList : List (Maybe Hex) -> Value
 topicsList topicsList =
     let
         toVal val =
             case val of
-                Just str ->
-                    string str
+                Just hex ->
+                    string (hexToString hex)
 
                 Nothing ->
                     null

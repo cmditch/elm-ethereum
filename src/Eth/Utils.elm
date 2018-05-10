@@ -1,29 +1,41 @@
 module Eth.Utils
     exposing
-        ( toAddress
+        ( -- Address
+          toAddress
         , toChecksumAddress
         , addressToString
         , isAddress
         , isChecksumAddress
+          -- Hex
         , toHex
         , hexToString
+          -- , hexToUtf8
+        , hexToAscii
         , isHex
+          -- TxHash
         , toTxHash
         , txHashToString
+          -- , isTxHash
+          -- BlockHash
         , toBlockHash
         , blockHashToString
-        , hexToAscii
+          -- , isBlockHash
+          --SHA3
         , functionSig
         , keccak256
         , isSha256
+          -- IPFSHash
+        , toIPFSHash
         , ipfsHashToString
         , ipfsToBytes32
-        , makeIPFSHash
-        , unsafeToHex
+          -- , isIPFSHash
+          -- Unsafe
         , unsafeToAddress
+        , unsafeToHex
         , unsafeToTxHash
         , unsafeToBlockHash
         , unsafeToIPFSHash
+          -- Application Utils
         , Retry
         , retry
         , valueToMsg
@@ -59,7 +71,7 @@ module Eth.Utils
 
 # IPFS
 
-@docs ipfsHashToString, ipfsToBytes32, makeIPFSHash
+@docs ipfsHashToString, ipfsToBytes32, toIPFSHash
 
 
 # Unsafe
@@ -139,7 +151,7 @@ toAddress str =
 toChecksumAddress : String -> Result String Address
 toChecksumAddress str =
     if isAddress str then
-        Ok <| Internal.Address <| checksumIt str
+        Ok <| Internal.Address <| checksumIt <| remove0x str
     else
         Err <| "Given address " ++ quote str ++ " is not a valid Ethereum address."
 
@@ -220,18 +232,17 @@ isHex =
 
 
 {-| -}
-hexToAscii : String -> Result String String
-hexToAscii str =
-    case String.length str % 2 == 0 of
+hexToAscii : Hex -> Result String String
+hexToAscii (Internal.Hex hex) =
+    case String.length hex % 2 == 0 of
         True ->
-            remove0x str
-                |> String.break 2
+            String.break 2 hex
                 |> List.map Hex.fromString
                 |> Result.combine
                 |> Result.map (String.fromList << List.map Char.fromCode)
 
         False ->
-            Err (quote str ++ " is not ascii hex. Uneven length. Byte pairs required.")
+            Err (quote hex ++ " is not ascii hex. Uneven length. Byte pairs required.")
 
 
 {-| -}
@@ -294,7 +305,7 @@ blockHashToString (Internal.BlockHash blockHash) =
 
 
 {-| -}
-functionSig : String -> String
+functionSig : String -> Hex
 functionSig fSig =
     String.toList fSig
         |> List.map Char.toCode
@@ -302,18 +313,18 @@ functionSig fSig =
         |> List.take 4
         |> List.map (Hex.toString >> toByteLength)
         |> String.join ""
-        |> (++) "0x"
+        |> Internal.Hex
 
 
 {-| -}
-keccak256 : String -> String
+keccak256 : String -> Hex
 keccak256 str =
     String.toList str
         |> List.map Char.toCode
         |> ethereum_keccak_256
         |> List.map (Hex.toString >> toByteLength)
         |> String.join ""
-        |> (++) "0x"
+        |> Internal.Hex
 
 
 {-| -}
@@ -322,6 +333,7 @@ isSha256 =
     Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9a-fA-F]{64}$")
 
 
+{-| -}
 lowLevelKeccak256 : List Int -> List Int
 lowLevelKeccak256 =
     ethereum_keccak_256
@@ -334,21 +346,21 @@ lowLevelKeccak256 =
 {-| -}
 ipfsHashToString : IPFSHash -> String
 ipfsHashToString (Internal.IPFSHash str) =
-    str
+    add0x str
 
 
 {-| Prepares IPFS Hash to store as soldity bytes32
 -}
-ipfsToBytes32 : IPFSHash -> String
+ipfsToBytes32 : IPFSHash -> Hex
 ipfsToBytes32 (Internal.IPFSHash str) =
     Base58.decode str
-        |> Result.map (BigInt.toHexString >> String.dropLeft 4)
-        |> Result.withDefault "this should never happen, document what you did to get this outcome"
+        |> Result.map (BigInt.toHexString >> String.dropLeft 4 >> Internal.Hex)
+        |> Result.withDefault (Internal.Hex "Impossible error on ipfsToBytes32. Please report this bug on github.")
 
 
 {-| -}
-makeIPFSHash : String -> Result String IPFSHash
-makeIPFSHash str =
+toIPFSHash : String -> Result String IPFSHash
+toIPFSHash str =
     if String.length str /= 46 then
         Err <| str ++ " is an invalid IPFS Hash. Must be 46 chars long."
     else if String.left 2 str /= "Qm" then
@@ -393,18 +405,20 @@ unsafeToIPFSHash =
 
 
 
--- Internal
 -- Checksum helpers
 
 
 {-| Takes first 20 bytes of keccak'd address, and converts each hex char to an int
 Packs this list into a tuple with the split up address chars so a comparison can be made between the two.
+
+Note: Only functions which have already removed "0x" should be calling this.
+
 -}
 checksumHelper : String -> ( List Char, List Int )
-checksumHelper address =
+checksumHelper zeroLessAddress =
     let
         addressChars =
-            String.toList (remove0x address)
+            String.toList zeroLessAddress
     in
         addressChars
             |> List.map (Char.toLower >> Char.toCode)

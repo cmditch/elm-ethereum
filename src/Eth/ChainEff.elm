@@ -204,7 +204,7 @@ sendTxHelp : (Tx -> msg) -> Send -> List (Cmd msg) -> Sentry msg -> List (ChainE
 sendTxHelp toMsg txParams cmds ( txSentry, eventSentry ) xs =
     let
         ( newTxSentry, txCmd ) =
-            TxSentry.send toMsg txParams txSentry
+            TxSentry.send toMsg txSentry txParams
     in
         executeHelp (txCmd :: cmds) ( newTxSentry, eventSentry ) xs
 

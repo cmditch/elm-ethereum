@@ -12,6 +12,7 @@ module Eth
         , getTxByBlockHashAndIndex
         , getTxByBlockNumberAndIndex
         , send
+        , encodeSend
         , sendTx
         , sendRawTx
         , getBalance
@@ -55,12 +56,61 @@ See the [official docs][rpc-docs] for reference.
 
 # Contracts
 
+If you're making Eth transactions, you'll need to build a `Call`,
+and send to a wallet like MetaMask via `Eth.Sentry.Tx`.
+
+    ( newSentry, sentryCmd ) =
+        myCallParams
+            |> Eth.send
+            |> Eth.encodeSend
+            |> TxSentry.send TxSendResponse model.txSentry
+
+But most likely you're interacting with a contract,
+what most dApps are typically engaged in. Use [elm-ethereum-generator](https://github.com/cmditch/elm-ethereum-generator)
+to auto-generate the necessary `Elm <-> Contract` interface from a contract's ABI.
+
+    myCallParams : Call BigInt
+    myCallParams =
+        let
+            data =
+                Evm.encodeFunctionCall
+                    "petKitten(uint256)"
+                    [ UintE someBigInt ]
+        in
+            { to = Just cryptoKittyContract
+            , from = Nothing
+            , gas = Nothing
+            , gasPrice = Nothing
+            , value = Just (eth 3)
+            , data = Just data
+            , nonce = Nothing
+            , decoder = Evm.toElmDecoder Evm.uint
+            }
+
+
+    type Msg
+        = PetKitten
+        | KittenResponse (Result Http.Error BigInt)
+
+
+    update msg model =
+        case msg of
+            PetKitten ->
+                ( model
+                , Eth.call model.nodeUrl myCallParams
+                    |> Task.attempt KittenResponse
+                )
+
+            KittenResponse result ->
+                case result of
+                    ...
+
 @docs call, estimateGas, getStorageAt, getCode, callAtBlock, getStorageAtBlock, getCodeAtBlock
 
 
 # Transactions
 
-@docs getTx, getTxReceipt, send, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
+@docs getTx, getTxReceipt, send, encodeSend, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
 
 
 # Address/Accounts
@@ -86,13 +136,13 @@ See the [official docs][rpc-docs] for reference.
 
 import BigInt exposing (BigInt)
 import Eth.Types exposing (..)
-import Eth.Encode as Encode
 import Eth.Decode as Decode
+import Eth.RPC as RPC
 import Http
+import Internal.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
-import Json.Encode as Encode
+import Json.Encode as Encode exposing (Value)
 import Task exposing (Task)
-import Web3.JsonRPC as RPC
 
 
 -- Contracts
@@ -112,10 +162,11 @@ call ethNode txParams =
 
 
 {-| Call a function on an Ethereum contract from a particular point in history.
+Adding some more documentation.
 -}
 callAtBlock : HttpProvider -> BlockId -> Call a -> Task Http.Error a
 callAtBlock ethNode blockId txParams =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_call"
         , params = [ Encode.txCall txParams, Encode.blockId blockId ]
@@ -131,7 +182,7 @@ for a variety of reasons including EVM mechanics and node performance.
 -}
 estimateGas : HttpProvider -> Call a -> Task Http.Error Int
 estimateGas ethNode txParams =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_estimateGas"
         , params = [ Encode.txCall txParams ]
@@ -151,7 +202,7 @@ getStorageAt ethNode address index =
 -}
 getStorageAtBlock : HttpProvider -> BlockId -> Address -> Int -> Task Http.Error String
 getStorageAtBlock ethNode blockId address index =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getStorageAt"
         , params = [ Encode.address address, Encode.hexInt index, Encode.blockId blockId ]
@@ -170,7 +221,7 @@ getCode ethNode address =
 -}
 getCodeAtBlock : HttpProvider -> BlockId -> Address -> Task Http.Error String
 getCodeAtBlock ethNode blockId address =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getCode"
         , params = [ Encode.address address, Encode.blockId blockId ]
@@ -182,12 +233,41 @@ getCodeAtBlock ethNode blockId address =
 -- Transactions
 
 
+{-| Prepare a Call to be executed on chain.
+Used in `Eth.Sentry.Tx`, a means to interact with MetaMask.
+-}
+send : Call a -> Send
+send { to, from, gas, gasPrice, value, data, nonce } =
+    { to = to
+    , from = from
+    , gas = gas
+    , gasPrice = gasPrice
+    , value = value
+    , data = data
+    , nonce = nonce
+    }
+
+
+{-| -}
+encodeSend : Send -> Value
+encodeSend { to, from, gas, gasPrice, value, data, nonce } =
+    Encode.listOfMaybesToVal
+        [ ( "to", Maybe.map Encode.address to )
+        , ( "from", Maybe.map Encode.address from )
+        , ( "gas", Maybe.map Encode.hexInt gas )
+        , ( "gasPrice", Maybe.map Encode.bigInt gasPrice )
+        , ( "value", Maybe.map Encode.bigInt value )
+        , ( "data", Maybe.map Encode.hex data )
+        , ( "nonce", Maybe.map Encode.hexInt nonce )
+        ]
+
+
 {-| Get transaction information from it's hash.
 Includes pre-execution info: value, nonce, data/input, gas, gasPrice, to, and from.
 -}
 getTx : HttpProvider -> TxHash -> Task Http.Error Tx
 getTx ethNode txHash =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getTransactionByHash"
         , params = [ Encode.txHash txHash ]
@@ -204,7 +284,7 @@ Also includes the tx execution status (if block is post-byzantium).
 -}
 getTxReceipt : HttpProvider -> TxHash -> Task Http.Error TxReceipt
 getTxReceipt ethNode txHash =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getTransactionReceipt"
         , params = [ Encode.txHash txHash ]
@@ -216,7 +296,7 @@ getTxReceipt ethNode txHash =
 -}
 getTxByBlockHashAndIndex : HttpProvider -> BlockHash -> Int -> Task Http.Error Tx
 getTxByBlockHashAndIndex ethNode blockHash txIndex =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getTransactionByBlockHashAndIndex"
         , params = [ Encode.blockHash blockHash, Encode.hexInt txIndex ]
@@ -228,7 +308,7 @@ getTxByBlockHashAndIndex ethNode blockHash txIndex =
 -}
 getTxByBlockNumberAndIndex : HttpProvider -> Int -> Int -> Task Http.Error Tx
 getTxByBlockNumberAndIndex ethNode blockNumber txIndex =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getTransactionByBlockNumberAndIndex"
         , params = [ Encode.hexInt blockNumber, Encode.hexInt txIndex ]
@@ -236,34 +316,19 @@ getTxByBlockNumberAndIndex ethNode blockNumber txIndex =
         }
 
 
-{-| Prepare a Call to be executed on chain.
+{-| Execute a transaction on chain.
 Only useful if your keys live on the node your talking too.
 
 NOTE: You probably don't need this.
 If you're writing a proper dApp, look at using the TxSentry to interface with wallets like MetaMask.
 
 -}
-send : Call a -> Send
-send { to, from, gas, gasPrice, value, data, nonce } =
-    { to = to
-    , from = from
-    , gas = gas
-    , gasPrice = gasPrice
-    , value = value
-    , data = data
-    , nonce = nonce
-    }
-
-
-{-| Execute a transaction on chain.
-See send
--}
 sendTx : HttpProvider -> Send -> Task Http.Error TxHash
 sendTx ethNode txParams =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_sendTransaction"
-        , params = [ Encode.txSend txParams ]
+        , params = [ encodeSend txParams ]
         , decoder = Decode.txHash
         }
 
@@ -272,7 +337,7 @@ sendTx ethNode txParams =
 -}
 sendRawTx : HttpProvider -> String -> Task Http.Error TxHash
 sendRawTx ethNode signedTx =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_sendRawTransaction"
         , params = [ Encode.string signedTx ]
@@ -296,7 +361,7 @@ getBalance ethNode address =
 -}
 getBalanceAtBlock : HttpProvider -> BlockId -> Address -> Task Http.Error BigInt
 getBalanceAtBlock ethNode blockId address =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getBalance"
         , params = [ Encode.address address, Encode.blockId blockId ]
@@ -315,7 +380,7 @@ getTxCount ethNode address =
 -}
 getTxCountAtBlock : HttpProvider -> BlockId -> Address -> Task Http.Error Int
 getTxCountAtBlock ethNode blockId address =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getTransactionCount"
         , params = [ Encode.address address, Encode.blockId blockId ]
@@ -331,7 +396,7 @@ getTxCountAtBlock ethNode blockId address =
 -}
 getBlockNumber : HttpProvider -> Task Http.Error Int
 getBlockNumber ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_blockNumber"
         , params = []
@@ -346,7 +411,7 @@ The transactions field will be an array of TxHash's mined during this block.
 -}
 getBlock : HttpProvider -> Int -> Task Http.Error (Block TxHash)
 getBlock ethNode blockNum =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getBlockByNumber"
         , params = [ Encode.hexInt blockNum, Encode.bool False ]
@@ -358,7 +423,7 @@ getBlock ethNode blockNum =
 -}
 getBlockByHash : HttpProvider -> BlockHash -> Task Http.Error (Block TxHash)
 getBlockByHash ethNode blockHash =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getBlockByHash"
         , params = [ Encode.blockHash blockHash, Encode.bool False ]
@@ -373,7 +438,7 @@ The transactions field will be an array of Tx objects instead of TxHash's.
 -}
 getBlockWithTxObjs : HttpProvider -> Int -> Task Http.Error (Block Tx)
 getBlockWithTxObjs ethNode blockNum =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getBlockByNumber"
         , params = [ Encode.hexInt blockNum, Encode.bool True ]
@@ -388,7 +453,7 @@ Uses block hash instead of nunmber for the identifier.
 -}
 getBlockByHashWithTxObjs : HttpProvider -> BlockHash -> Task Http.Error (Block Tx)
 getBlockByHashWithTxObjs ethNode blockHash =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getBlockByHash"
         , params = [ Encode.blockHash blockHash, Encode.bool True ]
@@ -400,7 +465,7 @@ getBlockByHashWithTxObjs ethNode blockHash =
 -}
 getBlockTxCount : HttpProvider -> Int -> Task Http.Error Int
 getBlockTxCount ethNode blockNumber =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getBlockTransactionCountByNumber"
         , params = [ Encode.hexInt blockNumber ]
@@ -412,7 +477,7 @@ getBlockTxCount ethNode blockNumber =
 -}
 getBlockTxCountByHash : HttpProvider -> BlockHash -> Task Http.Error Int
 getBlockTxCountByHash ethNode blockHash =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getBlockTransactionCountByHash"
         , params = [ Encode.blockHash blockHash ]
@@ -424,7 +489,7 @@ getBlockTxCountByHash ethNode blockHash =
 -}
 getUncleCount : HttpProvider -> Int -> Task Http.Error Int
 getUncleCount ethNode blockNumber =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getUncleCountByBlockNumber"
         , params = [ Encode.hexInt blockNumber ]
@@ -436,7 +501,7 @@ getUncleCount ethNode blockNumber =
 -}
 getUncleCountByHash : HttpProvider -> BlockHash -> Task Http.Error Int
 getUncleCountByHash ethNode blockHash =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getUncleCountByBlockHash"
         , params = [ Encode.blockHash blockHash ]
@@ -448,7 +513,7 @@ getUncleCountByHash ethNode blockHash =
 -}
 getUncleAtIndex : HttpProvider -> Int -> Int -> Task Http.Error Uncle
 getUncleAtIndex ethNode blockNumber uncleIndex =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getUncleByBlockNumberAndIndex"
         , params = [ Encode.hexInt blockNumber, Encode.hexInt uncleIndex ]
@@ -460,7 +525,7 @@ getUncleAtIndex ethNode blockNumber uncleIndex =
 -}
 getUncleByBlockHashAtIndex : HttpProvider -> BlockHash -> Int -> Task Http.Error Uncle
 getUncleByBlockHashAtIndex ethNode blockHash uncleIndex =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getUncleByBlockHashAndIndex"
         , params = [ Encode.blockHash blockHash, Encode.hexInt uncleIndex ]
@@ -477,7 +542,7 @@ Most likely you won't need this, as they are generated for you in elm-web3-contr
 -}
 getLogs : HttpProvider -> LogFilter -> Task Http.Error (List Log)
 getLogs ethNode logFilter =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getLogs"
         , params = [ Encode.logFilter logFilter ]
@@ -493,7 +558,7 @@ To check if the state has changed, call getFilterChanges.
 -}
 newFilter : HttpProvider -> LogFilter -> Task Http.Error FilterId
 newFilter ethNode logFilter =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_newFilter"
         , params = [ Encode.logFilter logFilter ]
@@ -506,7 +571,7 @@ To check if the state has changed, call getFilterChanges.
 -}
 newBlockFilter : HttpProvider -> Task Http.Error FilterId
 newBlockFilter ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_newBlockFilter"
         , params = []
@@ -519,7 +584,7 @@ To check if the state has changed, call getFilterChanges.
 -}
 newPendingTxFilter : HttpProvider -> Task Http.Error FilterId
 newPendingTxFilter ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_newPendingTransactionFilter"
         , params = []
@@ -538,7 +603,7 @@ Use the correct decoder for the given filter type:
 -}
 getFilterChanges : HttpProvider -> Decoder a -> FilterId -> Task Http.Error (List a)
 getFilterChanges ethNode decoder filterId =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getFilterChanges"
         , params = []
@@ -550,7 +615,7 @@ getFilterChanges ethNode decoder filterId =
 -}
 getFilterLogs : HttpProvider -> Decoder a -> FilterId -> Task Http.Error (List a)
 getFilterLogs ethNode decoder filterId =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_getFilterLogs"
         , params = [ Encode.string filterId ]
@@ -564,7 +629,7 @@ Additonally Filters timeout when they aren't requested with eth_getFilterChanges
 -}
 uninstallFilter : HttpProvider -> FilterId -> Task Http.Error FilterId
 uninstallFilter ethNode filterId =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_newPendingTransactionFilter"
         , params = []
@@ -587,7 +652,7 @@ Note the address to sign with must be unlocked.
 -}
 sign : HttpProvider -> Address -> String -> Task Http.Error String
 sign ethNode address data =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_sign"
         , params = [ Encode.address address, Encode.string data ]
@@ -599,7 +664,7 @@ sign ethNode address data =
 -}
 protocolVersion : HttpProvider -> Task Http.Error Int
 protocolVersion ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_protocolVersion"
         , params = []
@@ -615,7 +680,7 @@ protocolVersion ethNode =
 -}
 syncing : HttpProvider -> Task Http.Error (Maybe SyncStatus)
 syncing ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_syncing"
         , params = []
@@ -627,7 +692,7 @@ syncing ethNode =
 -}
 coinbase : HttpProvider -> Task Http.Error Address
 coinbase ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_coinbase"
         , params = []
@@ -639,7 +704,7 @@ coinbase ethNode =
 -}
 mining : HttpProvider -> Task Http.Error Bool
 mining ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_mining"
         , params = []
@@ -651,7 +716,7 @@ mining ethNode =
 -}
 hashrate : HttpProvider -> Task Http.Error Int
 hashrate ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_hashrate"
         , params = []
@@ -666,7 +731,7 @@ Note: not always accurate. See EthGasStation website
 -}
 gasPrice : HttpProvider -> Task Http.Error BigInt
 gasPrice ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_gasPrice"
         , params = []
@@ -678,7 +743,7 @@ gasPrice ethNode =
 -}
 accounts : HttpProvider -> Task Http.Error (List Address)
 accounts ethNode =
-    RPC.buildRequest
+    RPC.toTask
         { url = ethNode
         , method = "eth_accounts"
         , params = []

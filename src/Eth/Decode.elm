@@ -49,7 +49,7 @@ import BigInt exposing (BigInt)
 import Eth.Types exposing (..)
 import Eth.Utils exposing (toAddress, toHex, toTxHash, toBlockHash)
 import Hex
-import Internal.Utils exposing (remove0x)
+import Internal.Utils exposing (remove0x, add0x)
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (required, decode, custom, optional)
 import Time exposing (Time)
@@ -181,7 +181,7 @@ log =
     decode Log
         |> required "address" address
         |> required "data" string
-        |> required "topics" (list string)
+        |> required "topics" (list hex)
         |> required "removed" bool
         |> required "logIndex" hexInt
         |> required "transactionIndex" hexInt
@@ -196,7 +196,7 @@ event returnDataDecoder =
     decode Event
         |> required "address" address
         |> required "data" string
-        |> required "topics" (list string)
+        |> required "topics" (list hex)
         |> required "removed" bool
         |> required "logIndex" hexInt
         |> required "transactionIndex" hexInt
@@ -219,7 +219,7 @@ syncStatus =
 
 
 
--- Rudiments
+-- Primitives
 
 
 {-| -}
@@ -237,7 +237,7 @@ hexInt =
 {-| -}
 bigInt : Decoder BigInt
 bigInt =
-    resultToDecoder (BigInt.fromString >> Result.fromMaybe "Error decoding hex to BigInt")
+    resultToDecoder (add0x >> BigInt.fromString >> Result.fromMaybe "Error decoding hex to BigInt")
 
 
 {-| -}

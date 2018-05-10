@@ -1,19 +1,9 @@
 module Internal.Utils exposing (..)
 
-import Json.Encode as Encode exposing (Value)
-
 
 quote : String -> String
 quote str =
     "\"" ++ str ++ "\""
-
-
-listOfMaybesToVal : List ( String, Maybe Value ) -> Value
-listOfMaybesToVal keyValueList =
-    keyValueList
-        |> List.filter (\( k, v ) -> v /= Nothing)
-        |> List.map (\( k, v ) -> ( k, Maybe.withDefault Encode.null v ))
-        |> Encode.object
 
 
 toByteLength : String -> String
@@ -34,8 +24,8 @@ drop64 =
     String.dropLeft 64
 
 
-leftPad : String -> String
-leftPad data =
+leftPadTo64 : String -> String
+leftPadTo64 data =
     String.padLeft 64 '0' data
 
 
