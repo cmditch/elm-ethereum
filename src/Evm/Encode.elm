@@ -3,7 +3,7 @@ module Evm.Encode
         ( Encoding(..)
         , encodeFunctionCall
         , encodeFunctionCallWithDebug
-        , encode
+        , evmEncode
         )
 
 {-| Encode before sending RPC Calls
@@ -13,7 +13,7 @@ module Evm.Encode
 
 # Low-Level
 
-@docs encode
+@docs evmEncode
 
 -}
 
@@ -56,8 +56,8 @@ encodeFunctionCallWithDebug =
 
 
 {-| -}
-encode : Encoding -> Hex
-encode =
+evmEncode : Encoding -> Hex
+evmEncode =
     lowLevelEncode >> Internal.Hex
 
 

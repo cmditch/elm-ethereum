@@ -10,7 +10,7 @@ module Evm.Decode
         , staticArray
         , dynamicArray
         , ipfsHash
-        , decode
+        , evmDecode
         , andMap
         , toElmDecoder
         , toElmDecoderWithDebug
@@ -44,7 +44,7 @@ module Evm.Decode
 
 # Run Decoders
 
-@docs decode, andMap, toElmDecoder, toElmDecoderWithDebug, fromString
+@docs evmDecode, andMap, toElmDecoder, toElmDecoderWithDebug, fromString
 
 
 # Events/Logs
@@ -93,8 +93,8 @@ type Tape
 {-| Similar to Json.Decode.Pipeline.decode
 also a synonym for Json.Decode.succeed
 -}
-decode : a -> EvmDecoder a
-decode val =
+evmDecode : a -> EvmDecoder a
+evmDecode val =
     EvmDecoder (\tape -> Ok ( tape, val ))
 
 
