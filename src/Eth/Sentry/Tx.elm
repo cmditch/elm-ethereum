@@ -44,7 +44,6 @@ import Eth.Decode as Decode
 import Eth.Types exposing (..)
 import Eth.Utils exposing (Retry, retry, txHashToString)
 import Http
-import Internal.Encode as Encode
 import Json.Decode as Decode exposing (Value, Decoder)
 import Json.Encode as Encode
 import Maybe.Extra as Maybe
@@ -88,13 +87,13 @@ listen (TxSentry sentry) =
 {-| -}
 send : (Tx -> msg) -> TxSentry msg -> Send -> ( TxSentry msg, Cmd msg )
 send onBroadcast sentry txParams =
-    send_ { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Nothing } txParams sentry
+    send_ sentry { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Nothing } txParams
 
 
 {-| -}
-sendWithReceipt : (Tx -> msg) -> (TxReceipt -> msg) -> Send -> TxSentry msg -> ( TxSentry msg, Cmd msg )
-sendWithReceipt onBroadcast onMined txParams sentry =
-    send_ { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Just ( onMined, Nothing ) } txParams sentry
+sendWithReceipt : (Tx -> msg) -> (TxReceipt -> msg) -> TxSentry msg -> Send -> ( TxSentry msg, Cmd msg )
+sendWithReceipt onBroadcast onMined sentry txParams =
+    send_ sentry { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Just ( onMined, Nothing ) } txParams
 
 
 {-|
@@ -126,7 +125,7 @@ type alias TxTracker =
 
 
 {-| -}
-customSend : CustomSend msg -> Send -> TxSentry msg -> ( TxSentry msg, Cmd msg )
+customSend : TxSentry msg -> CustomSend msg -> Send -> ( TxSentry msg, Cmd msg )
 customSend =
     send_
 
@@ -153,8 +152,8 @@ changeNode newNodePath (TxSentry sentry) =
 -- INTERNAL
 
 
-send_ : CustomSend msg -> Send -> TxSentry msg -> ( TxSentry msg, Cmd msg )
-send_ sendParams txParams (TxSentry sentry) =
+send_ : TxSentry msg -> CustomSend msg -> Send -> ( TxSentry msg, Cmd msg )
+send_ (TxSentry sentry) sendParams txParams =
     let
         newTxs =
             Dict.insert sentry.ref (newTxState txParams sendParams) sentry.txs

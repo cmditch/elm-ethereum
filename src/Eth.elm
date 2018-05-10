@@ -11,7 +11,7 @@ module Eth
         , getTxReceipt
         , getTxByBlockHashAndIndex
         , getTxByBlockNumberAndIndex
-        , send
+        , toSend
         , encodeSend
         , sendTx
         , sendRawTx
@@ -61,13 +61,18 @@ and send to a wallet like MetaMask via `Eth.Sentry.Tx`.
 
     ( newSentry, sentryCmd ) =
         myCallParams
-            |> Eth.send
-            |> Eth.encodeSend
+            |> Eth.toSend
             |> TxSentry.send TxSendResponse model.txSentry
 
 But most likely you're interacting with a contract,
 what most dApps are typically engaged in. Use [elm-ethereum-generator](https://github.com/cmditch/elm-ethereum-generator)
 to auto-generate the necessary `Elm <-> Contract` interface from a contract's ABI.
+
+    import Eth
+    import Eth.Types exposing (..)
+    import Eth.Unit exposing (eth)
+    import Evm.Decode as Evm
+    import Evm.Encode as Evm exposing (Encoding(..))
 
     myCallParams : Call BigInt
     myCallParams =
@@ -84,13 +89,13 @@ to auto-generate the necessary `Elm <-> Contract` interface from a contract's AB
             , value = Just (eth 3)
             , data = Just data
             , nonce = Nothing
-            , decoder = Evm.toElmDecoder Evm.uint
+            , decoder = Evm.toElmDecoder Evm.bool
             }
 
 
     type Msg
         = PetKitten
-        | KittenResponse (Result Http.Error BigInt)
+        | KittenResponse (Result Http.Error Bool)
 
 
     update msg model =
@@ -110,7 +115,7 @@ to auto-generate the necessary `Elm <-> Contract` interface from a contract's AB
 
 # Transactions
 
-@docs getTx, getTxReceipt, send, encodeSend, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
+@docs getTx, getTxReceipt, toSend, encodeSend, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
 
 
 # Address/Accounts
@@ -236,8 +241,8 @@ getCodeAtBlock ethNode address blockId =
 {-| Prepare a Call to be executed on chain.
 Used in `Eth.Sentry.Tx`, a means to interact with MetaMask.
 -}
-send : Call a -> Send
-send { to, from, gas, gasPrice, value, data, nonce } =
+toSend : Call a -> Send
+toSend { to, from, gas, gasPrice, value, data, nonce } =
     { to = to
     , from = from
     , gas = gas

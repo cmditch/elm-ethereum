@@ -213,7 +213,7 @@ sendWithReceiptHelp : (Tx -> msg) -> (TxReceipt -> msg) -> Send -> List (Cmd msg
 sendWithReceiptHelp toMsg1 toMsg2 txParams cmds ( txSentry, eventSentry ) xs =
     let
         ( newTxSentry, txCmd ) =
-            TxSentry.sendWithReceipt toMsg1 toMsg2 txParams txSentry
+            TxSentry.sendWithReceipt toMsg1 toMsg2 txSentry txParams
     in
         executeHelp (txCmd :: cmds) ( newTxSentry, eventSentry ) xs
 
@@ -222,7 +222,7 @@ customSendHelp : TxSentry.CustomSend msg -> Send -> List (Cmd msg) -> Sentry msg
 customSendHelp customSend txParams cmds ( txSentry, eventSentry ) xs =
     let
         ( newTxSentry, txCmd ) =
-            TxSentry.customSend customSend txParams txSentry
+            TxSentry.customSend txSentry customSend txParams
     in
         executeHelp (txCmd :: cmds) ( newTxSentry, eventSentry ) xs
 
@@ -235,7 +235,7 @@ watchEventHelp : (Value -> msg) -> LogFilter -> List (Cmd msg) -> Sentry msg -> 
 watchEventHelp toMsg logFilter cmds ( txSentry, eventSentry ) xs =
     let
         ( newEventSentry, eventCmd ) =
-            EventSentry.watch toMsg logFilter eventSentry
+            EventSentry.watch toMsg eventSentry logFilter
     in
         executeHelp (eventCmd :: cmds) ( txSentry, newEventSentry ) xs
 
@@ -244,7 +244,7 @@ watchEventOnceHelp : (Value -> msg) -> LogFilter -> List (Cmd msg) -> Sentry msg
 watchEventOnceHelp toMsg logFilter cmds ( txSentry, eventSentry ) xs =
     let
         ( newEventSentry, eventCmd ) =
-            EventSentry.watchOnce toMsg logFilter eventSentry
+            EventSentry.watchOnce toMsg eventSentry logFilter
     in
         executeHelp (eventCmd :: cmds) ( txSentry, newEventSentry ) xs
 
@@ -253,6 +253,6 @@ unWatchHelp : LogFilter -> List (Cmd msg) -> Sentry msg -> List (ChainEff msg) -
 unWatchHelp logFilter cmds ( txSentry, eventSentry ) xs =
     let
         ( newEventSentry, eventCmd ) =
-            EventSentry.unWatch logFilter eventSentry
+            EventSentry.unWatch eventSentry logFilter
     in
         executeHelp (eventCmd :: cmds) ( txSentry, newEventSentry ) xs
