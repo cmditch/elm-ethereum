@@ -15,7 +15,7 @@ module Eth.Sentry.Event
         , nextBlock
         , pendingTxs
         , unWatchPendingTxs
-        , logFilterKey
+        , toFilterKey
         , withDebug
         )
 
@@ -34,7 +34,7 @@ module Eth.Sentry.Event
 
 # Contract Events/Logs
 
-@docs watch, watchOnce, unWatch, logFilterKey
+@docs watch, watchOnce, unWatch, toFilterKey
 
 
 # Blocks
@@ -105,7 +105,7 @@ type EventSentry msg
     = EventSentry
         { nodePath : String
         , tagger : Msg -> msg
-        , filters : Dict FilterKey (FilterState msg)
+        , filters : Dict FilteryKeyInternal (FilterState msg)
         , rpcIdToFKey : Dict RpcId FilterKey
         , subIdToFKey : Dict SubscriptionId FilterKey
         , debug : Bool
@@ -135,51 +135,55 @@ listen (EventSentry sentry) =
 
 
 {-| -}
-watch : (Value -> msg) -> LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-watch onReceive logFilter =
-    watch_ False [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter) onReceive
+watch : (Value -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg )
+watch onReceive sentry logFilter =
+    watch_ False [ Encode.string "logs", Encode.logFilter logFilter ] onReceive sentry (toFilterKey logFilter)
+
+
+
+-- watch_ : Bool -> List Value -> (Value -> msg) -> EventSentry msg -> FilterKey -> ( EventSentry msg, Cmd msg )
 
 
 {-| -}
-watchOnce : (Value -> msg) -> LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-watchOnce onReceive logFilter =
-    watch_ True [ Encode.string "logs", Encode.logFilter logFilter ] (logFilterKey logFilter) onReceive
+watchOnce : (Value -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg )
+watchOnce onReceive sentry logFilter =
+    watch_ True [ Encode.string "logs", Encode.logFilter logFilter ] onReceive sentry (toFilterKey logFilter)
 
 
 {-| -}
-unWatch : LogFilter -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-unWatch logFilter =
-    unWatch_ (logFilterKey logFilter)
+unWatch : EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg )
+unWatch sentry logFilter =
+    unWatch_ sentry (toFilterKey logFilter)
 
 
 {-| -}
 newBlocks : (BlockHead -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-newBlocks onReceive =
-    watch_ False [ Encode.string "newHeads" ] newBlockHeadsKey (decodeBlockHead >> onReceive)
+newBlocks onReceive sentry =
+    watch_ False [ Encode.string "newHeads" ] (decodeBlockHead >> onReceive) sentry newBlockHeadsKey
 
 
 {-| -}
 nextBlock : (BlockHead -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-nextBlock onReceive =
-    watch_ True [ Encode.string "newHeads" ] newBlockHeadsKey (decodeBlockHead >> onReceive)
+nextBlock onReceive sentry =
+    watch_ True [ Encode.string "newHeads" ] (decodeBlockHead >> onReceive) sentry newBlockHeadsKey
 
 
 {-| -}
 unWatchNewBlocks : EventSentry msg -> ( EventSentry msg, Cmd msg )
-unWatchNewBlocks =
-    unWatch_ newBlockHeadsKey
+unWatchNewBlocks sentry =
+    unWatch_ sentry newBlockHeadsKey
 
 
 {-| -}
 pendingTxs : (TxHash -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-pendingTxs onReceive =
-    watch_ False [ Encode.string "newPendingTransactions" ] pendingTxsKey (decodeTxHash >> onReceive)
+pendingTxs onReceive sentry =
+    watch_ False [ Encode.string "newPendingTransactions" ] (decodeTxHash >> onReceive) sentry pendingTxsKey
 
 
 {-| -}
 unWatchPendingTxs : EventSentry msg -> ( EventSentry msg, Cmd msg )
-unWatchPendingTxs =
-    unWatch_ pendingTxsKey
+unWatchPendingTxs sentry =
+    unWatch_ sentry pendingTxsKey
 
 
 {-| -}
@@ -200,13 +204,17 @@ Need to come up with a better Key scheme to avoid collisions
 Maybe by hashing the Filter params
 
 -}
-type alias FilterKey =
+type FilterKey
+    = FilterKey FilteryKeyInternal
+
+
+type alias FilteryKeyInternal =
     ( String, String )
 
 
 {-| -}
-logFilterKey : LogFilter -> FilterKey
-logFilterKey { address, topics } =
+toFilterKey : LogFilter -> FilterKey
+toFilterKey { address, topics } =
     let
         eventTopic =
             List.head topics
@@ -214,7 +222,7 @@ logFilterKey { address, topics } =
                 |> Maybe.map U.hexToString
                 |> Maybe.withDefault ""
     in
-        ( addressToString address, eventTopic )
+        FilterKey ( addressToString address, eventTopic )
 
 
 type alias RpcId =
@@ -225,14 +233,14 @@ type alias RpcId =
 -- Internal
 
 
-watch_ : Bool -> List Value -> FilterKey -> (Value -> msg) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-watch_ isOnce rpcParams filterKey onReceive ((EventSentry sentry) as sentry_) =
+watch_ : Bool -> List Value -> (Value -> msg) -> EventSentry msg -> FilterKey -> ( EventSentry msg, Cmd msg )
+watch_ isOnce rpcParams onReceive ((EventSentry sentry) as sentry_) (FilterKey filterKey) =
     case Dict.get filterKey sentry.filters of
         Nothing ->
             ( EventSentry
                 { sentry
                     | filters = Dict.insert filterKey (makeFilter isOnce onReceive sentry.ref) sentry.filters
-                    , rpcIdToFKey = Dict.insert sentry.ref filterKey sentry.rpcIdToFKey
+                    , rpcIdToFKey = Dict.insert sentry.ref (FilterKey filterKey) sentry.rpcIdToFKey
                     , ref = sentry.ref + 1
                 }
             , WS.send sentry.nodePath (openFilterRpc sentry.ref rpcParams)
@@ -242,8 +250,8 @@ watch_ isOnce rpcParams filterKey onReceive ((EventSentry sentry) as sentry_) =
             ( sentry_, Cmd.none )
 
 
-unWatch_ : FilterKey -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-unWatch_ filterKey ((EventSentry sentry) as sentry_) =
+unWatch_ : EventSentry msg -> FilterKey -> ( EventSentry msg, Cmd msg )
+unWatch_ ((EventSentry sentry) as sentry_) (FilterKey filterKey) =
     case Dict.get filterKey sentry.filters of
         Nothing ->
             ( sentry_, Cmd.none )
@@ -330,7 +338,7 @@ update msg ((EventSentry sentry) as sentry_) =
     case msg of
         SubscriptionOpened openedMsg ->
             case getFilterByRpcId openedMsg.rpcId sentry_ of
-                Just ( filterKey, filterState ) ->
+                Just ( FilterKey filterKey, filterState ) ->
                     ( EventSentry
                         { sentry
                             | filters =
@@ -339,7 +347,7 @@ update msg ((EventSentry sentry) as sentry_) =
                                     sentry.filters
                             , subIdToFKey =
                                 Dict.insert openedMsg.subId
-                                    filterKey
+                                    (FilterKey filterKey)
                                     sentry.subIdToFKey
                         }
                     , Cmd.none
@@ -349,7 +357,7 @@ update msg ((EventSentry sentry) as sentry_) =
                     ( sentry_, Cmd.none )
 
         CloseSubscription filterKey ->
-            unWatch_ filterKey sentry_
+            unWatch_ sentry_ filterKey
 
         SubscriptionClosed closedMsg ->
             ( sentry_, Cmd.none )
@@ -363,7 +371,7 @@ update msg ((EventSentry sentry) as sentry_) =
                     eventMsg.params.subId
             in
                 case getFilterBySubscriptionId subId sentry_ of
-                    Just ( filterKey, filterState, True ) ->
+                    Just ( FilterKey filterKey, filterState, True ) ->
                         ( EventSentry
                             { sentry
                                 | filters = Dict.remove filterKey sentry.filters
@@ -418,9 +426,9 @@ getFilterByRpcId : RpcId -> EventSentry msg -> Maybe ( FilterKey, FilterState ms
 getFilterByRpcId rpcId (EventSentry sentry) =
     Dict.get rpcId sentry.rpcIdToFKey
         |> Maybe.andThen
-            (\key ->
+            (\(FilterKey key) ->
                 Dict.get key sentry.filters
-                    |> Maybe.map (\f -> ( key, f ))
+                    |> Maybe.map (\f -> ( FilterKey key, f ))
             )
 
 
@@ -428,9 +436,9 @@ getFilterBySubscriptionId : SubscriptionId -> EventSentry msg -> Maybe ( FilterK
 getFilterBySubscriptionId fId (EventSentry sentry) =
     Dict.get fId sentry.subIdToFKey
         |> Maybe.andThen
-            (\key ->
+            (\(FilterKey key) ->
                 Dict.get key sentry.filters
-                    |> Maybe.map (\f -> ( key, f, f.once ))
+                    |> Maybe.map (\f -> ( FilterKey key, f, f.once ))
             )
 
 
@@ -543,12 +551,12 @@ decodeTxHash val =
 
 pendingTxsKey : FilterKey
 pendingTxsKey =
-    ( "pending", "txs" )
+    FilterKey ( "pending", "txs" )
 
 
 newBlockHeadsKey : FilterKey
 newBlockHeadsKey =
-    ( "new", "heads" )
+    FilterKey ( "new", "heads" )
 
 
 debugHelp sentry logText val =
