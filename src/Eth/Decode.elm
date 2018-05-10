@@ -219,7 +219,7 @@ syncStatus =
 
 
 
--- Rudiments
+-- Primitives
 
 
 {-| -}

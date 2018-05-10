@@ -132,8 +132,7 @@ type alias TxReceipt =
 
 {-| -}
 type BlockId
-    = BlockIdNum Int
-    | BlockIdHash BlockHash
+    = BlockNum Int
     | EarliestBlock
     | LatestBlock
     | PendingBlock

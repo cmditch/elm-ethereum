@@ -1,16 +1,4 @@
-module Internal.Encode
-    exposing
-        ( address
-        , txHash
-        , blockHash
-        , txCall
-        , txSend
-        , blockId
-        , logFilter
-        , bigInt
-        , hex
-        , hexInt
-        )
+module Internal.Encode exposing (..)
 
 import BigInt exposing (BigInt)
 import Hex
@@ -76,13 +64,10 @@ txSend { to, from, gas, gasPrice, value, data, nonce } =
 blockId : BlockId -> Value
 blockId blockId =
     case blockId of
-        BlockIdNum num ->
+        BlockNum num ->
             Hex.toString num
                 |> add0x
                 |> string
-
-        BlockIdHash hash ->
-            blockHash hash
 
         EarliestBlock ->
             string "earliest"

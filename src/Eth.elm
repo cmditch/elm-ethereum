@@ -105,6 +105,35 @@ Use the elm-web3-contract code generator to produce an interface for a smart con
 
 Note: The decoder for a call is baked into the Call record for a simpler developer experience.
 
+You might manually use a `Call` for sending Eth somewhere, but for contract interactions,
+typically most of your dApp, use [elm-ethereum-generator](https://github.com/cmditch/elm-ethereum-generator) to code generate `Call`s from a contract's ABI.
+
+    myCallParams : Call BigInt
+    myCallParams =
+        { to = Just cryptoKittyContract
+        , from = Nothing
+        , gas = Nothing
+        , gasPrice = Nothing
+        , value = Just (eth 3)
+        , data = Just <| Evm.encodeFunctionCall "petKitten(uint256)" [ UintE someBigInt ]
+        , nonce = Nothing
+        , decoder = Evm.toElmDecoder Evm.uint
+        }
+
+
+    type Msg
+        = PetKitten
+        | KittenResponse (Result Http.Error BigInt)
+
+
+    update msg model =
+        PetKitten ->
+            model ! [ Task.attempt KittenResponse <| Eth.call model.nodeUrl myCallParams ]
+
+        KittenResponse result ->
+            case result of
+                ...
+
 -}
 call : HttpProvider -> Call a -> Task Http.Error a
 call ethNode txParams =
