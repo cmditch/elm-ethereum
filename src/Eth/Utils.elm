@@ -2,8 +2,8 @@ module Eth.Utils
     exposing
         ( -- ADDRESS
           toAddress
-        , toChecksumAddress
         , addressToString
+        , addressToChecksumString
         , isAddress
         , isChecksumAddress
           -- HEX
@@ -46,7 +46,7 @@ module Eth.Utils
 
 # Address
 
-@docs toAddress, toChecksumAddress, addressToString, isAddress, isChecksumAddress
+@docs toAddress, addressToString, addressToChecksumString, isAddress, isChecksumAddress
 
 
 # Hex
@@ -156,10 +156,17 @@ toChecksumAddress str =
         Err <| "Given address " ++ quote str ++ " is not a valid Ethereum address."
 
 
-{-| Returns Checksummed Address
+{-| Returns Address String
 -}
 addressToString : Address -> String
 addressToString (Internal.Address address) =
+    add0x address
+
+
+{-| Returns Checksummed Address String
+-}
+addressToChecksumString : Address -> String
+addressToChecksumString (Internal.Address address) =
     (add0x << checksumIt) address
 
 
@@ -377,7 +384,7 @@ toIPFSHash str =
 {-| -}
 unsafeToHex : String -> Hex
 unsafeToHex =
-    remove0x >> Internal.Hex
+    remove0x >> String.toLower >> Internal.Hex
 
 
 {-| -}
@@ -389,13 +396,13 @@ unsafeToAddress =
 {-| -}
 unsafeToTxHash : String -> TxHash
 unsafeToTxHash =
-    remove0x >> Internal.TxHash
+    remove0x >> String.toLower >> Internal.TxHash
 
 
 {-| -}
 unsafeToBlockHash : String -> BlockHash
 unsafeToBlockHash =
-    remove0x >> Internal.BlockHash
+    remove0x >> String.toLower >> Internal.BlockHash
 
 
 {-| -}
