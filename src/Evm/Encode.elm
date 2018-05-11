@@ -3,7 +3,7 @@ module Evm.Encode
         ( Encoding(..)
         , encodeFunctionCall
         , encodeFunctionCallWithDebug
-        , encode
+        , evmEncode
         )
 
 {-| Encode before sending RPC Calls
@@ -13,7 +13,7 @@ module Evm.Encode
 
 # Low-Level
 
-@docs encode
+@docs evmEncode
 
 -}
 
@@ -35,8 +35,8 @@ type Encoding
     = AddressE Address
     | UintE BigInt
     | BoolE Bool
-    | DBytesE String
-    | BytesE String
+    | DBytesE Hex
+    | BytesE Hex
     | StringE String
     | ListE Encoding
     | IPFSHashE IPFSHash
@@ -56,8 +56,8 @@ encodeFunctionCallWithDebug =
 
 
 {-| -}
-encode : Encoding -> Hex
-encode =
+evmEncode : Encoding -> Hex
+evmEncode =
     lowLevelEncode >> Internal.Hex
 
 
@@ -102,8 +102,8 @@ lowLevelEncode enc =
         DBytesE _ ->
             "not implemeneted yet"
 
-        BytesE string ->
-            IU.remove0x string
+        BytesE (Internal.Hex hexString) ->
+            IU.remove0x hexString
                 |> IU.leftPadTo64
 
         StringE string ->
@@ -117,4 +117,4 @@ lowLevelEncode enc =
                 |> \(Internal.Hex zerolessHex) -> zerolessHex
 
         Custom string ->
-            string
+            IU.remove0x string

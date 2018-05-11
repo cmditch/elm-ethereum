@@ -132,12 +132,12 @@ update msg model =
 
                         ( newSentry, sentryCmd ) =
                             TxSentry.customSend
+                                model.txSentry
                                 { onSign = Nothing
                                 , onBroadcast = Just WatchTx
                                 , onMined = Just ( WatchTxReceipt, Just ( 3, TrackTx ) )
                                 }
                                 txParams
-                                model.txSentry
                     in
                         { model | txSentry = newSentry } ! [ sentryCmd ]
 
