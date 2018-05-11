@@ -13,6 +13,7 @@ import Eth
 import Eth.Decode as Decode
 import Eth.Utils as Utils exposing (functionSig, unsafeToHex)
 import Eth.Units exposing (eth, gwei)
+import Evm.Encode as Evm
 import Task
 import Process
 
@@ -53,7 +54,8 @@ init =
     , pendingTxHashes = []
     , eventSentry =
         EventSentry.init EventSentryMsg node.ws
-            |> EventSentry.withDebug
+
+    -- |> EventSentry.withDebug
     }
         ! [ Task.perform (\_ -> InitTest) (Task.succeed ()) ]
 
@@ -96,8 +98,8 @@ update msg model =
             let
                 ( subModel, subCmd ) =
                     EventSentry.watchOnce (toString >> (++) "WatchOnce Cmd: \n\t" >> NewResponse)
-                        erc20TransferFilter2
                         model.eventSentry
+                        erc20TransferFilter2
             in
                 { model | eventSentry = subModel }
                     ! [ subCmd ]
@@ -141,10 +143,10 @@ logCmd =
 addressCmd : Cmd Msg
 addressCmd =
     Eth.getBalance node.http wrappedEthContract
-        |> Task.andThen (\_ -> Eth.getBalanceAtBlock node.http (BlockIdNum 4620856) wrappedEthContract)
+        |> Task.andThen (\_ -> Eth.getBalanceAtBlock node.http wrappedEthContract (BlockNum 4620856))
         |> Task.andThen (\_ -> Process.sleep 700)
         |> Task.andThen (\_ -> Eth.getTxCount node.http wrappedEthContract)
-        |> Task.andThen (\_ -> Eth.getTxCountAtBlock node.http (BlockIdNum 4620856) wrappedEthContract)
+        |> Task.andThen (\_ -> Eth.getTxCountAtBlock node.http wrappedEthContract (BlockNum 4620856))
         |> Task.attempt (toString >> (++) "Address Cmds: \n\t" >> NewResponse)
 
 
@@ -190,19 +192,19 @@ contractCmds =
             , gas = Just <| 400000
             , gasPrice = Just <| gwei 20
             , value = Nothing
-            , data = Just <| unsafeToHex <| functionSig "owner()"
+            , data = Just <| Evm.encodeFunctionCall "owner()" []
             , nonce = Nothing
             , decoder = Decode.address
             }
     in
-        Eth.callAtBlock node.http (BlockIdNum 4620856) call
+        Eth.callAtBlock node.http call (BlockNum 4620856)
             |> Task.andThen (\_ -> Eth.call node.http call)
             |> Task.andThen (\_ -> Eth.estimateGas node.http call)
             |> Task.andThen (\_ -> Eth.getStorageAt node.http erc20Contract 0)
-            |> Task.andThen (\_ -> Eth.getStorageAtBlock node.http (BlockIdNum 4620856) erc20Contract 0)
+            |> Task.andThen (\_ -> Eth.getStorageAtBlock node.http erc20Contract 0 (BlockNum 4620856))
             |> Task.andThen (\_ -> Process.sleep 500)
             |> Task.andThen (\_ -> Eth.getCode node.http erc20Contract)
-            |> Task.andThen (\_ -> Eth.getCodeAtBlock node.http (BlockIdNum 4620856) erc20Contract)
+            |> Task.andThen (\_ -> Eth.getCodeAtBlock node.http erc20Contract (BlockNum 4620856))
             |> Task.attempt (toString >> (++) "Contract Cmds: \n\t" >> NewResponse)
 
 
@@ -212,10 +214,10 @@ contractCmds =
 
 erc20TransferFilter : LogFilter
 erc20TransferFilter =
-    { fromBlock = BlockIdNum 5488303
-    , toBlock = BlockIdNum 5488353
+    { fromBlock = BlockNum 5488303
+    , toBlock = BlockNum 5488353
     , address = Utils.unsafeToAddress "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C"
-    , topics = [ Just "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" ]
+    , topics = [ Just <| Utils.unsafeToHex "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" ]
     }
 
 
@@ -224,7 +226,7 @@ erc20TransferFilter2 =
     { fromBlock = LatestBlock
     , toBlock = LatestBlock
     , address = Utils.unsafeToAddress "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C"
-    , topics = [ Just "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" ]
+    , topics = [ Just <| Utils.unsafeToHex "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" ]
     }
 
 

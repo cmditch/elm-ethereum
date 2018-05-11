@@ -1,22 +1,22 @@
 module Eth.Utils
     exposing
-        ( -- Address
+        ( -- ADDRESS
           toAddress
         , toChecksumAddress
         , addressToString
         , isAddress
         , isChecksumAddress
-          -- Hex
+          -- HEX
         , toHex
         , hexToString
           -- , hexToUtf8
         , hexToAscii
         , isHex
-          -- TxHash
+          -- TX-HASH
         , toTxHash
         , txHashToString
           -- , isTxHash
-          -- BlockHash
+          -- BLOCK-HASH
         , toBlockHash
         , blockHashToString
           -- , isBlockHash
@@ -24,18 +24,18 @@ module Eth.Utils
         , functionSig
         , keccak256
         , isSha256
-          -- IPFSHash
+          -- IPFS-HASH
         , toIPFSHash
         , ipfsHashToString
         , ipfsToBytes32
           -- , isIPFSHash
-          -- Unsafe
+          -- UNSAFE
         , unsafeToAddress
         , unsafeToHex
         , unsafeToTxHash
         , unsafeToBlockHash
         , unsafeToIPFSHash
-          -- Application Utils
+          -- APPLICATION UTILS
         , Retry
         , retry
         , valueToMsg
