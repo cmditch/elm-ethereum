@@ -45,7 +45,7 @@ See [why elm?](#why-elm)
     In a few lines of code.    
 
     ```elm
-    findNewestContracts : Cmd Msg
+    findNewestContracts : Task String (List Address)
     findNewestContracts =
         Eth.getBlockNumber model.ethHttpNode
             |> Task.andThen (Eth.getBlock model.ethHttpNode)
@@ -56,13 +56,14 @@ See [why elm?](#why-elm)
                         |> Task.sequence
                 )
             |> Task.map (List.map .contractAddress >> MaybeExtra.values)
-            |> Task.attempt MostRecentContracts
+            |> Task.mapError prettifyHttpError
     ```
 
     Do not fret if the above looks perplexing. This is fairly advanced Elm. Lots is going on here.    
     Partial function application. Function composition. Maps within maps. Record accessor sugar.    
     The point is, your code can be terse, expressive, with great error handling baked in.    
 
+    Btw, this is an example of [Railway Oriented Programming](https://fsharpforfunandprofit.com/rop/). A [great video](https://vimeo.com/113707214) by Scott Wlaschin.
 
 
 ## Why Elm?
