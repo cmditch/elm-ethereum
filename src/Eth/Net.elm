@@ -4,16 +4,16 @@ module Eth.Net
         , clientVersion
         , listening
         , peerCount
-        , toId
-        , idToInt
-        , idToString
-        , idDecoder
+        , toNetworkId
+        , networkIdToInt
+        , networkIdToString
+        , networkIdDecoder
         , NetworkId(..)
         )
 
 {-| NetworkId and RPC Methods
 
-@docs NetworkId, version, clientVersion, listening, peerCount, toId, idToInt, idToString, idDecoder
+@docs NetworkId, version, clientVersion, listening, peerCount, toNetworkId, networkIdToInt, networkIdToString, networkIdDecoder
 
 -}
 
@@ -50,7 +50,7 @@ version ethNode =
         { url = ethNode
         , method = "net_version"
         , params = []
-        , decoder = idDecoder
+        , decoder = networkIdDecoder
         }
 
 
@@ -95,13 +95,13 @@ peerCount ethNode =
 
 {-| Decode a JSON stringy int or JSON int to a NetworkId
 
-    decodeString idDecoder "1"          == Ok Mainnet
-    decodeString idDecoder 3            == Ok Ropsten
-    decodeString idDecoder "five"       == Err ...
+    decodeString networkIdDecoder "1"          == Ok Mainnet
+    decodeString networkIdDecoder 3            == Ok Ropsten
+    decodeString networkIdDecoder "five"       == Err ...
 
 -}
-idDecoder : Decoder NetworkId
-idDecoder =
+networkIdDecoder : Decoder NetworkId
+networkIdDecoder =
     Decode.oneOf
         [ stringyIdDecoder
         , intyIdDecoder
@@ -110,19 +110,19 @@ idDecoder =
 
 stringyIdDecoder : Decoder NetworkId
 stringyIdDecoder =
-    (String.toInt >> Result.map toId)
+    (String.toInt >> Result.map toNetworkId)
         |> Decode.resultToDecoder
 
 
 intyIdDecoder : Decoder NetworkId
 intyIdDecoder =
-    Decode.int |> Decode.map toId
+    Decode.int |> Decode.map toNetworkId
 
 
 {-| Convert an int into it's NetworkId
 -}
-toId : Int -> NetworkId
-toId idInt =
+toNetworkId : Int -> NetworkId
+toNetworkId idInt =
     case idInt of
         1 ->
             Mainnet
@@ -157,8 +157,8 @@ toId idInt =
 
 {-| Convert an int into it's NetworkId
 -}
-idToInt : NetworkId -> Int
-idToInt networkId =
+networkIdToInt : NetworkId -> Int
+networkIdToInt networkId =
     case networkId of
         Mainnet ->
             1
@@ -193,8 +193,8 @@ idToInt networkId =
 
 {-| Get a NetworkId's name
 -}
-idToString : NetworkId -> String
-idToString networkId =
+networkIdToString : NetworkId -> String
+networkIdToString networkId =
     case networkId of
         Mainnet ->
             "Mainnet"

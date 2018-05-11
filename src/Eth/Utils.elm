@@ -346,7 +346,7 @@ lowLevelKeccak256 =
 {-| -}
 ipfsHashToString : IPFSHash -> String
 ipfsHashToString (Internal.IPFSHash str) =
-    add0x str
+    str
 
 
 {-| Prepares IPFS Hash to store as soldity bytes32

@@ -4,17 +4,18 @@ module Eth.Decode
         , hex
         , txHash
         , blockHash
+        , ipfsHash
         , event
         )
 
 {-| Eth Decoders
 
-@docs address, hex, txHash, blockHash, event
+@docs address, hex, txHash, blockHash, ipfsHash, event
 
 -}
 
 import Eth.Types exposing (..)
-import Eth.Utils exposing (toAddress, toHex, toTxHash, toBlockHash)
+import Eth.Utils exposing (toAddress, toHex, toTxHash, toBlockHash, toIPFSHash)
 import Internal.Decode exposing (stringInt, hexInt, bigInt, hexTime, hexBool, resultToDecoder, nonZero)
 import Json.Decode as Decode exposing (Decoder, string, bool, list, nullable)
 import Json.Decode.Pipeline exposing (required, decode, custom)
@@ -42,6 +43,12 @@ txHash =
 blockHash : Decoder BlockHash
 blockHash =
     resultToDecoder toBlockHash
+
+
+{-| -}
+ipfsHash : Decoder IPFSHash
+ipfsHash =
+    resultToDecoder toIPFSHash
 
 
 

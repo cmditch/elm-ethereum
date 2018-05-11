@@ -57,8 +57,8 @@ See [why elm?](#why-elm)
             |> Task.mapError prettifyHttpError
 ```  
 
-Do not fret if the above looks perplexing. This is fairly advanced Elm. Lots is going on here.  
-Partial function application. Function composition. Maps within maps. Record accessor sugar.  
+Do not fret if the above looks perplexing. This is fairly advanced Elm. Lots is going on here.
+Partial function application. Function composition. Maps within maps. Record accessor sugar.
 The point is, your code can be terse, expressive, with great error handling baked in.  
 
 Btw, this is an example of [Railway Oriented Programming](https://fsharpforfunandprofit.com/rop/). A [great video](https://vimeo.com/113707214) by Scott Wlaschin.  
@@ -67,11 +67,11 @@ Btw, this is an example of [Railway Oriented Programming](https://fsharpforfunan
 
 I'd sum up the experience of programming in Elm in two words: **Fearless Refactoring**
 
-This is by no means the only pleasantry Elm has to offer.
+This is by no means the only pleasantry the fine tree has to offer.
 
-Elm's claim to fame is zero runtime exceptions. Elm's compiler and static types are your best friends. Both from an error catching standpoint, but just as importantly, from a domain modeling standpoint.  
+Elm's claim to fame is zero runtime exceptions. It's compiler and static types are your best friends. Both from an error catching standpoint, but just as importantly, from a domain modeling standpoint.  
 
-Elm's **Union Types** allow you to fully leverage the compiler when modeling your business domain. See [BlockId](http://package.elm-lang.org/packages/cmditch/elm-ethereum/latest/Eth-Types#BlockId) or [NetworkId](http://package.elm-lang.org/packages/cmditch/elm-ethereum/latest/Eth-Net#NetworkId) for instance.  
+**Union Types** allow you to fully leverage the compiler when modeling your business domain. See [BlockId](http://package.elm-lang.org/packages/cmditch/elm-ethereum/latest/Eth-Types#BlockId) or [NetworkId](http://package.elm-lang.org/packages/cmditch/elm-ethereum/latest/Eth-Net#NetworkId) for instance.  
 
 Union types also allow you to hide implementation details by using them as "opaque types". An [Address](https://github.com/cmditch/elm-ethereum/blob/master/src/Internal/Types.elm#L4) is just a string under the hood, but you can never directly touch that string.
 
