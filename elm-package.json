@@ -8,11 +8,11 @@
     ],
     "exposed-modules": [
         "Eth",
-        "Eth.ChainEff",
         "Eth.Decode",
         "Eth.Defaults",
         "Eth.Net",
         "Eth.RPC",
+        "Eth.Sentry.ChainCmd",
         "Eth.Sentry.Event",
         "Eth.Sentry.Tx",
         "Eth.Types",

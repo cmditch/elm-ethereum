@@ -93,12 +93,30 @@ peerCount ethNode =
         }
 
 
-{-| Decode a stringy int into it's NetworkId
+{-| Decode a JSON stringy int or JSON int to a NetworkId
+
+    decodeString idDecoder "1"          == Ok Mainnet
+    decodeString idDecoder 3            == Ok Ropsten
+    decodeString idDecoder "five"       == Err ...
+
 -}
 idDecoder : Decoder NetworkId
 idDecoder =
+    Decode.oneOf
+        [ stringyIdDecoder
+        , intyIdDecoder
+        ]
+
+
+stringyIdDecoder : Decoder NetworkId
+stringyIdDecoder =
     (String.toInt >> Result.map toId)
         |> Decode.resultToDecoder
+
+
+intyIdDecoder : Decoder NetworkId
+intyIdDecoder =
+    Decode.int |> Decode.map toId
 
 
 {-| Convert an int into it's NetworkId
