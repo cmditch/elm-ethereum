@@ -18,7 +18,7 @@ module Eth.Net
 -}
 
 import Eth.Types exposing (HttpProvider)
-import Eth.Decode as Decode
+import Internal.Decode as Decode
 import Eth.RPC as RPC
 import Http
 import Json.Decode as Decode exposing (Decoder)

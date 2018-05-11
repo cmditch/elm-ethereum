@@ -60,7 +60,7 @@ module Evm.Decode
 
 import Base58
 import BigInt exposing (BigInt)
-import Eth.Decode exposing (resultToDecoder)
+import Internal.Decode exposing (resultToDecoder)
 import Eth.Types exposing (IPFSHash, Address)
 import Eth.Utils as U exposing (toAddress)
 import Hex

@@ -50,11 +50,11 @@ module Eth.Sentry.Event
 
 import BigInt
 import Dict exposing (Dict)
-import Eth.Decode as Decode
 import Eth.Utils as U exposing (keccak256, addressToString)
 import Eth.Defaults as Default
 import Eth.Types exposing (..)
 import Eth.RPC as RPC
+import Internal.Decode as Decode
 import Internal.Encode as Encode
 import Json.Decode as Decode exposing (Value, Decoder)
 import Json.Encode as Encode

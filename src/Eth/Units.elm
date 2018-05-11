@@ -2,7 +2,7 @@ module Eth.Units
     exposing
         ( gwei
         , eth
-        , EthUnit
+        , EthUnit(..)
         , toWei
         , fromWei
         , bigIntToWei

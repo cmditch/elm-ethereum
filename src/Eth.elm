@@ -141,9 +141,9 @@ to auto-generate the necessary `Elm <-> Contract` interface from a contract's AB
 
 import BigInt exposing (BigInt)
 import Eth.Types exposing (..)
-import Eth.Decode as Decode
 import Eth.RPC as RPC
 import Http
+import Internal.Decode as Decode
 import Internal.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)

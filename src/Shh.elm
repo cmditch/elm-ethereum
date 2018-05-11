@@ -23,10 +23,10 @@ module Shh
 
 -}
 
-import Eth.Decode as Decode
 import Eth.Types exposing (..)
 import Eth.Utils exposing (..)
 import Http
+import Internal.Decode as Decode
 import Internal.Encode as Encode
 import Internal.Types as Internal
 import Internal.Encode exposing (listOfMaybesToVal)
