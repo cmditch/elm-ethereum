@@ -408,7 +408,7 @@ unsafeToBlockHash =
 {-| -}
 unsafeToIPFSHash : String -> IPFSHash
 unsafeToIPFSHash =
-    remove0x >> Internal.IPFSHash
+    Internal.IPFSHash
 
 
 
