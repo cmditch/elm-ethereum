@@ -23,13 +23,13 @@
     // Useful pattern to receive Wallet Account changes
     // ----------------------------------------------------------------------------------
     //
-    function startAccountListener() {
+    function startAccountListener(elmApp) {
         setInterval(function () {
             web3.eth.getAccounts(function (e, accounts) {
                 if (model.account !== accounts[0]) {
                     model.account = accounts[0];
                     console.log("Metamask: Account changed. " + model.account);
-                    app.ports.accountListener.send(accounts[0]);
+                    elmApp.ports.accountListener.send(accounts[0]);
                 }
             });
         }, 3000)
@@ -49,13 +49,19 @@
     // TxSentry Subscription Expects
     // { ref: txData.ref, txHash: metamask/wallet reponse of tx hash }
     //
-    function startSubs() {
-        startAccountListener();
-        app.ports.txOut.subscribe(function (txData) {
-            web3.eth.sendTransaction(txData.txParams, function (e, r) {
-                app.ports.txIn.send({ ref: txData.ref, txHash: r });
-            });
+    function startSubs(elmApp) {
+        startAccountListener(elmApp);
+        elmApp.ports.txOut.subscribe(function (txData) {
+            try {
+                web3.eth.sendTransaction(txData.txParams, function (e, r) {
+                    elmApp.ports.txIn.send({ ref: txData.ref, txHash: r || e });
+                });
+            } catch (error) {
+                elmApp.ports.txIn.send({ ref: txData.ref, txHash: null });
+            }
+
         });
+
     }
     //
     // ----------------------------------------------------------------------------------
@@ -71,7 +77,7 @@
                 app = Elm.Main.embed(document.getElementById('main'));
                 model.account = accounts[0];
                 app.ports.accountListener.send(accounts[0]);
-                startSubs();
+                startSubs(app);
             })
         } else {
             app = Elm.Main.embed(document.getElementById('main'));

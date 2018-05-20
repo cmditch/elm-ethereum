@@ -2,6 +2,7 @@ module Eth.Sentry.Tx
     exposing
         ( TxSentry
         , Msg
+          -- , Error(..)
         , update
         , init
         , listen
@@ -62,6 +63,20 @@ type TxSentry msg
         , debug : Bool
         , ref : Int
         }
+
+
+{-| Replace all `Result String x` with `Result TxSentry.Error x`
+
+Create `Http.Error -> TxSentry.Error` Function
+
+Fix JS code to catch and cast appropriate errors.
+
+-}
+type Error
+    = Error String
+    | UserRejected
+    | Web3Undefined
+    | NetworkError
 
 
 {-| -}
@@ -167,6 +182,7 @@ type TxStatus
     | Signed TxHash
     | Sent Tx
     | Mined TxReceipt
+    | Failed Error
 
 
 type alias TxState msg =
@@ -219,20 +235,17 @@ update msg (TxSentry sentry) =
 
                         -- Send Err's to any other callbacks the user might have provided
                         failOtherCallbacks error =
-                            case ( txState.onBroadcastTagger, txState.onMinedTagger ) of
-                                ( Just txToMsg, Just ( txReceiptToMsg, _ ) ) ->
-                                    Cmd.batch
-                                        [ Task.perform txToMsg (Task.succeed (Err error))
-                                        , Task.perform txReceiptToMsg (Task.succeed (Err error))
-                                        ]
+                            case ( txState.onSignedTagger, txState.onBroadcastTagger, txState.onMinedTagger ) of
+                                ( Just _, _, _ ) ->
+                                    Cmd.none
 
-                                ( Just txToMsg, Nothing ) ->
+                                ( _, Just txToMsg, _ ) ->
                                     Task.perform txToMsg (Task.succeed (Err error))
 
-                                ( Nothing, Just ( txReceiptToMsg, _ ) ) ->
+                                ( _, _, Just ( txReceiptToMsg, _ ) ) ->
                                     Task.perform txReceiptToMsg (Task.succeed (Err error))
 
-                                ( Nothing, Nothing ) ->
+                                ( Nothing, Nothing, Nothing ) ->
                                     Cmd.none
                     in
                         case txHashResult of
@@ -308,27 +321,19 @@ update msg (TxSentry sentry) =
 
                             Err error ->
                                 let
-                                    txBroadcastFailCmd =
-                                        case txState.onBroadcastTagger of
-                                            Just txToMsg ->
+                                    failOtherCallbacks =
+                                        case ( txState.onBroadcastTagger, txState.onMinedTagger ) of
+                                            ( Just txToMsg, _ ) ->
                                                 Task.perform txToMsg (Task.succeed <| Err <| toString error)
 
-                                            Nothing ->
-                                                Cmd.none
-
-                                    txMinedFailCmd =
-                                        case txState.onMinedTagger of
-                                            Just ( txReceiptToMsg, _ ) ->
+                                            ( _, Just ( txReceiptToMsg, _ ) ) ->
                                                 Task.perform txReceiptToMsg (Task.succeed <| Err <| toString error)
 
-                                            Nothing ->
+                                            ( Nothing, Nothing ) ->
                                                 Cmd.none
                                 in
                                     ( TxSentry sentry
-                                    , Cmd.batch
-                                        [ txMinedFailCmd
-                                        , txBroadcastFailCmd
-                                        ]
+                                    , failOtherCallbacks
                                     )
 
                     -- This shouldn't occur. A ref should always be associated with some TxState.

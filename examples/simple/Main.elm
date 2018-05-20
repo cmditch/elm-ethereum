@@ -27,6 +27,7 @@ type alias Model =
     { txSentry : TxSentry Msg
     , account : Maybe Address
     , blockNumber : Maybe Int
+    , txHash : Maybe TxHash
     , tx : Maybe Tx
     , txReceipt : Maybe TxReceipt
     , blockDepth : String
@@ -39,6 +40,7 @@ init =
     { txSentry = TxSentry.init ( txOut, txIn ) TxSentryMsg ethNode
     , account = Nothing
     , blockNumber = Nothing
+    , txHash = Nothing
     , tx = Nothing
     , txReceipt = Nothing
     , blockDepth = ""
@@ -63,6 +65,8 @@ view model =
             (List.map viewThing
                 [ ( "Current Block", toString model.blockNumber )
                 , ( "--------------------", "" )
+                , ( "TxHash", toString model.txHash )
+                , ( "--------------------", "" )
                 , ( "Tx", toString model.tx )
                 , ( "--------------------", "" )
                 , ( "TxReceipt", toString model.txReceipt )
@@ -71,6 +75,7 @@ view model =
                 ]
             )
         , button [ onClick InitTx ] [ text "Send Tx" ]
+        , div [] (List.map (\e -> div [] [ text e ]) model.errors)
         ]
 
 
@@ -91,8 +96,9 @@ type Msg
     | SetAccount (Maybe Address)
     | PollBlock (Result Http.Error Int)
     | InitTx
-    | WatchTx Tx
-    | WatchTxReceipt TxReceipt
+    | WatchTxHash (Result String TxHash)
+    | WatchTx (Result String Tx)
+    | WatchTxReceipt (Result String TxReceipt)
     | TrackTx TxTracker
     | NoOp
 
@@ -110,45 +116,55 @@ update msg model =
         SetAccount mAccount ->
             { model | account = mAccount } ! []
 
-        PollBlock blockNumber ->
-            { model | blockNumber = Result.toMaybe blockNumber }
+        PollBlock (Ok blockNumber) ->
+            { model | blockNumber = Just blockNumber }
                 ! [ Task.attempt PollBlock <|
                         Task.andThen (\_ -> Eth.getBlockNumber ethNode) (Process.sleep 1000)
                   ]
 
+        PollBlock (Err error) ->
+            model ! []
+
         InitTx ->
-            case model.account of
-                Just account ->
-                    let
-                        txParams =
-                            { to = model.account
-                            , from = model.account
-                            , gas = Nothing
-                            , gasPrice = Just <| gwei 4
-                            , value = Just <| gwei 1
-                            , data = Nothing
-                            , nonce = Nothing
-                            }
+            let
+                txParams =
+                    { to = model.account
+                    , from = model.account
+                    , gas = Nothing
+                    , gasPrice = Just <| gwei 4
+                    , value = Just <| gwei 1
+                    , data = Nothing
+                    , nonce = Nothing
+                    }
 
-                        ( newSentry, sentryCmd ) =
-                            TxSentry.customSend
-                                model.txSentry
-                                { onSign = Nothing
-                                , onBroadcast = Just WatchTx
-                                , onMined = Just ( WatchTxReceipt, Just ( 3, TrackTx ) )
-                                }
-                                txParams
-                    in
-                        { model | txSentry = newSentry } ! [ sentryCmd ]
+                ( newSentry, sentryCmd ) =
+                    TxSentry.customSend
+                        model.txSentry
+                        { onSign = Just WatchTxHash
+                        , onBroadcast = Just WatchTx
+                        , onMined = Just ( WatchTxReceipt, Just ( 3, TrackTx ) )
+                        }
+                        txParams
+            in
+                { model | txSentry = newSentry } ! [ sentryCmd ]
 
-                Nothing ->
-                    model ! []
+        WatchTxHash (Ok txHash) ->
+            { model | txHash = Just txHash } ! []
 
-        WatchTx tx ->
+        WatchTxHash (Err err) ->
+            { model | errors = ("Error Retrieving TxHash: " ++ toString err) :: model.errors } ! []
+
+        WatchTx (Ok tx) ->
             { model | tx = Just tx } ! []
 
-        WatchTxReceipt txReceipt ->
+        WatchTx (Err err) ->
+            { model | errors = ("Error Retrieving Tx: " ++ toString err) :: model.errors } ! []
+
+        WatchTxReceipt (Ok txReceipt) ->
             { model | txReceipt = Just txReceipt } ! []
+
+        WatchTxReceipt (Err err) ->
+            { model | errors = ("Error Retrieving TxReceipt: " ++ toString err) :: model.errors } ! []
 
         TrackTx blockDepth ->
             { model | blockDepth = toString blockDepth } ! []
