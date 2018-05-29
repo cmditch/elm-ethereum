@@ -2,6 +2,17 @@
 
 **DApps in Pure Elm**
 
+
+**Dev Note 5/28/18:**  
+*elm-ethereum* is not quite ready for a 1.0 release.  
+In the mean time, use the [dev version of the package](http://package.elm-lang.org/packages/cmditch/mel-bew3/latest).  
+
+Check out the [simple starter example](https://github.com/cmditch/elm-ethereum/tree/master/examples/simple/Main.elm)  
+
+Cool Feature:  See [here](https://github.com/cmditch/elm-ethereum/blob/master/examples/simple/Main.elm#L138) how you can easily track the block depth of transactions after they've been mined.
+
+-----------------------
+
 This library allows you to interact with the Ethereum blockchain much like `purescript-web3`, `ethers.js`, or `web3.js`.
 You can hook into web wallets like MetaMask and send transactions, as well as perform read-only operations on smart contracts.
 
