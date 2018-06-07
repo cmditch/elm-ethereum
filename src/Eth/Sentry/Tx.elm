@@ -5,6 +5,8 @@ module Eth.Sentry.Tx
           -- , Error(..)
         , update
         , init
+        , OutPort
+        , InPort
         , listen
         , send
         , sendWithReceipt
@@ -20,7 +22,7 @@ module Eth.Sentry.Tx
 
 # Core
 
-@docs TxSentry, Msg, update, init, listen
+@docs TxSentry, Msg, update, init, OutPort, InPort, listen
 
 
 # Send Txs
@@ -55,8 +57,8 @@ import Task exposing (Task)
 {-| -}
 type TxSentry msg
     = TxSentry
-        { inPort : (Value -> Msg) -> Sub Msg
-        , outPort : Value -> Cmd Msg
+        { inPort : InPort
+        , outPort : OutPort
         , nodePath : HttpProvider
         , tagger : Msg -> msg
         , txs : Dict Int (TxState msg)
@@ -80,7 +82,7 @@ type Error
 
 
 {-| -}
-init : ( Value -> Cmd Msg, (Value -> Msg) -> Sub Msg ) -> (Msg -> msg) -> HttpProvider -> TxSentry msg
+init : ( OutPort, InPort ) -> (Msg -> msg) -> HttpProvider -> TxSentry msg
 init ( outPort, inPort ) tagger nodePath =
     TxSentry
         { inPort = inPort
@@ -91,6 +93,28 @@ init ( outPort, inPort ) tagger nodePath =
         , debug = False
         , ref = 1
         }
+
+
+{-| The `txOut` port.
+Where information from your elm app is sent OUT to javascript land.
+Used for sending `Send` Tx parameters to Metamask, or other wallets.
+
+    port txOut : Value -> Cmd msg
+
+-}
+type alias OutPort =
+    Value -> Cmd Msg
+
+
+{-| The `txIn` subscription.
+Where information from the outside comes IN to your elm app.
+Used for getting the TxHash response from Metamask, or other wallets.
+
+     port txIn : (Value -> msg) -> Sub msg
+
+-}
+type alias InPort =
+    (Value -> Msg) -> Sub Msg
 
 
 {-| -}

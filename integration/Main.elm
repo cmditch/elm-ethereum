@@ -1,5 +1,6 @@
 module Main exposing (..)
 
+import BigInt
 import Element exposing (..)
 import Style exposing (StyleSheet)
 import Html exposing (Html)
@@ -67,7 +68,14 @@ init =
 view : Model -> Html Msg
 view model =
     Element.viewport stylesheet <|
-        column "" [] (List.map text model.responses)
+        column NoStyle [] <|
+            [ text <|
+                toString (List.length model.responses)
+                    ++ "/6 tests complete.\n\n"
+                    ++ "WatchOnce event test is watching random ERC20 coin's transfer events.\n"
+                    ++ "Give it a minute to pick one up.\n\n"
+            ]
+                ++ (List.map text model.responses)
 
 
 
@@ -143,10 +151,11 @@ logCmd =
 addressCmd : Cmd Msg
 addressCmd =
     Eth.getBalance node.http wrappedEthContract
-        |> Task.andThen (\_ -> Eth.getBalanceAtBlock node.http wrappedEthContract (BlockNum 4620856))
-        |> Task.andThen (\_ -> Process.sleep 700)
         |> Task.andThen (\_ -> Eth.getTxCount node.http wrappedEthContract)
         |> Task.andThen (\_ -> Eth.getTxCountAtBlock node.http wrappedEthContract (BlockNum 4620856))
+        |> Task.andThen (\_ -> Process.sleep 700)
+        |> Task.andThen (\_ -> Eth.getBalanceAtBlock node.http wrappedEthContract (BlockNum 5744072))
+        |> Task.map BigInt.toString
         |> Task.attempt (toString >> (++) "Address Cmds: \n\t" >> NewResponse)
 
 
@@ -254,6 +263,10 @@ blockHash =
 -- Style
 
 
-stylesheet : StyleSheet String variations
+type Style
+    = NoStyle
+
+
+stylesheet : StyleSheet Style variations
 stylesheet =
-    Style.styleSheet [ Style.style "" [] ]
+    Style.styleSheet [ Style.style NoStyle [] ]
