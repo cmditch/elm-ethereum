@@ -22,6 +22,11 @@ import Json.Encode as Encode exposing (Value, object, int, string, list)
 import Task exposing (Task)
 
 
+jsonRPCVersion : String
+jsonRPCVersion =
+    "2.0"
+
+
 {-| -}
 type alias RpcRequest a =
     { url : String
@@ -54,6 +59,7 @@ encode : Int -> String -> List Value -> Value
 encode id method params =
     object
         [ ( "id", int id )
+        , ( "jsonrpc", string jsonRPCVersion )
         , ( "method", string method )
         , ( "params", list params )
         ]
