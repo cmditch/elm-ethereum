@@ -118,7 +118,7 @@ Useful for reading data from contracts, or simulating a transaction before doing
 
 Use the [elm-ethereum-generator](https://github.com/cmditch/elm-ethereum-generator) code generator to produce an interface for a smart contract from it's ABI.
 
-Note: The decoder for a call is baked into the Call record to allow for a smoother developer experience.
+**Note** The decoder for a call is baked into the Call record to allow for a smoother developer experience.
 
 -}
 call : HttpProvider -> Call a -> Task Http.Error a
@@ -128,7 +128,7 @@ call ethNode txParams =
 
 {-| Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
 
-Note that the estimate may be significantly more than the amount of gas actually used by the transaction,
+**Note** that the estimate may be significantly more than the amount of gas actually used by the transaction,
 for a variety of reasons including EVM mechanics and node performance.
 
 -}
@@ -635,7 +635,7 @@ uninstallFilter ethNode filterId =
 
 
 
--- Other
+-- Misc
 
 
 {-| Sign an arbitrary chunk of N bytes.
@@ -645,7 +645,7 @@ The sign method calculates an Ethereum specific signature with: sign(keccak256("
 By adding a prefix to the message makes the calculated signature recognisable as an Ethereum specific signature.
 This prevents misuse where a malicious DApp can sign arbitrary data (e.g. transaction) and use the signature to impersonate the victim.
 
-Note the address to sign with must be unlocked.
+**Note** the address to sign with must be unlocked.
 
 -}
 sign : HttpProvider -> Address -> String -> Task Http.Error String
@@ -724,7 +724,7 @@ hashrate ethNode =
 
 {-| Get the current price per gas in wei
 
-Note: not always accurate. See EthGasStation website
+**Note**: not always accurate. See EthGasStation website
 
 -}
 gasPrice : HttpProvider -> Task Http.Error BigInt

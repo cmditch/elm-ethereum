@@ -164,7 +164,7 @@ addressToString (Internal.Address address) =
 
 {-| Convert an Address to a string conforming to the EIP-55 checksum.
 
-Note: This lowercases all the characters inside the `Address` and runs it through the checksum algorithm.
+**Note**: This lowercases all the characters inside the `Address` and runs it through the checksum algorithm.
 
 -}
 addressToChecksumString : Address -> String
@@ -174,7 +174,7 @@ addressToChecksumString (Internal.Address address) =
 
 {-| Check if given string is a valid address.
 
-Note: Works on mixed case strings, with or without the 0x.
+**Note**: Works on mixed case strings, with or without the 0x.
 
 -}
 isAddress : String -> Bool
@@ -419,7 +419,7 @@ ipfsHashToString (Internal.IPFSHash str) =
 
 {-| Prepares IPFS Hash to store as soldity bytes32
 
-Note: This assumes a SHA256 IPFS hash is used and chops off the "Qm".
+**Note**: This assumes a SHA256 IPFS hash is used and chops off the "Qm".
 An "opinionated" feature of this library that helps save gas costs
 by avoiding the more expensive dynamic types like `string` or `bytes`.
 The "Qm" is there to help future proof IPFS, and allow for other hashing algorithms to be used.
@@ -505,7 +505,7 @@ unsafeToIPFSHash =
 {-| Takes first 20 bytes of keccak'd address, and converts each hex char to an int
 Packs this list into a tuple with the split up address chars so a comparison can be made between the two.
 
-Note: Only functions which have already removed "0x" should be calling this.
+**Note**: Only functions which have already removed "0x" should be calling this.
 
 -}
 checksumHelper : String -> ( List Char, List Int )
