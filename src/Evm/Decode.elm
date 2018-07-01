@@ -66,8 +66,8 @@ import Eth.Utils as U exposing (toAddress)
 import Hex
 import Internal.Utils exposing (..)
 import String.UTF8 as UTF8
-import String.Extra as String
-import Result.Extra as Result
+import String.Extra as StringExtra
+import Result.Extra as ResultExtra
 import Json.Decode as Decode exposing (Decoder)
 
 
@@ -226,8 +226,8 @@ string =
         \(Tape original altered) ->
             take64 altered
                 |> buildBytes original
-                |> Result.map (String.break 2)
-                |> Result.andThen (List.map Hex.fromString >> Result.combine)
+                |> Result.map (StringExtra.break 2)
+                |> Result.andThen (List.map Hex.fromString >> ResultExtra.combine)
                 |> Result.andThen UTF8.toString
                 |> Result.map (newTape original altered)
 
@@ -270,9 +270,9 @@ staticArray arrSize decoder =
     EvmDecoder <|
         \(Tape original altered) ->
             String.left (arrSize * 64) altered
-                |> String.break 64
+                |> StringExtra.break 64
                 |> List.map (fromString decoder)
-                |> Result.combine
+                |> ResultExtra.combine
                 |> Result.map (\list -> ( Tape original (String.dropLeft (arrSize * 64) altered), list ))
 
 
@@ -286,7 +286,7 @@ dynamicArray decoder =
             take64 altered
                 |> buildDynArray original
                 |> Result.map (List.map (fromString decoder))
-                |> Result.andThen Result.combine
+                |> Result.andThen ResultExtra.combine
                 |> Result.map (newTape original altered)
 
 
@@ -402,7 +402,7 @@ buildDynArray fullTape lengthIndex =
                         |> Hex.fromString
                         |> Result.map (\dataLength -> sliceData (index + 64) dataLength)
                 )
-            |> Result.map (String.break 64)
+            |> Result.map (StringExtra.break 64)
 
 
 {-| Useful for decoding data withing events/logs.

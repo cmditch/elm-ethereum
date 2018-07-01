@@ -11,9 +11,27 @@ module Eth.Units
 {-| Conversions and Helpers
 
 
-# Units
+# Concise Units
+
+Useful helpers for concise value declarations.
+
+    txParams : Send
+    txParams =
+        { to = Just myContract
+        , from = Nothing
+        , gas = Nothing
+        , gasPrice = Just (gwei 3)
+        , value = Just (eth 3)
+        , data = Just data
+        , nonce = Nothing
+        }
 
 @docs gwei, eth
+
+
+# Precise Units
+
+Helpers for dealing with floats.
 
 @docs EthUnit, toWei, fromWei, bigIntToWei
 
@@ -133,8 +151,7 @@ fromWei unit amount =
 -}
 bigIntToWei : EthUnit -> BigInt -> BigInt
 bigIntToWei unit amount =
-    List.repeat (decimalShift unit) (BigInt.fromInt 10)
-        |> List.foldl BigInt.mul (BigInt.fromInt 1)
+    BigInt.pow (BigInt.fromInt 10) (BigInt.fromInt <| decimalShift unit)
         |> BigInt.mul amount
 
 

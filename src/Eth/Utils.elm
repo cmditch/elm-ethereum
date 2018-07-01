@@ -9,26 +9,29 @@ module Eth.Utils
           -- HEX
         , toHex
         , hexToString
-          -- , hexToUtf8
+        , hexToUtf8
         , hexToAscii
         , isHex
+        , hexAppend
+        , hexConcat
           -- TX-HASH
         , toTxHash
         , txHashToString
-          -- , isTxHash
+        , isTxHash
           -- BLOCK-HASH
         , toBlockHash
         , blockHashToString
-          -- , isBlockHash
+        , isBlockHash
           --SHA3
         , functionSig
         , keccak256
         , isSha256
+        , lowLevelKeccak256
           -- IPFS-HASH
         , toIPFSHash
         , ipfsHashToString
         , ipfsToBytes32
-          -- , isIPFSHash
+        , isIPFSHash
           -- UNSAFE
         , unsafeToAddress
         , unsafeToHex
@@ -51,30 +54,36 @@ module Eth.Utils
 
 # Hex
 
-@docs toHex, hexToString, isHex, hexToAscii
+@docs toHex, hexToString, isHex, hexToAscii, hexToUtf8, hexAppend, hexConcat
 
 
 # Transaction Hash
 
-@docs toTxHash, txHashToString
+@docs toTxHash, txHashToString, isTxHash
 
 
 # Block Hash
 
-@docs toBlockHash, blockHashToString
+@docs toBlockHash, blockHashToString, isBlockHash
 
 
 # SHA3
 
-@docs functionSig, keccak256, isSha256
+@docs functionSig, keccak256, isSha256, lowLevelKeccak256
 
 
 # IPFS
 
-@docs ipfsHashToString, ipfsToBytes32, toIPFSHash
+@docs ipfsHashToString, ipfsToBytes32, toIPFSHash, isIPFSHash
 
 
 # Unsafe
+
+User beware!! These are sidestepping the power of Elm, and it's static types.
+
+Undoubtedly convenient for baking values, like contract addresses, into your source code.
+
+All values coming from the outside world, like user input or server responses, should use the safe functions.
 
 @docs unsafeToHex, unsafeToAddress, unsafeToTxHash, unsafeToBlockHash, unsafeToIPFSHash
 
@@ -99,6 +108,7 @@ import Keccak exposing (ethereum_keccak_256)
 import Process
 import Regex exposing (Regex)
 import Result.Extra as Result
+import String.UTF8 as UTF8
 import String.Extra as String
 import Task exposing (Task)
 import Time
@@ -107,10 +117,10 @@ import Time
 -- Address
 
 
-{-| Make an Address
+{-| Safely convert a string into an address.
 
 All lowercase or uppercase strings, shaped like addresses, will result in `Ok`.
-Mixed case strings will return `Err` if checksum is invalid.
+Mixed case strings will return `Err` if the EIP-55 checksum is invalid.
 
 -}
 toAddress : String -> Result String Address
@@ -125,66 +135,57 @@ toAddress str =
         emptyZerosInBytes32 =
             String.left 24 noZeroX
     in
-        -- Address is always stored in lowercase and without "0x"
+        -- Address is always stored without "0x"
         if String.length noZeroX == 64 && String.all ((==) '0') emptyZerosInBytes32 then
             if isUpperCaseAddress bytes32Address || isLowerCaseAddress bytes32Address then
-                Ok <| Internal.Address <| String.toLower bytes32Address
-            else if (isChecksumStringyAddress bytes32Address) then
-                Ok <| Internal.Address <| String.toLower bytes32Address
+                Ok <| Internal.Address bytes32Address
+            else if (isChecksumAddress bytes32Address) then
+                Ok <| Internal.Address bytes32Address
             else
                 Err <| "Given address " ++ quote str ++ " failed the EIP-55 checksum test."
-        else if String.length noZeroX < 40 then
-            Err <| "Given address " ++ quote str ++ " is too short"
-        else if String.length noZeroX > 40 then
-            Err <| "Given address " ++ quote str ++ " is too long"
+        else if String.length noZeroX /= 40 then
+            Err <| "Given address " ++ quote str ++ " is not the correct length."
         else if not (isAddress noZeroX) then
             Err <| "Given address " ++ quote str ++ " contains invalid hex characters."
         else if isUpperCaseAddress noZeroX || isLowerCaseAddress noZeroX then
-            Ok <| Internal.Address (String.toLower noZeroX)
-        else if (isChecksumStringyAddress noZeroX) then
-            Ok <| Internal.Address (String.toLower noZeroX)
+            Ok <| Internal.Address noZeroX
+        else if (isChecksumAddress noZeroX) then
+            Ok <| Internal.Address noZeroX
         else
             Err <| "Given address " ++ quote str ++ " failed the EIP-55 checksum test."
 
 
-{-| -}
-toChecksumAddress : String -> Result String Address
-toChecksumAddress str =
-    if isAddress str then
-        Ok <| Internal.Address <| checksumIt <| remove0x str
-    else
-        Err <| "Given address " ++ quote str ++ " is not a valid Ethereum address."
-
-
-{-| Returns Address String
+{-| Convert an Address to a String
 -}
 addressToString : Address -> String
 addressToString (Internal.Address address) =
     add0x address
 
 
-{-| Returns Checksummed Address String
+{-| Convert an Address to a string conforming to the EIP-55 checksum.
+
+**Note**: This lowercases all the characters inside the `Address` and runs it through the checksum algorithm.
+
 -}
 addressToChecksumString : Address -> String
 addressToChecksumString (Internal.Address address) =
     (add0x << checksumIt) address
 
 
-{-| -}
+{-| Check if given string is a valid address.
+
+**Note**: Works on mixed case strings, with or without the 0x.
+
+-}
 isAddress : String -> Bool
 isAddress =
     Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9A-Fa-f]{40}$")
 
 
-{-| -}
-isChecksumAddress : Address -> Bool
-isChecksumAddress (Internal.Address address) =
-    isChecksumStringyAddress address
-
-
-{-| -}
-isChecksumStringyAddress : String -> Bool
-isChecksumStringyAddress str =
+{-| Check if given string is a valid checksum address.
+-}
+isChecksumAddress : String -> Bool
+isChecksumAddress str =
     let
         checksumTestChar addrChar hashInt =
             if hashInt >= 8 && Char.isLower addrChar || hashInt < 8 && Char.isUpper addrChar then
@@ -192,8 +193,11 @@ isChecksumStringyAddress str =
             else
                 True
 
+        ( addrChars, hashInts ) =
+            checksumHelper (remove0x str)
+
         checksumCorrect =
-            uncurry (List.map2 checksumTestChar) (checksumHelper str)
+            List.map2 checksumTestChar addrChars hashInts
     in
         if isAddress str then
             all checksumCorrect
@@ -201,13 +205,11 @@ isChecksumStringyAddress str =
             False
 
 
-{-| -}
 isLowerCaseAddress : String -> Bool
 isLowerCaseAddress =
     Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9a-f]{40}$")
 
 
-{-| -}
 isUpperCaseAddress : String -> Bool
 isUpperCaseAddress =
     Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9A-F]{40}$")
@@ -217,7 +219,8 @@ isUpperCaseAddress =
 -- Hex
 
 
-{-| -}
+{-| Safely convert a string into Hex.
+-}
 toHex : String -> Result String Hex
 toHex str =
     if isHex str then
@@ -226,19 +229,22 @@ toHex str =
         Err <| "Something in here is not very hexy: " ++ quote str
 
 
-{-| -}
+{-| Convert a `Hex` into a string.
+-}
 hexToString : Hex -> String
 hexToString (Internal.Hex hex) =
     add0x hex
 
 
-{-| -}
+{-| Check if given string is valid Hex
+-}
 isHex : String -> Bool
 isHex =
     Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9a-fA-F]+$")
 
 
-{-| -}
+{-| Convert Given Hex into ASCII. Will fail if Hex is an uneven length.
+-}
 hexToAscii : Hex -> Result String String
 hexToAscii (Internal.Hex hex) =
     case String.length hex % 2 == 0 of
@@ -252,13 +258,36 @@ hexToAscii (Internal.Hex hex) =
             Err (quote hex ++ " is not ascii hex. Uneven length. Byte pairs required.")
 
 
-{-| -}
+{-| Convert Given Hex into UTF8. Will fail if Hex is an uneven length.
+-}
+hexToUtf8 : Hex -> Result String String
+hexToUtf8 (Internal.Hex hex) =
+    case String.length hex % 2 == 0 of
+        True ->
+            String.break 2 hex
+                |> List.map Hex.fromString
+                |> Result.combine
+                |> Result.andThen UTF8.toString
+
+        False ->
+            Err (quote hex ++ " is not utf8 hex. Uneven length. Byte pairs required.")
+
+
+{-| Append two Hex's together.
+
+    hexAppend (Hex 0x12) (Hex 0x34) == Hex 0x1234
+
+-}
 hexAppend : Hex -> Hex -> Hex
 hexAppend (Internal.Hex hex1) (Internal.Hex hex2) =
     Internal.Hex <| hex1 ++ hex2
 
 
-{-| -}
+{-| Concatenate a list of Hex's
+
+    hexConcat [ Hex 0x12, Hex 0x34, Hex 0x56 ] == Hex 0x123456
+
+-}
 hexConcat : List Hex -> Hex
 hexConcat hexList =
     let
@@ -273,7 +302,8 @@ hexConcat hexList =
 -- Tx Hash
 
 
-{-| -}
+{-| Safely convert a string to a TxHash.
+-}
 toTxHash : String -> Result String TxHash
 toTxHash str =
     if isSha256 str then
@@ -282,17 +312,29 @@ toTxHash str =
         Err <| "Given txHash " ++ quote str ++ " is not valid."
 
 
-{-| -}
+{-| Convert a given TxHash to a string.
+-}
 txHashToString : TxHash -> String
 txHashToString (Internal.TxHash txHash) =
     add0x txHash
+
+
+{-| Check if given string is a valid TxHash.
+
+i.e. Hex and 64 characters long.
+
+-}
+isTxHash : String -> Bool
+isTxHash =
+    isSha256
 
 
 
 -- Block Hash
 
 
-{-| -}
+{-| Safely convert a given string to a BlockHash.
+-}
 toBlockHash : String -> Result String BlockHash
 toBlockHash str =
     if isSha256 str then
@@ -301,17 +343,32 @@ toBlockHash str =
         Err <| "Given blockHash " ++ quote str ++ " is not valid."
 
 
-{-| -}
+{-| Convert a given BlockHash to a string.
+-}
 blockHashToString : BlockHash -> String
 blockHashToString (Internal.BlockHash blockHash) =
     add0x blockHash
+
+
+{-| Check if given string is a valid BlockHash.
+
+i.e. Hex and 64 characters long.
+
+-}
+isBlockHash : String -> Bool
+isBlockHash =
+    isSha256
 
 
 
 -- SHA3 Helpers
 
 
-{-| -}
+{-| Convert a contract function name to it's 4-byte function signature.
+
+    Utils.functionSig "transfer(address,uint256)" == (Hex "a9059cbb")
+
+-}
 functionSig : String -> Hex
 functionSig fSig =
     String.toList fSig
@@ -323,7 +380,8 @@ functionSig fSig =
         |> Internal.Hex
 
 
-{-| -}
+{-| Hash a given string into it's SHA3/Keccak256 form.
+-}
 keccak256 : String -> Hex
 keccak256 str =
     String.toList str
@@ -334,13 +392,15 @@ keccak256 str =
         |> Internal.Hex
 
 
-{-| -}
+{-| Checks if a given string is valid hex and 64 chars long.
+-}
 isSha256 : String -> Bool
 isSha256 =
     Regex.contains (Regex.regex "^((0[Xx]){1})?[0-9a-fA-F]{64}$")
 
 
-{-| -}
+{-| Same as `ethereum_keccak_256` from [this](http://package.elm-lang.org/packages/prozacchiwawa/elm-keccak/latest) library.
+-}
 lowLevelKeccak256 : List Int -> List Int
 lowLevelKeccak256 =
     ethereum_keccak_256
@@ -350,13 +410,27 @@ lowLevelKeccak256 =
 -- IPFS
 
 
-{-| -}
+{-| Convert an IPFSHash to a string.
+-}
 ipfsHashToString : IPFSHash -> String
 ipfsHashToString (Internal.IPFSHash str) =
     str
 
 
 {-| Prepares IPFS Hash to store as soldity bytes32
+
+**Note**: This assumes a SHA256 IPFS hash is used and chops off the "Qm".
+An "opinionated" feature of this library that helps save gas costs
+by avoiding the more expensive dynamic types like `string` or `bytes`.
+The "Qm" is there to help future proof IPFS, and allow for other hashing algorithms to be used.
+
+    U.toIPFSHash "QmNXnCWPS2szLaQGVA6TFtiUAJB2YnFTJJFTXPGuc4wocQ"
+        |> Result.map U.ipfsToBytes32
+
+    > Ok (Hex "02d9db84e21354dd4cc160eca9d13fa6f1b1bb44324013204098ae24090e717d")
+
+Can be decoded safely decoded back to it's "Qm"-edness with `Evm.Decode.ipfsHash`.
+
 -}
 ipfsToBytes32 : IPFSHash -> Hex
 ipfsToBytes32 (Internal.IPFSHash str) =
@@ -365,16 +439,29 @@ ipfsToBytes32 (Internal.IPFSHash str) =
         |> Result.withDefault (Internal.Hex "Impossible error on ipfsToBytes32. Please report this bug on github.")
 
 
-{-| -}
+{-| Safely convert a stringy IPFS Hash to it's properly typed form.
+-}
 toIPFSHash : String -> Result String IPFSHash
 toIPFSHash str =
     if String.length str /= 46 then
         Err <| str ++ " is an invalid IPFS Hash. Must be 46 chars long."
     else if String.left 2 str /= "Qm" then
-        Err <| str ++ " is an invalid IPFS Hash. Must begin with \"Qm\"."
+        Err <| str ++ " is an invalid \"elm-ethereum friendly\" IPFS Hash. Must begin with \"Qm\"."
     else
         Base58.decode str
             |> Result.andThen (\_ -> Ok <| Internal.IPFSHash str)
+
+
+{-| Check if given string is a valid IPFS Hash.
+-}
+isIPFSHash : String -> Bool
+isIPFSHash str =
+    case toIPFSHash str of
+        Err _ ->
+            False
+
+        Ok _ ->
+            True
 
 
 
@@ -408,7 +495,7 @@ unsafeToBlockHash =
 {-| -}
 unsafeToIPFSHash : String -> IPFSHash
 unsafeToIPFSHash =
-    remove0x >> Internal.IPFSHash
+    Internal.IPFSHash
 
 
 
@@ -418,7 +505,7 @@ unsafeToIPFSHash =
 {-| Takes first 20 bytes of keccak'd address, and converts each hex char to an int
 Packs this list into a tuple with the split up address chars so a comparison can be made between the two.
 
-Note: Only functions which have already removed "0x" should be calling this.
+**Note**: Only functions which have already removed "0x" should be calling this.
 
 -}
 checksumHelper : String -> ( List Char, List Int )
@@ -450,22 +537,38 @@ compareCharToHash addrChar hashInt =
 
 checksumIt : String -> String
 checksumIt str =
-    uncurry (List.map2 compareCharToHash) (checksumHelper str)
-        |> String.fromList
+    let
+        ( addrChars, hashInts ) =
+            String.toLower str
+                |> remove0x
+                |> checksumHelper
+    in
+        List.map2 compareCharToHash addrChars hashInts
+            |> String.fromList
 
 
 
 -- App
 
 
-{-| -}
+{-| Config for a `retry` task
+-}
 type alias Retry =
     { attempts : Int
     , sleep : Float
     }
 
 
-{-| -}
+{-| Retry a given `Task` till it succeeds, or runs out of time.
+
+The below will wait for 5 minutes until giving up, and polls every 5 seconds.
+
+    pollForMinedTx : HttpProvider -> TxHash -> Task Http.Error TxReceipt
+    pollForMinedTx ethNode txHash =
+        Eth.getTxReceipt ethNode txHash
+            |> retry { attempts = 60, sleep = 5 }
+
+-}
 retry : Retry -> Task x a -> Task x a
 retry { attempts, sleep } myTask =
     let
@@ -483,7 +586,17 @@ retry { attempts, sleep } myTask =
                 )
 
 
-{-| Help with decoding past a result straight into a Msg
+{-| Useful for decoding past a result straight into a Msg.
+Comes in handy with Eth.Sentry.Event values.
+
+    transferDecoder : Value -> Msg
+    transferDecoder =
+        valueToMsg Transfer Error transferEventDecoder
+
+    type Msg
+        = Transfer (Event Transfer)
+        | Error String
+
 -}
 valueToMsg : (a -> msg) -> (String -> msg) -> Decoder a -> (Value -> msg)
 valueToMsg successMsg failureMsg decoder =

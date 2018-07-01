@@ -17,6 +17,7 @@ module Eth.Types
         , LogFilter
         , SyncStatus
         , HttpProvider
+        , WebsocketProvider
         , FilterId
         , Hex
         )
@@ -36,7 +37,7 @@ module Eth.Types
 
 # Misc
 
-@docs HttpProvider, FilterId, IPFSHash
+@docs HttpProvider, WebsocketProvider, FilterId, IPFSHash
 
 -}
 
@@ -243,6 +244,11 @@ type alias SyncStatus =
 
 {-| -}
 type alias HttpProvider =
+    String
+
+
+{-| -}
+type alias WebsocketProvider =
     String
 
 

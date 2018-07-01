@@ -56,59 +56,16 @@ See the [official docs][rpc-docs] for reference.
 
 # Contracts
 
+Make sure to use the [elm-ethereum-generator](https://github.com/cmditch/elm-ethereum-generator)
+to auto-generate the necessary `Elm <-> Contract` interface from a contract's ABI.
+
 If you're making Eth transactions, you'll need to build a `Call`,
-and send to a wallet like MetaMask via `Eth.Sentry.Tx`.
+convert it to a `Send`, and use `Eth.Sentry.Tx` to hand it off to your browser's wallet (e.g., MetaMask, Trust).
 
     ( newSentry, sentryCmd ) =
         myCallParams
             |> Eth.toSend
             |> TxSentry.send TxSendResponse model.txSentry
-
-But most likely you're interacting with a contract,
-what most dApps are typically engaged in. Use [elm-ethereum-generator](https://github.com/cmditch/elm-ethereum-generator)
-to auto-generate the necessary `Elm <-> Contract` interface from a contract's ABI.
-
-    import Eth
-    import Eth.Types exposing (..)
-    import Eth.Unit exposing (eth)
-    import Evm.Decode as Evm
-    import Evm.Encode as Evm exposing (Encoding(..))
-
-    myCallParams : Call BigInt
-    myCallParams =
-        let
-            data =
-                Evm.encodeFunctionCall
-                    "petKitten(uint256)"
-                    [ UintE someBigInt ]
-        in
-            { to = Just cryptoKittyContract
-            , from = Nothing
-            , gas = Nothing
-            , gasPrice = Nothing
-            , value = Just (eth 3)
-            , data = Just data
-            , nonce = Nothing
-            , decoder = Evm.toElmDecoder Evm.bool
-            }
-
-
-    type Msg
-        = PetKitten
-        | KittenResponse (Result Http.Error Bool)
-
-
-    update msg model =
-        case msg of
-            PetKitten ->
-                ( model
-                , Eth.call model.nodeUrl myCallParams
-                    |> Task.attempt KittenResponse
-                )
-
-            KittenResponse result ->
-                case result of
-                    ...
 
 @docs call, estimateGas, getStorageAt, getCode, callAtBlock, getStorageAtBlock, getCodeAtBlock
 
@@ -120,7 +77,7 @@ to auto-generate the necessary `Elm <-> Contract` interface from a contract's AB
 
 # Address/Accounts
 
-@docs getBalance, getBalanceAtBlock, getTxCount, getTxCountAtBlock
+@docs getBalance, getTxCount, getBalanceAtBlock, getTxCountAtBlock
 
 
 # Blocks
@@ -129,6 +86,9 @@ to auto-generate the necessary `Elm <-> Contract` interface from a contract's AB
 
 
 # Filter/Logs/Events
+
+If you have access to a websocket RPC endpoint, it's much easier to just use `Eth.Sentry.Event`.
+Geth, Parity, and Infura support websockets.
 
 @docs getLogs, newFilter, newBlockFilter, newPendingTxFilter, getFilterChanges, getFilterLogs, uninstallFilter
 
@@ -154,11 +114,11 @@ import Task exposing (Task)
 
 
 {-| Call a function on an Ethereum contract.
-Useful for reading data from contracts, or simulating a transaction before doing a Send.
+Useful for reading data from contracts, or simulating a transaction before doing a real `Send`.
 
-Use the elm-web3-contract code generator to produce an interface for a smart contract from it's ABI.
+Use the [elm-ethereum-generator](https://github.com/cmditch/elm-ethereum-generator) code generator to produce an interface for a smart contract from it's ABI.
 
-Note: The decoder for a call is baked into the Call record for a simpler developer experience.
+**Note** The decoder for a call is baked into the Call record to allow for a smoother developer experience.
 
 -}
 call : HttpProvider -> Call a -> Task Http.Error a
@@ -166,22 +126,9 @@ call ethNode txParams =
     callAtBlock ethNode txParams LatestBlock
 
 
-{-| Call a function on an Ethereum contract from a particular point in history.
-Adding some more documentation.
--}
-callAtBlock : HttpProvider -> Call a -> BlockId -> Task Http.Error a
-callAtBlock ethNode txParams blockId =
-    RPC.toTask
-        { url = ethNode
-        , method = "eth_call"
-        , params = [ Encode.txCall txParams, Encode.blockId blockId ]
-        , decoder = txParams.decoder
-        }
-
-
 {-| Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
 
-Note that the estimate may be significantly more than the amount of gas actually used by the transaction,
+**Note** that the estimate may be significantly more than the amount of gas actually used by the transaction,
 for a variety of reasons including EVM mechanics and node performance.
 
 -}
@@ -203,6 +150,25 @@ getStorageAt ethNode address index =
     getStorageAtBlock ethNode address index LatestBlock
 
 
+{-| Returns the bytecode from a contract at a given contract's address.
+-}
+getCode : HttpProvider -> Address -> Task Http.Error String
+getCode ethNode address =
+    getCodeAtBlock ethNode address LatestBlock
+
+
+{-| Call a function on an Ethereum contract from a particular point in history.
+-}
+callAtBlock : HttpProvider -> Call a -> BlockId -> Task Http.Error a
+callAtBlock ethNode txParams blockId =
+    RPC.toTask
+        { url = ethNode
+        , method = "eth_call"
+        , params = [ Encode.txCall txParams, Encode.blockId blockId ]
+        , decoder = txParams.decoder
+        }
+
+
 {-| Returns the value from a storage position at a given address, at a certain block height.
 -}
 getStorageAtBlock : HttpProvider -> Address -> Int -> BlockId -> Task Http.Error String
@@ -213,13 +179,6 @@ getStorageAtBlock ethNode address index blockId =
         , params = [ Encode.address address, Encode.hexInt index, Encode.blockId blockId ]
         , decoder = Decode.string
         }
-
-
-{-| Returns the bytecode from a contract at a given address.
--}
-getCode : HttpProvider -> Address -> Task Http.Error String
-getCode ethNode address =
-    getCodeAtBlock ethNode address LatestBlock
 
 
 {-| Returns the bytecode from a contract at a given address, at a certain block height.
@@ -253,7 +212,8 @@ toSend { to, from, gas, gasPrice, value, data, nonce } =
     }
 
 
-{-| -}
+{-| Useful if your handling txParams in javascript land yourself.
+-}
 encodeSend : Send -> Value
 encodeSend { to, from, gas, gasPrice, value, data, nonce } =
     Encode.listOfMaybesToVal
@@ -281,10 +241,10 @@ getTx ethNode txHash =
 
 
 {-| Get the receipt of a transaction from it's hash.
-Only exists after the transaction has been mined.
+Only exists after the transaction has been mined!
 
 Includes post-execution info: gasUsed, cumulativeGasUsed, contractAddress, logs, logsBloom.
-Also includes the tx execution status (if block is post-byzantium).
+Also includes the tx execution status (only if block is post-byzantium).
 
 -}
 getTxReceipt : HttpProvider -> TxHash -> Task Http.Error TxReceipt
@@ -322,10 +282,10 @@ getTxByBlockNumberAndIndex ethNode blockNumber txIndex =
 
 
 {-| Execute a transaction on chain.
-Only useful if your keys live on the node your talking too.
+Only useful if your keys live on the node your talking too, which is generally considered very poor practice.
 
 NOTE: You probably don't need this.
-If you're writing a proper dApp, look at using the TxSentry to interface with wallets like MetaMask.
+If you're writing a proper dApp, look at using the `Eth.Sentry.Tx` to interface with wallets like MetaMask.
 
 -}
 sendTx : HttpProvider -> Send -> Task Http.Error TxHash
@@ -338,7 +298,7 @@ sendTx ethNode txParams =
         }
 
 
-{-| Broadcast a signed transaction
+{-| Broadcast a signed and RLP encoded transaction.
 -}
 sendRawTx : HttpProvider -> String -> Task Http.Error TxHash
 sendRawTx ethNode signedTx =
@@ -362,6 +322,13 @@ getBalance ethNode address =
     getBalanceAtBlock ethNode address LatestBlock
 
 
+{-| Get the number of transactions sent from a given address/account.
+-}
+getTxCount : HttpProvider -> Address -> Task Http.Error Int
+getTxCount ethNode address =
+    getTxCountAtBlock ethNode address LatestBlock
+
+
 {-| Get the balance of a given address/account, at a certain block height
 -}
 getBalanceAtBlock : HttpProvider -> Address -> BlockId -> Task Http.Error BigInt
@@ -372,13 +339,6 @@ getBalanceAtBlock ethNode address blockId =
         , params = [ Encode.address address, Encode.blockId blockId ]
         , decoder = Decode.bigInt
         }
-
-
-{-| Get the number of transactions sent from a given address/account.
--}
-getTxCount : HttpProvider -> Address -> Task Http.Error Int
-getTxCount ethNode address =
-    getTxCountAtBlock ethNode address LatestBlock
 
 
 {-| Get the number of transactions sent from a given address/account at a given block height.
@@ -397,7 +357,7 @@ getTxCountAtBlock ethNode address blockId =
 -- Blocks
 
 
-{-| Get the number of the most recent block.
+{-| Get the block number of the most recently mined block.
 -}
 getBlockNumber : HttpProvider -> Task Http.Error Int
 getBlockNumber ethNode =
@@ -436,9 +396,9 @@ getBlockByHash ethNode blockHash =
         }
 
 
-{-| See getBlock.
+{-| Get information about a block given a valid block number.
 
-The transactions field will be an array of Tx objects instead of TxHash's.
+The transactions field will be an array of `Tx` objects instead of TxHash's.
 
 -}
 getBlockWithTxObjs : HttpProvider -> Int -> Task Http.Error (Block Tx)
@@ -451,9 +411,9 @@ getBlockWithTxObjs ethNode blockNum =
         }
 
 
-{-| See getBlockWithTxObjs.
+{-| See `getBlockWithTxObjs` above.
 
-Uses block hash instead of nunmber for the identifier.
+Uses block hash instead of number for the identifier.
 
 -}
 getBlockByHashWithTxObjs : HttpProvider -> BlockHash -> Task Http.Error (Block Tx)
@@ -543,7 +503,7 @@ getUncleByBlockHashAtIndex ethNode blockHash uncleIndex =
 
 
 {-| Get an array of all logs matching a given filter object.
-Most likely you won't need this, as they are generated for you in elm-web3-contract
+Most likely you won't need this, as they are generated for you in [elm-ethereum-generator](https://github.com/cmditch/elm-ethereum-generator)
 -}
 getLogs : HttpProvider -> LogFilter -> Task Http.Error (List Log)
 getLogs ethNode logFilter =
@@ -601,9 +561,41 @@ newPendingTxFilter ethNode =
 
 Use the correct decoder for the given filter type:
 
-    newFilter : Event a
-    newBlockFilter : BlockHeader?? TODO
-    newPendingTxFilter : TxHash
+For a `newFilter`:
+
+    import Eth.Decode as Decode
+    import Eth.Evm.Decode as Evm
+    import Json.Decode exposing (Decoder)
+    import Json.Decode.Pipeline exposing (custom)
+
+    transferEventDecoder : Decoder (Event Erc20Transfer)
+    transferEventDecoder =
+        Decode.event erc20TransferDecoder
+
+    type alias Erc20Transfer =
+        { from : Address
+        , to : Address
+        , value : BigInt
+        }
+
+    erc20TransferDecoder : Decoder Erc20Transfer
+    erc20TransferDecoder =
+        decode Transfer
+            |> custom (Evm.topic 1 Evm.address)
+            |> custom (Evm.topic 2 Evm.address)
+            |> custom (Evm.data 0 Evm.uint)
+
+For a `newBlockFilter`:
+
+    newBlockDecoder : Decoder BlockHead
+    newBlockDecoder =
+        Eth.Decode.blockHead
+
+For a `newPendingTxFilter`:
+
+    newPendingTxDecoder : Decoder TxHash
+    newPendingTxDecoder =
+        Eth.Decode.tx
 
 -}
 getFilterChanges : HttpProvider -> Decoder a -> FilterId -> Task Http.Error (List a)
@@ -616,7 +608,7 @@ getFilterChanges ethNode decoder filterId =
         }
 
 
-{-| Returns an array of all logs matching filter with given id.
+{-| Returns an array of all logs matching filter with given id. See above note on decoders.
 -}
 getFilterLogs : HttpProvider -> Decoder a -> FilterId -> Task Http.Error (List a)
 getFilterLogs ethNode decoder filterId =
@@ -643,16 +635,17 @@ uninstallFilter ethNode filterId =
 
 
 
--- Other
+-- Misc
 
 
 {-| Sign an arbitrary chunk of N bytes.
 
 The sign method calculates an Ethereum specific signature with: sign(keccak256("\x19Ethereum Signed Message:\n" + len(message) + message))).
 
-By adding a prefix to the message makes the calculated signature recognisable as an Ethereum specific signature. This prevents misuse where a malicious DApp can sign arbitrary data (e.g. transaction) and use the signature to impersonate the victim.
+By adding a prefix to the message makes the calculated signature recognisable as an Ethereum specific signature.
+This prevents misuse where a malicious DApp can sign arbitrary data (e.g. transaction) and use the signature to impersonate the victim.
 
-Note the address to sign with must be unlocked.
+**Note** the address to sign with must be unlocked.
 
 -}
 sign : HttpProvider -> Address -> String -> Task Http.Error String
@@ -731,7 +724,7 @@ hashrate ethNode =
 
 {-| Get the current price per gas in wei
 
-Note: not always accurate. See EthGasStation website
+**Note**: not always accurate. See EthGasStation website
 
 -}
 gasPrice : HttpProvider -> Task Http.Error BigInt
