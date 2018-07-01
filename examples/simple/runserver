@@ -1,2 +1,0 @@
-elm-make Main.elm --output="elm.js" --debug
-python -m SimpleHTTPServer 8000
