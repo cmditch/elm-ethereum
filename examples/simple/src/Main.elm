@@ -1,9 +1,10 @@
 port module Main exposing (..)
 
 import Eth
-import Eth.Decode as Decode
+import Eth.Net as Net exposing (NetworkId(..))
 import Eth.Types exposing (..)
 import Eth.Sentry.Tx as TxSentry exposing (..)
+import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
 import Eth.Units exposing (gwei)
 import Html exposing (..)
 import Html.Events exposing (onClick)
@@ -13,9 +14,9 @@ import Process
 import Task
 
 
-main : Program Never Model Msg
+main : Program Int Model Msg
 main =
-    Html.program
+    Html.programWithFlags
         { init = init
         , view = view
         , update = update
@@ -26,6 +27,7 @@ main =
 type alias Model =
     { txSentry : TxSentry Msg
     , account : Maybe Address
+    , node : EthNode
     , blockNumber : Maybe Int
     , txHash : Maybe TxHash
     , tx : Maybe Tx
@@ -35,23 +37,46 @@ type alias Model =
     }
 
 
-init : ( Model, Cmd Msg )
-init =
-    { txSentry = TxSentry.init ( txOut, txIn ) TxSentryMsg ethNode
-    , account = Nothing
-    , blockNumber = Nothing
-    , txHash = Nothing
-    , tx = Nothing
-    , txReceipt = Nothing
-    , blockDepth = ""
-    , errors = []
+init : Int -> ( Model, Cmd Msg )
+init networkId =
+    let
+        node =
+            Net.toNetworkId networkId
+                |> ethNode
+    in
+        { txSentry = TxSentry.init ( txOut, txIn ) TxSentryMsg node.http
+        , account = Nothing
+        , node = node
+        , blockNumber = Nothing
+        , txHash = Nothing
+        , tx = Nothing
+        , txReceipt = Nothing
+        , blockDepth = ""
+        , errors = []
+        }
+            ! [ Task.attempt PollBlock (Eth.getBlockNumber node.http) ]
+
+
+type alias EthNode =
+    { http : HttpProvider
+    , ws : WebsocketProvider
     }
-        ! [ Task.perform PollBlock (Task.succeed <| Ok 0) ]
 
 
-ethNode : String
-ethNode =
-    "https://ropsten.infura.io/"
+ethNode : NetworkId -> EthNode
+ethNode networkId =
+    case networkId of
+        Mainnet ->
+            EthNode "https://mainnet.infura.io/" "wss://mainnet.infura.io/ws"
+
+        Ropsten ->
+            EthNode "https://ropsten.infura.io/" "wss://ropsten.infura.io/ws"
+
+        Rinkeby ->
+            EthNode "https://rinkeby.infura.io/" "wss://rinkeby.infura.io/ws"
+
+        _ ->
+            EthNode "UnknownEthNetwork" "UnknownEthNetwork"
 
 
 
@@ -93,13 +118,14 @@ viewThing ( name, val ) =
 
 type Msg
     = TxSentryMsg TxSentry.Msg
-    | SetAccount (Maybe Address)
+    | WalletStatus WalletSentry
     | PollBlock (Result Http.Error Int)
     | InitTx
     | WatchTxHash (Result String TxHash)
     | WatchTx (Result String Tx)
     | WatchTxReceipt (Result String TxReceipt)
     | TrackTx TxTracker
+    | Fail String
     | NoOp
 
 
@@ -113,13 +139,17 @@ update msg model =
             in
                 ( { model | txSentry = subModel }, subCmd )
 
-        SetAccount mAccount ->
-            { model | account = mAccount } ! []
+        WalletStatus walletSentry ->
+            { model
+                | account = walletSentry.account
+                , node = ethNode walletSentry.networkId
+            }
+                ! []
 
         PollBlock (Ok blockNumber) ->
             { model | blockNumber = Just blockNumber }
                 ! [ Task.attempt PollBlock <|
-                        Task.andThen (\_ -> Eth.getBlockNumber ethNode) (Process.sleep 1000)
+                        Task.andThen (\_ -> Eth.getBlockNumber model.node.http) (Process.sleep 1000)
                   ]
 
         PollBlock (Err error) ->
@@ -169,6 +199,13 @@ update msg model =
         TrackTx blockDepth ->
             { model | blockDepth = toString blockDepth } ! []
 
+        Fail str ->
+            let
+                _ =
+                    Debug.log str
+            in
+                model ! []
+
         NoOp ->
             model ! []
 
@@ -176,23 +213,16 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ accountListener accountListenerToMsg
+        [ walletSentry (WalletSentry.decodeToMsg Fail WalletStatus)
         , TxSentry.listen model.txSentry
         ]
-
-
-accountListenerToMsg : Value -> Msg
-accountListenerToMsg val =
-    Decode.decodeValue Decode.address val
-        |> Result.toMaybe
-        |> SetAccount
 
 
 
 -- Ports
 
 
-port accountListener : (Value -> msg) -> Sub msg
+port walletSentry : (Value -> msg) -> Sub msg
 
 
 port txOut : Value -> Cmd msg

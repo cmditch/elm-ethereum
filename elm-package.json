@@ -15,6 +15,7 @@
         "Eth.Sentry.ChainCmd",
         "Eth.Sentry.Event",
         "Eth.Sentry.Tx",
+        "Eth.Sentry.Wallet",
         "Eth.Types",
         "Eth.Units",
         "Eth.Utils",
