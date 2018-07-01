@@ -172,7 +172,7 @@ update msg model =
                         model.txSentry
                         { onSign = Just WatchTxHash
                         , onBroadcast = Just WatchTx
-                        , onMined = Just ( WatchTxReceipt, Just ( 3, TrackTx ) )
+                        , onMined = Just ( WatchTxReceipt, Just { confirmations = 3, toMsg = TrackTx } )
                         }
                         txParams
             in

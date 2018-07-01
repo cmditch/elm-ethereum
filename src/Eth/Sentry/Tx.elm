@@ -146,7 +146,7 @@ sendWithReceipt onBroadcast onMined sentry txParams =
 type alias CustomSend msg =
     { onSign : Maybe (Result String TxHash -> msg)
     , onBroadcast : Maybe (Result String Tx -> msg)
-    , onMined : Maybe ( Result String TxReceipt -> msg, Maybe ( Int, TxTracker -> msg ) )
+    , onMined : Maybe ( Result String TxReceipt -> msg, Maybe { confirmations : Int, toMsg : TxTracker -> msg } )
     }
 
 
@@ -213,7 +213,7 @@ type alias TxState msg =
     { params : Send
     , onSignedTagger : Maybe (Result String TxHash -> msg)
     , onBroadcastTagger : Maybe (Result String Tx -> msg)
-    , onMinedTagger : Maybe ( Result String TxReceipt -> msg, Maybe ( Int, TxTracker -> msg ) )
+    , onMinedTagger : Maybe ( Result String TxReceipt -> msg, Maybe { confirmations : Int, toMsg : TxTracker -> msg } )
     , status : TxStatus
     }
 
@@ -382,12 +382,12 @@ update msg (TxSentry sentry) =
                                                 -- then Send TxReceipt to User Land
                                                 Task.perform txReceiptToMsg (Task.succeed <| Ok txReceipt)
 
-                                            Just ( txReceiptToMsg, Just ( depthParam, blockDepthToMsg ) ) ->
+                                            Just ( txReceiptToMsg, Just tracker ) ->
                                                 let
                                                     txTracker =
                                                         { currentDepth = 1
                                                         , minedInBlock = txReceipt.blockNumber
-                                                        , stopWatchingAtBlock = txReceipt.blockNumber + (depthParam - 1)
+                                                        , stopWatchingAtBlock = txReceipt.blockNumber + (tracker.confirmations - 1)
                                                         , lastCheckedBlock = txReceipt.blockNumber
                                                         , txHash = txReceipt.hash
                                                         , doneWatching = False
@@ -403,7 +403,7 @@ update msg (TxSentry sentry) =
                                                         [ Task.attempt (TrackTx ref txTracker) (Eth.getBlockNumber sentry.nodePath)
                                                             |> Cmd.map sentry.tagger
                                                         , Task.perform txReceiptToMsg (Task.succeed <| Ok txReceipt)
-                                                        , Task.perform blockDepthToMsg (Task.succeed txTracker)
+                                                        , Task.perform tracker.toMsg (Task.succeed txTracker)
                                                         ]
 
                                             -- This should not happen. OnMined tagger will exist if we've gotten to this point.
@@ -560,7 +560,7 @@ getTxTrackerToMsg txs ref =
     Dict.get ref txs
         |> Maybe.andThen (\txState -> txState.onMinedTagger)
         |> Maybe.andThen (\onMined -> Tuple.second onMined)
-        |> Maybe.map (\( _, txTracker ) -> txTracker)
+        |> Maybe.map .toMsg
 
 
 
