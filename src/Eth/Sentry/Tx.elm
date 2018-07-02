@@ -511,6 +511,7 @@ newTxState send { onSign, onBroadcast, onMined } =
 -- Logger
 
 
+debugHelp : Bool -> String -> a -> a
 debugHelp debug logText val =
     if debug then
         Debug.log ("TxSentry - " ++ logText) val
@@ -518,6 +519,16 @@ debugHelp debug logText val =
         val
 
 
+log :
+    { broadcast : String
+    , broadcastError : String
+    , mined : String
+    , minedError : String
+    , nodeChanged : String
+    , signed : String
+    , trackTx : String
+    , decodeError : String
+    }
 log =
     { signed = "Tx Signed"
     , broadcast = "Tx Broadcasted Succesfully to Network"
