@@ -2,6 +2,7 @@ module Evm.Decode
     exposing
         ( EvmDecoder
         , uint
+        , int
         , bool
         , address
         , string
@@ -24,7 +25,7 @@ module Evm.Decode
 
 # Primitives
 
-@docs EvmDecoder, uint, bool, address, string
+@docs EvmDecoder, uint, int, bool, address, string
 
 
 # Bytes
@@ -63,6 +64,7 @@ import BigInt exposing (BigInt)
 import Internal.Decode exposing (resultToDecoder)
 import Eth.Types exposing (IPFSHash, Address)
 import Eth.Utils as U exposing (toAddress)
+import Evm.Int as EvmInt
 import Hex
 import Internal.Utils exposing (..)
 import String.UTF8 as UTF8
@@ -179,6 +181,17 @@ uint =
                 |> add0x
                 |> BigInt.fromString
                 |> Result.fromMaybe "Error Decoding Uint into BigInt"
+                |> Result.map (newTape original altered)
+
+
+{-| -}
+int : EvmDecoder BigInt
+int =
+    EvmDecoder <|
+        \(Tape original altered) ->
+            take64 altered
+                |> EvmInt.fromString
+                |> Result.fromMaybe "Error Decoding Int into BigInt"
                 |> Result.map (newTape original altered)
 
 
