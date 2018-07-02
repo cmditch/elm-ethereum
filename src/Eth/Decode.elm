@@ -18,7 +18,7 @@ import Eth.Types exposing (..)
 import Eth.Utils exposing (toAddress, toHex, toTxHash, toBlockHash, toIPFSHash)
 import Internal.Decode exposing (stringInt, hexInt, bigInt, hexTime, hexBool, resultToDecoder, nonZero)
 import Json.Decode as Decode exposing (Decoder, string, bool, list, nullable)
-import Json.Decode.Pipeline exposing (required, decode, custom)
+import Json.Decode.Pipeline exposing (custom, decode, optional, required)
 
 
 {-| -}
@@ -62,7 +62,7 @@ event returnDataDecoder =
         |> required "address" address
         |> required "data" string
         |> required "topics" (list hex)
-        |> required "removed" bool
+        |> optional "removed" bool False
         |> required "logIndex" hexInt
         |> required "transactionIndex" hexInt
         |> required "transactionHash" txHash
