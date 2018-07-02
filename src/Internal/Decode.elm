@@ -106,7 +106,7 @@ log =
         |> required "address" address
         |> required "data" string
         |> required "topics" (list hex)
-        |> required "removed" bool
+        |> optional "removed" bool False
         |> required "logIndex" hexInt
         |> required "transactionIndex" hexInt
         |> required "transactionHash" txHash
