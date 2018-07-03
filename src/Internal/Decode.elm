@@ -191,7 +191,7 @@ bigInt =
 {-| -}
 hexTime : Decoder Time
 hexTime =
-    resultToDecoder (remove0x >> Hex.fromString >> Result.map toFloat)
+    resultToDecoder (remove0x >> Hex.fromString >> Result.map toFloat >> Result.map ((*) 1000))
 
 
 {-| -}
