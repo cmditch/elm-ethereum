@@ -39,6 +39,22 @@ add0x str =
 
 
 {-| -}
+addSigned0x : String -> String
+addSigned0x str =
+    if
+        String.startsWith "0x" str
+            || String.startsWith "0X" str
+            || String.startsWith "-0x" str
+            || String.startsWith "-0X" str
+    then
+        str
+    else if String.startsWith "-" str then
+        "-0x" ++ (String.dropLeft 1 str)
+    else
+        "0x" ++ str
+
+
+{-| -}
 remove0x : String -> String
 remove0x str =
     if String.startsWith "0x" str || String.startsWith "0X" str then
