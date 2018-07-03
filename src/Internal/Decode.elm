@@ -17,7 +17,7 @@ block txsDecoder =
         |> required "number" hexInt
         |> required "hash" blockHash
         |> required "parentHash" blockHash
-        |> required "nonce" string
+        |> optional "nonce" (maybe string) Nothing
         |> required "sha3Uncles" string
         |> required "logsBloom" string
         |> required "transactionsRoot" string

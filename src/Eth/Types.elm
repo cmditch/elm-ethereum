@@ -143,7 +143,7 @@ type alias Block a =
     { number : Int
     , hash : BlockHash
     , parentHash : BlockHash
-    , nonce : String
+    , nonce : Maybe String
     , sha3Uncles : String
     , logsBloom : String
     , transactionsRoot : String
