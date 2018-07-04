@@ -6,11 +6,13 @@ module Eth.Decode
         , blockHash
         , ipfsHash
         , event
+        , blockHead
+        , tx
         )
 
 {-| Eth Decoders
 
-@docs address, hex, txHash, blockHash, ipfsHash, event
+@docs address, hex, txHash, blockHash, ipfsHash, event, blockHead, tx
 
 -}
 
@@ -51,11 +53,11 @@ ipfsHash =
     resultToDecoder toIPFSHash
 
 
+{-| Used by [elm-ethereum-generator](https://github.com/cmditch/elm-ethereum-generator)
 
--- Useful with EventSentry
+Useful with `Eth.Sentry.Event` and `LogFilter` related functions in `Eth` module.
 
-
-{-| -}
+-}
 event : Decoder a -> Decoder (Event a)
 event returnDataDecoder =
     decode Event
@@ -69,3 +71,42 @@ event returnDataDecoder =
         |> required "blockHash" blockHash
         |> required "blockNumber" hexInt
         |> custom returnDataDecoder
+
+
+{-| -}
+blockHead : Decoder BlockHead
+blockHead =
+    decode BlockHead
+        |> required "number" hexInt
+        |> required "hash" blockHash
+        |> required "parentHash" blockHash
+        |> required "nonce" string
+        |> required "sha3Uncles" string
+        |> required "logsBloom" string
+        |> required "transactionsRoot" string
+        |> required "stateRoot" string
+        |> required "receiptsRoot" string
+        |> required "miner" address
+        |> required "difficulty" bigInt
+        |> required "extraData" string
+        |> required "gasLimit" hexInt
+        |> required "gasUsed" hexInt
+        |> required "mixHash" string
+        |> required "timestamp" hexTime
+
+
+{-| -}
+tx : Decoder Tx
+tx =
+    decode Tx
+        |> required "hash" txHash
+        |> required "nonce" hexInt
+        |> required "blockHash" (nonZero blockHash)
+        |> required "blockNumber" (nullable hexInt)
+        |> required "transactionIndex" hexInt
+        |> required "from" address
+        |> required "to" (nullable address)
+        |> required "value" bigInt
+        |> required "gasPrice" bigInt
+        |> required "gas" hexInt
+        |> required "input" string

@@ -3,6 +3,7 @@ module Evm.Decode
         ( EvmDecoder
         , int
         , uint
+        , int
         , bool
         , address
         , string
@@ -22,10 +23,12 @@ module Evm.Decode
 
 {-| Decode RPC Responses
 
+)
+
 
 # Primitives
 
-@docs EvmDecoder, uint, bool, address, string
+@docs EvmDecoder, uint, int, bool, address, string
 
 
 # Bytes
@@ -64,11 +67,12 @@ import BigInt exposing (BigInt)
 import Internal.Decode exposing (resultToDecoder)
 import Eth.Types exposing (IPFSHash, Address)
 import Eth.Utils as U exposing (toAddress)
+import Evm.Int as EvmInt
 import Hex
 import Internal.Utils exposing (..)
 import String.UTF8 as UTF8
-import String.Extra as String
-import Result.Extra as Result
+import String.Extra as StringExtra
+import Result.Extra as ResultExtra
 import Json.Decode as Decode exposing (Decoder)
 
 
@@ -131,7 +135,7 @@ toElmDecoderWithDebug functionName =
 decodeStringWithDebug : Maybe String -> EvmDecoder a -> String -> Result String a
 decodeStringWithDebug debug (EvmDecoder evmDecoder) evmString =
     let
-        str =
+        _ =
             case debug of
                 Just function ->
                     Debug.log ("Debug Contract Call Response " ++ function) evmString
@@ -139,7 +143,7 @@ decodeStringWithDebug debug (EvmDecoder evmDecoder) evmString =
                 Nothing ->
                     evmString
     in
-        remove0x str
+        remove0x evmString
             |> (\a -> Tape a a)
             |> evmDecoder
             |> Result.map Tuple.second
@@ -196,6 +200,17 @@ uint =
 
 
 {-| -}
+int : EvmDecoder BigInt
+int =
+    EvmDecoder <|
+        \(Tape original altered) ->
+            take64 altered
+                |> EvmInt.fromString
+                |> Result.fromMaybe "Error Decoding Int into BigInt"
+                |> Result.map (newTape original altered)
+
+
+{-| -}
 bool : EvmDecoder Bool
 bool =
     let
@@ -239,14 +254,15 @@ string =
         \(Tape original altered) ->
             take64 altered
                 |> buildBytes original
-                |> Result.map (String.break 2)
-                |> Result.andThen (List.map Hex.fromString >> Result.combine)
+                |> Result.map (StringExtra.break 2)
+                |> Result.andThen (List.map Hex.fromString >> ResultExtra.combine)
                 |> Result.andThen UTF8.toString
                 |> Result.map (newTape original altered)
 
 
 
 -- Bytes
+-- TODO - Change to Hex?
 
 
 {-| -}
@@ -254,7 +270,7 @@ staticBytes : Int -> EvmDecoder String
 staticBytes bytesLen =
     EvmDecoder <|
         \(Tape original altered) ->
-            take64 altered
+            String.left (bytesLen * 2) altered
                 |> add0x
                 |> Ok
                 |> Result.map (newTape original altered)
@@ -276,31 +292,98 @@ dynamicBytes =
 
 
 {-| Decode Statically Sized Arrays
-(sArray 10 uint) == uint256[10]
+
+    staticArray 10 uint == uint256[10]
+
 -}
 staticArray : Int -> EvmDecoder a -> EvmDecoder (List a)
-staticArray arrSize decoder =
+staticArray len dec =
     EvmDecoder <|
-        \(Tape original altered) ->
-            String.left (arrSize * 64) altered
-                |> String.break 64
-                |> List.map (fromString decoder)
-                |> Result.combine
-                |> Result.map (\list -> ( Tape original (String.dropLeft (arrSize * 64) altered), list ))
+        arrayHelp [] len dec
 
 
 {-| Decode Dynamically Sized Arrays
-(dArray address) == address[]
+
+    dynamicArray address == address[]
+
 -}
+
+
+
+{- Dev Notes for Dynamic array decoder
+
+   Example array-of-vectors `uint[2][]` returned from the ABI
+   We'll use a multi-return value data type of `myFunc(uint[2][],uint,bool)`
+   And use 4 byte words, instead of 32 byte words.
+   -----------------------------------
+   0000000c  -  arrayDataPointer - says array data starts after 12 bytes (0xc == 12 == 24 chars)
+   00000042  -  uint of 0x42
+   00000001  -  bool of true
+   00000003  -  start of dynamic array (24 bytes in). This says "I am three in length, of whatever data type I'm comrpised of". In this case `uint[2]`
+   00000001  -  first element of first uint[2]
+   00000002  -  last element of first uint[2]
+   00000003  -  first element of second uint[2]
+   00000004  -  last element of second uint[2]
+   00000005  -  first element of last uint[2]
+   00000006  -  last element of last uint[2]
+
+   This will decode to `{ dynArrayOfUintVector = [[1,2], [3,4], [5,6]], singleUint = 66, singleBool = True }`
+-}
+
+
 dynamicArray : EvmDecoder a -> EvmDecoder (List a)
-dynamicArray decoder =
+dynamicArray valDecoder =
     EvmDecoder <|
         \(Tape original altered) ->
-            take64 altered
-                |> buildDynArray original
-                |> Result.map (List.map (fromString decoder))
-                |> Result.andThen Result.combine
-                |> Result.map (newTape original altered)
+            let
+                getPointerToArrayData : Result String Int
+                getPointerToArrayData =
+                    take64 altered
+                        |> Hex.fromString
+                        |> Result.map ((*) 2)
+
+                getArrayData : Int -> Result String ( Int, String )
+                getArrayData lengthIndex =
+                    String.slice lengthIndex (lengthIndex + 64) original
+                        |> Hex.fromString
+                        |> Result.map (\arrayLength -> ( arrayLength, String.dropLeft (lengthIndex + 64) original ))
+            in
+                getPointerToArrayData
+                    |> Result.andThen getArrayData
+                    |> Result.andThen
+                        (\( arrayLength, rawArrayData ) ->
+                            (Tape original rawArrayData)
+                                |> arrayHelp [] arrayLength valDecoder
+                                |> Result.map
+                                    (\( Tape _ _, arrayData ) ->
+                                        ( Tape original (drop64 altered), arrayData )
+                                    )
+                        )
+
+
+{-|
+
+    Accumulates a list of decoded values.
+    The `altered` tape will be eaten up as the value decoder works away one value at a time.
+    The list of decoded values, along with the newly altered tape is returned
+
+    The old versions of array decoding assumed all values inside the array were 32 bytes chunks.
+    And would break the string into 32 byte chunks and map a decoder over them.
+    This new fold style approach, vs the previous map style approach,
+    helps us deal with array elements of arbitrary lengths.
+-}
+arrayHelp : List a -> Int -> EvmDecoder a -> Tape -> Result String ( Tape, List a )
+arrayHelp accum len (EvmDecoder decoder) tape =
+    case len of
+        0 ->
+            Ok ( tape, List.reverse accum )
+
+        n ->
+            decoder tape
+                |> Result.andThen
+                    (\( tape, val ) ->
+                        arrayHelp (val :: accum) (n - 1) (EvmDecoder decoder) tape
+                    )
 
 
 
@@ -367,6 +450,7 @@ Example -
 -}
 buildBytes : String -> String -> Result String String
 buildBytes fullTape lengthIndex =
+    -- TODO Test this works with dynamic lists
     let
         hexToLength =
             Hex.fromString >> Result.map ((*) 2)
@@ -381,41 +465,6 @@ buildBytes fullTape lengthIndex =
                         |> Hex.fromString
                         |> Result.map (\dataLength -> sliceData (index + 64) dataLength)
                 )
-
-
-{-| Takes the index pointer to the beginning of the array data (the first piece being the array length)
-and the full return data, and slices out the
-
-Example - Here is a returns(address[],uint256)
-
-       0000000000000000000000000000000000000000000000000000000000000040 -- Start index of address[] (starts at byte 64, or the 128th character)
-       0000000000000000000000000000000000000000000000000000000000000123 -- Some Uint256
-       0000000000000000000000000000000000000000000000000000000000000003 -- Length of address[]
-       000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3 -- First Address
-       0000000000000000000000006A987e3C0cd7Ed478Ce18C4cE00a0B313299365B -- Second Address
-       000000000000000000000000aD9178336d523494914ca37359D2456ef123466c -- Third Address
-
-       buildDynArray fullReturnData startIndex
-       > Ok ["000000000000000000000000ED9878336d5187949E4ca33359D2C47c846c9Dd3", secondAddress, thirdAddress]
-
--}
-buildDynArray : String -> String -> Result String (List String)
-buildDynArray fullTape lengthIndex =
-    let
-        hexToLength =
-            Hex.fromString >> Result.map ((*) 2)
-
-        sliceData dataIndex arrLength =
-            String.slice dataIndex (dataIndex + (arrLength * 64)) fullTape
-    in
-        hexToLength lengthIndex
-            |> Result.andThen
-                (\index ->
-                    String.slice index (index + 64) fullTape
-                        |> Hex.fromString
-                        |> Result.map (\dataLength -> sliceData (index + 64) dataLength)
-                )
-            |> Result.map (String.break 64)
 
 
 {-| Useful for decoding data withing events/logs.

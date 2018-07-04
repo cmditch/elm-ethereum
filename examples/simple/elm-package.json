@@ -1,9 +1,10 @@
 {
     "version": "1.0.0",
     "summary": "Simple Example of elm-etherum app",
-    "repository": "https://github.com/user/project.git",
+    "repository": "https://github.com/cmditch/elm-ethereum.git",
     "license": "",
     "source-directories": [
+        "src",
         "../../src"
     ],
     "exposed-modules": [],

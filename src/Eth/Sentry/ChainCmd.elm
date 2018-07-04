@@ -43,8 +43,8 @@ import Eth.Types exposing (..)
 
 {-| -}
 type ChainCmd msg
-    = SendTx (Tx -> msg) Send
-    | SendWithReceipt (Tx -> msg) (TxReceipt -> msg) Send
+    = SendTx (Result String Tx -> msg) Send
+    | SendWithReceipt (Result String Tx -> msg) (Result String TxReceipt -> msg) Send
     | CustomSend (TxSentry.CustomSend msg) Send
     | WatchEvent (Value -> msg) LogFilter
     | WatchEventOnce (Value -> msg) LogFilter
@@ -93,11 +93,11 @@ map f subEff =
                         (Maybe.map ((<<) f) onSign)
                         (Maybe.map ((<<) f) onBroadcast)
                         (Maybe.map
-                            (\( subMsg1, blockDepthInfo ) ->
+                            (\( subMsg1, trackerConfig ) ->
                                 ( subMsg1 >> f
                                 , Maybe.map
-                                    (\( depth, subMsg2 ) -> ( depth, subMsg2 >> f ))
-                                    blockDepthInfo
+                                    (\tracker -> { tracker | toMsg = tracker.toMsg >> f })
+                                    trackerConfig
                                 )
                             )
                             onMined
@@ -122,13 +122,13 @@ map f subEff =
 
 
 {-| -}
-sendTx : (Tx -> msg) -> Send -> ChainCmd msg
+sendTx : (Result String Tx -> msg) -> Send -> ChainCmd msg
 sendTx =
     SendTx
 
 
 {-| -}
-sendWithReceipt : (Tx -> msg) -> (TxReceipt -> msg) -> Send -> ChainCmd msg
+sendWithReceipt : (Result String Tx -> msg) -> (Result String TxReceipt -> msg) -> Send -> ChainCmd msg
 sendWithReceipt =
     SendWithReceipt
 
@@ -200,7 +200,13 @@ executeHelp cmds sentry chainEffs =
 -- TxSentry Helpers
 
 
-sendTxHelp : (Tx -> msg) -> Send -> List (Cmd msg) -> Sentry msg -> List (ChainCmd msg) -> ( Sentry msg, Cmd msg )
+sendTxHelp :
+    (Result String Tx -> msg)
+    -> Send
+    -> List (Cmd msg)
+    -> Sentry msg
+    -> List (ChainCmd msg)
+    -> ( Sentry msg, Cmd msg )
 sendTxHelp toMsg txParams cmds ( txSentry, eventSentry ) xs =
     let
         ( newTxSentry, txCmd ) =
@@ -209,7 +215,14 @@ sendTxHelp toMsg txParams cmds ( txSentry, eventSentry ) xs =
         executeHelp (txCmd :: cmds) ( newTxSentry, eventSentry ) xs
 
 
-sendWithReceiptHelp : (Tx -> msg) -> (TxReceipt -> msg) -> Send -> List (Cmd msg) -> Sentry msg -> List (ChainCmd msg) -> ( Sentry msg, Cmd msg )
+sendWithReceiptHelp :
+    (Result String Tx -> msg)
+    -> (Result String TxReceipt -> msg)
+    -> Send
+    -> List (Cmd msg)
+    -> Sentry msg
+    -> List (ChainCmd msg)
+    -> ( Sentry msg, Cmd msg )
 sendWithReceiptHelp toMsg1 toMsg2 txParams cmds ( txSentry, eventSentry ) xs =
     let
         ( newTxSentry, txCmd ) =
@@ -218,7 +231,13 @@ sendWithReceiptHelp toMsg1 toMsg2 txParams cmds ( txSentry, eventSentry ) xs =
         executeHelp (txCmd :: cmds) ( newTxSentry, eventSentry ) xs
 
 
-customSendHelp : TxSentry.CustomSend msg -> Send -> List (Cmd msg) -> Sentry msg -> List (ChainCmd msg) -> ( Sentry msg, Cmd msg )
+customSendHelp :
+    TxSentry.CustomSend msg
+    -> Send
+    -> List (Cmd msg)
+    -> Sentry msg
+    -> List (ChainCmd msg)
+    -> ( Sentry msg, Cmd msg )
 customSendHelp customSend txParams cmds ( txSentry, eventSentry ) xs =
     let
         ( newTxSentry, txCmd ) =
@@ -231,7 +250,13 @@ customSendHelp customSend txParams cmds ( txSentry, eventSentry ) xs =
 -- EventSentry Helpers
 
 
-watchEventHelp : (Value -> msg) -> LogFilter -> List (Cmd msg) -> Sentry msg -> List (ChainCmd msg) -> ( Sentry msg, Cmd msg )
+watchEventHelp :
+    (Value -> msg)
+    -> LogFilter
+    -> List (Cmd msg)
+    -> Sentry msg
+    -> List (ChainCmd msg)
+    -> ( Sentry msg, Cmd msg )
 watchEventHelp toMsg logFilter cmds ( txSentry, eventSentry ) xs =
     let
         ( newEventSentry, eventCmd ) =
@@ -240,7 +265,13 @@ watchEventHelp toMsg logFilter cmds ( txSentry, eventSentry ) xs =
         executeHelp (eventCmd :: cmds) ( txSentry, newEventSentry ) xs
 
 
-watchEventOnceHelp : (Value -> msg) -> LogFilter -> List (Cmd msg) -> Sentry msg -> List (ChainCmd msg) -> ( Sentry msg, Cmd msg )
+watchEventOnceHelp :
+    (Value -> msg)
+    -> LogFilter
+    -> List (Cmd msg)
+    -> Sentry msg
+    -> List (ChainCmd msg)
+    -> ( Sentry msg, Cmd msg )
 watchEventOnceHelp toMsg logFilter cmds ( txSentry, eventSentry ) xs =
     let
         ( newEventSentry, eventCmd ) =
@@ -249,7 +280,12 @@ watchEventOnceHelp toMsg logFilter cmds ( txSentry, eventSentry ) xs =
         executeHelp (eventCmd :: cmds) ( txSentry, newEventSentry ) xs
 
 
-unWatchHelp : LogFilter -> List (Cmd msg) -> Sentry msg -> List (ChainCmd msg) -> ( Sentry msg, Cmd msg )
+unWatchHelp :
+    LogFilter
+    -> List (Cmd msg)
+    -> Sentry msg
+    -> List (ChainCmd msg)
+    -> ( Sentry msg, Cmd msg )
 unWatchHelp logFilter cmds ( txSentry, eventSentry ) xs =
     let
         ( newEventSentry, eventCmd ) =

@@ -19,7 +19,7 @@ toAddressTests =
             , test "from uppercase address with 0x" <|
                 \_ ->
                     Eth.toAddress "0XF85FEEA2FDD81D51177F6B8F35F0E6734CE45F5F"
-                        |> Expect.equal (Ok <| Internal.Address "f85feea2fdd81d51177f6b8f35f0e6734ce45f5f")
+                        |> Expect.equal (Ok <| Internal.Address "F85FEEA2FDD81D51177F6B8F35F0E6734CE45F5F")
             , test "from evm" <|
                 \_ ->
                     Eth.toAddress "000000000000000000000000f85feea2fdd81d51177f6b8f35f0e6734ce45f5f"
@@ -27,12 +27,12 @@ toAddressTests =
             , test "from already checksummed" <|
                 \_ ->
                     Eth.toAddress "0xe4219dc25D6a05b060c2a39e3960A94a214aAeca"
-                        |> Expect.equal (Ok <| Internal.Address "e4219dc25d6a05b060c2a39e3960a94a214aaeca")
+                        |> Expect.equal (Ok <| Internal.Address "e4219dc25D6a05b060c2a39e3960A94a214aAeca")
             , test "addressToString" <|
                 \_ ->
                     Eth.toAddress "0XF85FEEA2FDD81D51177F6B8F35F0E6734CE45F5F"
                         |> Result.map Eth.addressToString
-                        |> Expect.equal (Ok "0xf85fEea2FdD81d51177F6b8F35F0e6734Ce45F5F")
+                        |> Expect.equal (Ok "0xF85FEEA2FDD81D51177F6B8F35F0E6734CE45F5F")
             ]
         , describe "toAddress fails"
             [ test "from short address with 0x" <|

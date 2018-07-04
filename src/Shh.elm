@@ -9,7 +9,7 @@ module Shh
         , version
         )
 
-{-| Whipser API (Use at your own risk! Under Construction)
+{-| Whipser API (Use at your own risk! Work in progress)
 
 
 # Whisper messaging
