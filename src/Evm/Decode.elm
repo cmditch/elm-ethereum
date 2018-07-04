@@ -1,7 +1,6 @@
 module Evm.Decode
     exposing
         ( EvmDecoder
-        , int
         , uint
         , int
         , bool
@@ -173,18 +172,6 @@ map2 f (EvmDecoder decA) (EvmDecoder decB) =
 
 
 -- Primitives
-
-
-{-| -}
-int : EvmDecoder BigInt
-int =
-    EvmDecoder <|
-        \(Tape original altered) ->
-            take64 altered
-                |> addSigned0x
-                |> BigInt.fromString
-                |> Result.fromMaybe "Error Decoding Int into BigInt"
-                |> Result.map (newTape original altered)
 
 
 {-| -}
