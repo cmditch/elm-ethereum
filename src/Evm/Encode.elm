@@ -33,6 +33,7 @@ import Internal.Utils as IU exposing (..)
 -}
 type Encoding
     = AddressE Address
+    | IntE BigInt
     | UintE BigInt
     | BoolE Bool
     | DBytesE Hex
@@ -88,6 +89,10 @@ lowLevelEncode enc =
     case enc of
         AddressE (Internal.Address address) ->
             IU.leftPadTo64 address
+
+        IntE int ->
+            BigInt.toHexString int
+                |> IU.leftPadTo64
 
         UintE uint ->
             BigInt.toHexString uint
