@@ -17,7 +17,7 @@ block txsDecoder =
         |> required "number" hexInt
         |> required "hash" blockHash
         |> required "parentHash" blockHash
-        |> required "nonce" string
+        |> optional "nonce" (maybe string) Nothing
         |> required "sha3Uncles" string
         |> required "logsBloom" string
         |> required "transactionsRoot" string
@@ -106,7 +106,7 @@ log =
         |> required "address" address
         |> required "data" string
         |> required "topics" (list hex)
-        |> required "removed" bool
+        |> optional "removed" bool False
         |> required "logIndex" hexInt
         |> required "transactionIndex" hexInt
         |> required "transactionHash" txHash
@@ -121,7 +121,7 @@ event returnDataDecoder =
         |> required "address" address
         |> required "data" string
         |> required "topics" (list hex)
-        |> required "removed" bool
+        |> optional "removed" bool False
         |> required "logIndex" hexInt
         |> required "transactionIndex" hexInt
         |> required "transactionHash" txHash
@@ -191,7 +191,7 @@ bigInt =
 {-| -}
 hexTime : Decoder Time
 hexTime =
-    resultToDecoder (remove0x >> Hex.fromString >> Result.map toFloat)
+    resultToDecoder (remove0x >> Hex.fromString >> Result.map toFloat >> Result.map ((*) 1000))
 
 
 {-| -}
