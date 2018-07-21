@@ -85,7 +85,7 @@ init rawNetworkID location =
             , uPortUser = Nothing
             , networkId = networkId
             , nodePath = nodePath
-            , isLoggedIn = True
+            , isLoggedIn = False
             , eventSentry =
                 EventSentry.init EventSentryMsg nodePath.ws
                     |> EventSentry.withDebug

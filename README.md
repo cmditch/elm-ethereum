@@ -8,6 +8,7 @@
 In the mean time, use the [dev version of the package](http://package.elm-lang.org/packages/cmditch/mel-bew3/latest).  
 
 Check out the [simple starter example](https://github.com/cmditch/elm-ethereum/tree/master/examples/simple/Main.elm)  
+or the more [complex example SPA dApp](https://github.com/cmditch/elm-ethereum/tree/master/examples/complex) 
 
 Cool Feature:  See [here](https://github.com/cmditch/elm-ethereum/blob/master/examples/simple/Main.elm#L138) how you can easily track the block depth of transactions after they've been mined.
 
