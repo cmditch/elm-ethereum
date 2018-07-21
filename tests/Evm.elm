@@ -109,6 +109,7 @@ intTests =
 
 
 -- ComplexStorage Test
+-- TODO Need to test string[] - dynamic type of another dynamic type
 
 
 complexStorage : Test

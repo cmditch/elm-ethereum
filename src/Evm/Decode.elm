@@ -300,7 +300,7 @@ staticArray len dec =
 {- Dev Notes for Dynamic array decoder
 
    Example array-of-vectors `uint[2][]` returned from the ABI
-   We'll use a multi-return value data type of `myFunc(uint[2][],uint,bool)`
+   We'll use a multi-return value data type of `myFunc(uint256[2][],uint,bool)`
    And use 4 byte words, instead of 32 byte words.
    -----------------------------------
    0000000c  -  arrayDataPointer - says array data starts after 12 bytes (0xc == 12 == 24 chars)
