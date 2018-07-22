@@ -1,16 +1,19 @@
 # <img src="https://cdn.rawgit.com/cmditch/elm-ethereum/master/elm-ethereum-logo.svg" width="75"> elm-ethereum
 
-**DApps in Pure Elm**
+**New!**  
+Check out the [complex example SPA Dapp](https://github.com/cmditch/elm-ethereum/tree/master/examples/complex).
 
+-----------------------
 
 **Dev Note 5/28/18:**  
 *elm-ethereum* is not quite ready for a 1.0 release.  
 In the mean time, use the [dev version of the package](http://package.elm-lang.org/packages/cmditch/mel-bew3/latest).  
 
-Check out the [simple starter example](https://github.com/cmditch/elm-ethereum/tree/master/examples/simple/Main.elm)  
-or the more [complex example SPA dApp](https://github.com/cmditch/elm-ethereum/tree/master/examples/complex) 
+**Examples:**  
+[Simple starter example](https://github.com/cmditch/elm-ethereum/tree/master/examples/simple/src/Main.elm)  
+[Complex example SPA Dapp](https://github.com/cmditch/elm-ethereum/tree/master/examples/complex) 
 
-Cool Feature:  See [here](https://github.com/cmditch/elm-ethereum/blob/master/examples/simple/Main.elm#L138) how you can easily track the block depth of transactions after they've been mined.
+Cool Feature:  See [here](https://github.com/cmditch/elm-ethereum/blob/master/examples/simple/src/Main.elm#L138) how you can easily track the block depth of transactions after they've been mined.
 
 -----------------------
 
