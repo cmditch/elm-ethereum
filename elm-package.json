@@ -19,8 +19,8 @@
         "Eth.Types",
         "Eth.Units",
         "Eth.Utils",
-        "Evm.Decode",
-        "Evm.Encode",
+        "Abi.Decode",
+        "Abi.Encode",
         "Shh"
     ],
     "dependencies": {

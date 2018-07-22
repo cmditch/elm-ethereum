@@ -7,11 +7,11 @@ quote str =
 
 
 toByteLength : String -> String
-toByteLength s =
-    if String.length s == 1 then
-        String.append "0" s
+toByteLength str =
+    if String.length str == 1 then
+        String.append "0" str
     else
-        s
+        str
 
 
 take64 : String -> String
@@ -25,8 +25,8 @@ drop64 =
 
 
 leftPadTo64 : String -> String
-leftPadTo64 data =
-    String.padLeft 64 '0' data
+leftPadTo64 str =
+    String.padLeft 64 '0' str
 
 
 {-| -}

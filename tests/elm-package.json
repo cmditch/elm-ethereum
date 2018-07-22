@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
-    "summary": "elm-web3 test suites",
-    "repository": "https://github.com/user/project.git",
+    "summary": "elm-ethereum test suites",
+    "repository": "https://github.com/cmditch/elm-ethereum-tests.git",
     "license": "BSD3",
     "source-directories": [
         "../src",

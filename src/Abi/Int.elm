@@ -1,4 +1,4 @@
-module Evm.Int exposing (..)
+module Abi.Int exposing (..)
 
 import BigInt exposing (BigInt)
 import String.Extra as StringExtra
@@ -25,6 +25,25 @@ fromString str =
                 |> BigInt.fromString
         else
             BigInt.fromString (add0x str)
+
+
+toString : BigInt -> String
+toString num =
+    let
+        ( xs, twosComplementOrNotTwosComplement ) =
+            case BigInt.toHexString num |> String.toList of
+                '-' :: xs ->
+                    ( xs, twosComplementUnsafe >> String.padLeft 256 '1' )
+
+                xs ->
+                    ( xs, String.padLeft 256 '0' )
+    in
+        List.map toBinaryUnsafe xs
+            |> String.join ""
+            |> twosComplementOrNotTwosComplement
+            |> StringExtra.break 4
+            |> List.map fromBinaryUnsafe
+            |> String.fromList
 
 
 {-| Bit-Flip-Fold-Holla-for-a-Dolla

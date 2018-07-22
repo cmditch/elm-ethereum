@@ -1,9 +1,9 @@
-module Evm.Encode
+module Abi.Encode
     exposing
         ( Encoding(..)
         , encodeFunctionCall
         , encodeFunctionCallWithDebug
-        , evmEncode
+        , encode
         )
 
 {-| Encode before sending RPC Calls
@@ -13,13 +13,14 @@ module Evm.Encode
 
 # Low-Level
 
-@docs evmEncode
+@docs encode
 
 -}
 
+import Abi.Int as AbiInt
 import BigInt exposing (BigInt)
 import Eth.Types exposing (Hex, IPFSHash)
-import Eth.Utils as U exposing (functionSig, ipfsToBytes32)
+import Eth.Utils as EthUtils exposing (functionSig, ipfsToBytes32)
 import Eth.Types exposing (Address)
 import Internal.Types as Internal
 import Internal.Utils as IU exposing (..)
@@ -34,6 +35,7 @@ import Internal.Utils as IU exposing (..)
 type Encoding
     = AddressE Address
     | UintE BigInt
+    | IntE BigInt
     | BoolE Bool
     | DBytesE Hex
     | BytesE Hex
@@ -56,8 +58,8 @@ encodeFunctionCallWithDebug =
 
 
 {-| -}
-evmEncode : Encoding -> Hex
-evmEncode =
+encode : Encoding -> Hex
+encode =
     lowLevelEncode >> Internal.Hex
 
 
@@ -73,11 +75,17 @@ encodeFunctionCall_ isDebug sig encodings =
             List.map lowLevelEncode encodings
                 |> String.join ""
 
+        data_ =
+            EthUtils.functionSig sig
+                |> EthUtils.hexToString
+                |> IU.remove0x
+                |> \str -> str ++ byteCodeEncodings
+
         data =
             if isDebug then
-                Debug.log ("Debug Contract Call " ++ sig) (U.hexToString (U.functionSig sig) ++ byteCodeEncodings)
+                Debug.log ("Debug Contract Call " ++ sig) data_
             else
-                (IU.remove0x <| U.hexToString <| U.functionSig sig) ++ byteCodeEncodings
+                data_
     in
         Internal.Hex data
 
@@ -92,6 +100,9 @@ lowLevelEncode enc =
         UintE uint ->
             BigInt.toHexString uint
                 |> IU.leftPadTo64
+
+        IntE int ->
+            AbiInt.toString int
 
         BoolE True ->
             IU.leftPadTo64 "1"
@@ -113,7 +124,7 @@ lowLevelEncode enc =
             "not implemeneted yet"
 
         IPFSHashE ipfsHash ->
-            U.ipfsToBytes32 ipfsHash
+            EthUtils.ipfsToBytes32 ipfsHash
                 |> \(Internal.Hex zerolessHex) -> zerolessHex
 
         Custom string ->
