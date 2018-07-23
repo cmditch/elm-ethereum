@@ -2,8 +2,6 @@ module Request.Chain exposing (..)
 
 -- Library
 
-import BigInt
-import Dict exposing (Dict)
 import Eth as Eth
 import Eth.Types as Eth
 import Task exposing (Task)

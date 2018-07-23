@@ -37,6 +37,6 @@
   },
   "dependencies": {
     "elm-ethereum-ports": "^1.0.0",
-    "elm-ethereum-generator": "^1.0.1"
+    "elm-ethereum-generator": "^1.1.0"
   }
 }

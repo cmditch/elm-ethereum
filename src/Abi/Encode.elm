@@ -3,7 +3,7 @@ module Abi.Encode
         ( Encoding(..)
         , encodeFunctionCall
         , encodeFunctionCallWithDebug
-        , encode
+        , abiEncode
         )
 
 {-| Encode before sending RPC Calls
@@ -13,7 +13,7 @@ module Abi.Encode
 
 # Low-Level
 
-@docs encode
+@docs abiEncode
 
 -}
 
@@ -58,8 +58,8 @@ encodeFunctionCallWithDebug =
 
 
 {-| -}
-encode : Encoding -> Hex
-encode =
+abiEncode : Encoding -> Hex
+abiEncode =
     lowLevelEncode >> Internal.Hex
 
 
