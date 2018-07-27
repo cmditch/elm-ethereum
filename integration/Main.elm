@@ -14,7 +14,7 @@ import Eth
 import Eth.Decode as Decode
 import Eth.Utils as Utils exposing (functionSig, unsafeToHex)
 import Eth.Units exposing (eth, gwei)
-import Evm.Encode as Evm
+import Abi.Encode as Abi
 import Task
 import Process
 
@@ -201,7 +201,7 @@ contractCmds =
             , gas = Just <| 400000
             , gasPrice = Just <| gwei 20
             , value = Nothing
-            , data = Just <| Evm.encodeFunctionCall "owner()" []
+            , data = Just <| Abi.encodeFunctionCall "owner()" []
             , nonce = Nothing
             , decoder = Decode.address
             }
@@ -225,7 +225,7 @@ erc20TransferFilter : LogFilter
 erc20TransferFilter =
     { fromBlock = BlockNum 5488303
     , toBlock = BlockNum 5488353
-    , address = Utils.unsafeToAddress "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C"
+    , address = Utils.unsafeToAddress "0xd850942ef8811f2a866692a623011bde52a462c1"
     , topics = [ Just <| Utils.unsafeToHex "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" ]
     }
 
@@ -234,7 +234,7 @@ erc20TransferFilter2 : LogFilter
 erc20TransferFilter2 =
     { fromBlock = LatestBlock
     , toBlock = LatestBlock
-    , address = Utils.unsafeToAddress "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C"
+    , address = Utils.unsafeToAddress "0xd850942ef8811f2a866692a623011bde52a462c1"
     , topics = [ Just <| Utils.unsafeToHex "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" ]
     }
 
