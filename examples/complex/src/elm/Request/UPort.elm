@@ -8,7 +8,7 @@ import Json.Decode.Pipeline exposing (custom, decode, required, requiredAt)
 
 authEndpoint : String
 authEndpoint =
-    "ws://uport-Publi-BD0Y18RWXQQQ-1440329705.us-west-2.elb.amazonaws.com"
+    "wss://uport-staging.opolis.co"
 
 
 type Message
