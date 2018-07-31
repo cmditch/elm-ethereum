@@ -1,14 +1,5 @@
 # <img src="https://cdn.rawgit.com/cmditch/elm-ethereum/master/elm-ethereum-logo.svg" width="75"> elm-ethereum
 
-**New!**  
-Check out the [complex example SPA Dapp](https://github.com/cmditch/elm-ethereum/tree/master/examples/complex).
-
------------------------
-
-**Dev Note 5/28/18:**  
-*elm-ethereum* is not quite ready for a 1.0 release.  
-In the mean time, use the [dev version of the package](http://package.elm-lang.org/packages/cmditch/mel-bew3/latest).  
-
 **Examples:**  
 [Simple starter example](https://github.com/cmditch/elm-ethereum/tree/master/examples/simple/src/Main.elm)  
 [Complex example SPA Dapp](https://github.com/cmditch/elm-ethereum/tree/master/examples/complex) 
