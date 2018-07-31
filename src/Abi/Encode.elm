@@ -1,14 +1,23 @@
 module Abi.Encode
     exposing
-        ( Encoding(..)
-        , encodeFunctionCall
-        , encodeFunctionCallWithDebug
+        ( Encoding
+        , functionCall
+        , functionCallWithDebug
+        , address
+        , uint
+        , int
+        , bool
+        , staticBytes
+        , ipfsHash
+        , custom
         , abiEncode
         )
 
 {-| Encode before sending RPC Calls
 
-@docs Encoding, encodeFunctionCall, encodeFunctionCallWithDebug
+@docs Encoding, functionCall, functionCallWithDebug
+
+@docs address, uint, int, bool, staticBytes, ipfsHash, custom
 
 
 # Low-Level
@@ -26,11 +35,7 @@ import Internal.Types as Internal
 import Internal.Utils as IU exposing (..)
 
 
-{-| Not yet implemented :
-
-    -- DO NOT USE
-    DBytesE, BytesE, StringE, ListE
-
+{-| Not yet implemented : Dynamic Bytes, String, List
 -}
 type Encoding
     = AddressE Address
@@ -46,15 +51,65 @@ type Encoding
 
 
 {-| -}
-encodeFunctionCall : String -> List Encoding -> Hex
-encodeFunctionCall =
-    encodeFunctionCall_ False
+functionCall : String -> List Encoding -> Hex
+functionCall =
+    functionCall_ False
 
 
 {-| -}
-encodeFunctionCallWithDebug : String -> List Encoding -> Hex
-encodeFunctionCallWithDebug =
-    encodeFunctionCall_ True
+functionCallWithDebug : String -> List Encoding -> Hex
+functionCallWithDebug =
+    functionCall_ True
+
+
+
+-- Encoders
+
+
+{-| -}
+address : Address -> Encoding
+address =
+    AddressE
+
+
+{-| -}
+uint : BigInt -> Encoding
+uint =
+    UintE
+
+
+{-| -}
+int : BigInt -> Encoding
+int =
+    IntE
+
+
+{-| -}
+bool : Bool -> Encoding
+bool =
+    BoolE
+
+
+{-| -}
+staticBytes : Hex -> Encoding
+staticBytes =
+    BytesE
+
+
+{-| -}
+ipfsHash : IPFSHash -> Encoding
+ipfsHash =
+    IPFSHashE
+
+
+{-| -}
+custom : String -> Encoding
+custom =
+    Custom
+
+
+
+-- Low Level
 
 
 {-| -}
@@ -68,8 +123,8 @@ abiEncode =
 
 
 {-| -}
-encodeFunctionCall_ : Bool -> String -> List Encoding -> Hex
-encodeFunctionCall_ isDebug sig encodings =
+functionCall_ : Bool -> String -> List Encoding -> Hex
+functionCall_ isDebug sig encodings =
     let
         byteCodeEncodings =
             List.map lowLevelEncode encodings

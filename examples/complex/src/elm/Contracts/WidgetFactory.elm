@@ -19,8 +19,8 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (custom, decode)
 import Eth.Types exposing (..)
 import Eth.Utils as U
-import Abi.Decode as Abi exposing (abiDecode, andMap, toElmDecoder, topic, data)
-import Abi.Encode as Abi exposing (Encoding(..), abiEncode)
+import Abi.Decode as AbiDecode exposing (abiDecode, andMap, toElmDecoder, topic, data)
+import Abi.Encode as AbiEncode exposing (Encoding(..), abiEncode)
 
 
 {-
@@ -39,7 +39,7 @@ newWidget contractAddress size_ cost_ owner_ =
     , gas = Nothing
     , gasPrice = Nothing
     , value = Nothing
-    , data = Just <| Abi.encodeFunctionCall "newWidget(uint256,uint256,address)" [ UintE size_, UintE cost_, AddressE owner_ ]
+    , data = Just <| AbiEncode.functionCall "newWidget(uint256,uint256,address)" [ AbiEncode.uint size_, AbiEncode.uint cost_, AbiEncode.address owner_ ]
     , nonce = Nothing
     , decoder = Decode.succeed ()
     }
@@ -54,7 +54,7 @@ sellWidget contractAddress id_ =
     , gas = Nothing
     , gasPrice = Nothing
     , value = Nothing
-    , data = Just <| Abi.encodeFunctionCall "sellWidget(uint256)" [ UintE id_ ]
+    , data = Just <| AbiEncode.functionCall "sellWidget(uint256)" [ AbiEncode.uint id_ ]
     , nonce = Nothing
     , decoder = Decode.succeed ()
     }
@@ -69,9 +69,9 @@ widgetCount contractAddress =
     , gas = Nothing
     , gasPrice = Nothing
     , value = Nothing
-    , data = Just <| Abi.encodeFunctionCall "widgetCount()" []
+    , data = Just <| AbiEncode.functionCall "widgetCount()" []
     , nonce = Nothing
-    , decoder = toElmDecoder Abi.uint
+    , decoder = toElmDecoder AbiDecode.uint
     }
 
 
@@ -93,7 +93,7 @@ widgets contractAddress a =
     , gas = Nothing
     , gasPrice = Nothing
     , value = Nothing
-    , data = Just <| Abi.encodeFunctionCall "widgets(uint256)" [ UintE a ]
+    , data = Just <| AbiEncode.functionCall "widgets(uint256)" [ AbiEncode.uint a ]
     , nonce = Nothing
     , decoder = widgetsDecoder
     }
@@ -102,11 +102,11 @@ widgets contractAddress a =
 widgetsDecoder : Decoder Widget
 widgetsDecoder =
     abiDecode Widget
-        |> andMap Abi.uint
-        |> andMap Abi.uint
-        |> andMap Abi.uint
-        |> andMap Abi.address
-        |> andMap Abi.bool
+        |> andMap AbiDecode.uint
+        |> andMap AbiDecode.uint
+        |> andMap AbiDecode.uint
+        |> andMap AbiDecode.address
+        |> andMap AbiDecode.bool
         |> toElmDecoder
 
 
@@ -132,10 +132,10 @@ widgetCreatedEvent contractAddress =
 widgetCreatedDecoder : Decoder WidgetCreated
 widgetCreatedDecoder =
     decode WidgetCreated
-        |> custom (data 0 Abi.uint)
-        |> custom (data 1 Abi.uint)
-        |> custom (data 2 Abi.uint)
-        |> custom (data 3 Abi.address)
+        |> custom (data 0 AbiDecode.uint)
+        |> custom (data 1 AbiDecode.uint)
+        |> custom (data 2 AbiDecode.uint)
+        |> custom (data 3 AbiDecode.address)
 
 
 {-| "WidgetSold(uint256)" event
@@ -156,6 +156,4 @@ widgetSoldEvent contractAddress =
 widgetSoldDecoder : Decoder WidgetSold
 widgetSoldDecoder =
     decode WidgetSold
-        |> custom (data 0 Abi.uint)
-
-
+        |> custom (data 0 AbiDecode.uint)

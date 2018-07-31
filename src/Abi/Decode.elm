@@ -56,11 +56,6 @@ module Abi.Decode
 
 -}
 
---
--- Take inspiration from Json.Decode.Pipeline
--- and Json.Decode
---
-
 import Base58
 import BigInt exposing (BigInt)
 import Internal.Decode exposing (resultToDecoder)
