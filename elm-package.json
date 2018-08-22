@@ -1,8 +1,8 @@
 {
-    "version": "1.0.1",
+    "version": "1.0.2",
     "summary": "feed the tree some ether.",
     "repository": "https://github.com/cmditch/elm-ethereum.git",
-    "license": "BSD3",
+    "license": "MIT",
     "source-directories": [
         "./src"
     ],
