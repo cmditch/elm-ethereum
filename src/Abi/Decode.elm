@@ -207,10 +207,10 @@ bool =
                             Ok True
 
                         _ ->
-                            Err ("Boolean decode error." ++ b ++ " is not boolean.")
+                            Err ("Boolean decode error. " ++ b ++ " is not 1 or 0.")
 
                 False ->
-                    Err ("Boolean decode error." ++ b ++ " is not boolean.")
+                    Err ("Boolean decode error. " ++ b ++ " is not 1 or 0.")
     in
         AbiDecoder <|
             \(Tape original altered) ->

@@ -31,6 +31,8 @@ import BigInt exposing (BigInt)
 import Eth.Types exposing (Hex, IPFSHash)
 import Eth.Utils as EthUtils exposing (functionSig, ipfsToBytes32)
 import Eth.Types exposing (Address)
+import String.UTF8 as UTF8
+import Hex
 import Internal.Types as Internal
 import Internal.Utils as IU exposing (..)
 
@@ -45,9 +47,9 @@ type Encoding
     | DBytesE Hex
     | BytesE Hex
     | StringE String
-    | ListE Encoding
+    | ListE (List Encoding)
     | IPFSHashE IPFSHash
-    | Custom String
+    | CustomE String
 
 
 {-| -}
@@ -78,6 +80,11 @@ uint =
     UintE
 
 
+
+-- TODO if int is greater than max_int Err.
+-- would require different API with Results
+
+
 {-| -}
 int : BigInt -> Encoding
 int =
@@ -97,6 +104,18 @@ staticBytes =
 
 
 {-| -}
+dynamicBytes : Hex -> Encoding
+dynamicBytes =
+    DBytesE
+
+
+{-| -}
+string : String -> Encoding
+string =
+    StringE
+
+
+{-| -}
 ipfsHash : IPFSHash -> Encoding
 ipfsHash =
     IPFSHashE
@@ -105,7 +124,7 @@ ipfsHash =
 {-| -}
 custom : String -> Encoding
 custom =
-    Custom
+    CustomE
 
 
 
@@ -115,7 +134,13 @@ custom =
 {-| -}
 abiEncode : Encoding -> Hex
 abiEncode =
-    lowLevelEncode >> Internal.Hex
+    lowLevelEncode >> (\v -> lowLevelEncodeList [ v ]) >> Internal.Hex
+
+
+{-| -}
+abiEncodeList : List Encoding -> Hex
+abiEncodeList =
+    List.map lowLevelEncode >> lowLevelEncodeList >> Internal.Hex
 
 
 
@@ -128,7 +153,7 @@ functionCall_ isDebug sig encodings =
     let
         byteCodeEncodings =
             List.map lowLevelEncode encodings
-                |> String.join ""
+                |> lowLevelEncodeList
 
         data_ =
             EthUtils.functionSig sig
@@ -145,42 +170,139 @@ functionCall_ isDebug sig encodings =
         Internal.Hex data
 
 
+{-| (Maybe (Size of Dynamic Value), Value)
+-}
+type alias LowLevelEncoding =
+    ( Maybe Int, String )
+
+
 {-| -}
-lowLevelEncode : Encoding -> String
+toStaticLLEncoding : String -> LowLevelEncoding
+toStaticLLEncoding strVal =
+    ( Nothing
+    , strVal
+    )
+
+
+{-| -}
+toDynamicLLEncoding : String -> LowLevelEncoding
+toDynamicLLEncoding strVal =
+    ( Just <| String.length strVal // 2
+    , padToMod64 strVal
+    )
+
+
+{-| -}
+lowLevelEncode : Encoding -> LowLevelEncoding
 lowLevelEncode enc =
     case enc of
         AddressE (Internal.Address address) ->
             IU.leftPadTo64 address
+                |> toStaticLLEncoding
 
         UintE uint ->
             BigInt.toHexString uint
                 |> IU.leftPadTo64
+                |> toStaticLLEncoding
 
         IntE int ->
             AbiInt.toString int
+                |> toStaticLLEncoding
 
         BoolE True ->
             IU.leftPadTo64 "1"
+                |> toStaticLLEncoding
 
         BoolE False ->
             IU.leftPadTo64 "0"
+                |> toStaticLLEncoding
 
-        DBytesE _ ->
-            "not implemeneted yet"
+        DBytesE (Internal.Hex hexString) ->
+            toDynamicLLEncoding hexString
 
         BytesE (Internal.Hex hexString) ->
             IU.remove0x hexString
                 |> IU.leftPadTo64
+                |> toStaticLLEncoding
 
         StringE string ->
-            "not implemeneted yet"
+            stringToHex string
+                |> toDynamicLLEncoding
 
-        ListE _ ->
-            "not implemeneted yet"
+        ListE encodings ->
+            abiEncodeList encodings
+                |> (\(Internal.Hex hexString) ->
+                        toDynamicLLEncoding hexString
+                   )
 
         IPFSHashE ipfsHash ->
             EthUtils.ipfsToBytes32 ipfsHash
-                |> \(Internal.Hex zerolessHex) -> zerolessHex
+                |> \(Internal.Hex zerolessHex) ->
+                    zerolessHex
+                        |> toStaticLLEncoding
 
-        Custom string ->
+        CustomE string ->
             IU.remove0x string
+                |> toStaticLLEncoding
+
+
+lowLevelEncodeList : List LowLevelEncoding -> String
+lowLevelEncodeList vals =
+    let
+        reducer : LowLevelEncoding -> ( Int, String, String ) -> ( Int, String, String )
+        reducer ( mLength, val ) ( dynValPointer, staticVals, dynamicVals ) =
+            case mLength of
+                Just length ->
+                    let
+                        newDynValPointer =
+                            dynValPointer + 32 + (String.length val // 2)
+
+                        newStaticVals =
+                            Hex.toString dynValPointer
+                                |> IU.leftPadTo64
+
+                        newDynVals =
+                            Hex.toString length
+                                |> IU.leftPadTo64
+                                |> (\lengthInHex -> lengthInHex ++ val)
+                    in
+                        ( newDynValPointer
+                          -- newPointer - = previousPointer + (length of hexLengthWord) + (length of val words)
+                        , staticVals ++ newStaticVals
+                        , dynamicVals ++ newDynVals
+                        )
+
+                Nothing ->
+                    ( dynValPointer
+                    , staticVals ++ val
+                    , dynamicVals
+                    )
+    in
+        List.foldl reducer ( List.length vals * 32, "", "" ) vals
+            |> (\( _, sVals, dVals ) -> sVals ++ dVals)
+
+
+
+-- Helpers
+
+
+{-| Right pads a string so (strLength % 64 == 0)
+64 chars or 32 bytes is the size of an EVM word
+-}
+padToMod64 : String -> String
+padToMod64 str =
+    str ++ String.repeat (String.length str |> tillMod64) "0"
+
+
+tillMod64 : Int -> Int
+tillMod64 n =
+    64 - (n % 64)
+
+
+{-| Converts utf8 string to string of hex
+-}
+stringToHex : String -> String
+stringToHex strVal =
+    UTF8.toBytes strVal
+        |> List.map Hex.toString
+        |> String.join ""
