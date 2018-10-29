@@ -81,7 +81,7 @@ type alias Call a =
     , gas : Maybe Int
     , gasPrice : Maybe BigInt
     , value : Maybe BigInt
-    , data : Maybe Hex
+    , data : Maybe (Result String Hex)
     , nonce : Maybe Int
     , decoder : Decoder a
     }
@@ -94,7 +94,7 @@ type alias Send =
     , gas : Maybe Int
     , gasPrice : Maybe BigInt
     , value : Maybe BigInt
-    , data : Maybe Hex
+    , data : Maybe (Result String Hex)
     , nonce : Maybe Int
     }
 

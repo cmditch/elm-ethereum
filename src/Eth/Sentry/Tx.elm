@@ -62,7 +62,7 @@ type TxSentry msg
         , nodePath : HttpProvider
         , tagger : Msg -> msg
         , txs : Dict Int (TxState msg)
-        , debug : Bool
+        , debug : Maybe (String -> a -> a)
         , ref : Int
         }
 
@@ -90,7 +90,7 @@ init ( outPort, inPort ) tagger nodePath =
         , nodePath = nodePath
         , tagger = tagger
         , txs = Dict.empty
-        , debug = False
+        , debug = Nothing
         , ref = 1
         }
 
@@ -170,9 +170,9 @@ customSend =
 
 
 {-| -}
-withDebug : TxSentry msg -> TxSentry msg
-withDebug (TxSentry sentry) =
-    TxSentry { sentry | debug = True }
+withDebug : (String -> a -> a) -> TxSentry msg -> TxSentry msg
+withDebug logFunc (TxSentry sentry) =
+    TxSentry { sentry | debug = Just logFunc }
 
 
 {-| Look into the errors this might cause,
@@ -193,12 +193,29 @@ changeNode newNodePath (TxSentry sentry) =
 
 send_ : TxSentry msg -> CustomSend msg -> Send -> ( TxSentry msg, Cmd msg )
 send_ (TxSentry sentry) sendParams txParams =
-    let
-        newTxs =
-            Dict.insert sentry.ref (newTxState txParams sendParams) sentry.txs
-    in
-        (TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 })
-            ! [ Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref txParams) ]
+    case Encode.encodeSend txParams of
+        Ok txParamVal ->
+            let
+                newTxs =
+                    Dict.insert sentry.ref (newTxState txParams sendParams) sentry.txs
+            in
+                (TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 })
+                    ! [ Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref txParamVal) ]
+
+        Err err ->
+            let
+                sendError : Maybe (Result String a -> msg) -> Cmd msg
+                sendError maybeTagger =
+                    Maybe.map (\tagger -> Task.perform tagger (Task.succeed <| Err err)) maybeTagger
+                        |> Maybe.withDefault Cmd.none
+            in
+                ( TxSentry sentry
+                , Cmd.batch
+                    [ sendError sendParams.onSignedTagger
+                    , sendError sendParams.onBroadcastTagger
+                    , sendError sendParams.onMinedTagger
+                    ]
+                )
 
 
 type TxStatus
@@ -567,11 +584,11 @@ getTxTrackerToMsg txs ref =
 -- Decoders/Encoders
 
 
-encodeTxData : Int -> Send -> Value
-encodeTxData ref send =
+encodeTxData : Int -> Value -> Value
+encodeTxData ref txParamVal =
     Encode.object
         [ ( "ref", Encode.int ref )
-        , ( "txParams", Eth.encodeSend send )
+        , ( "txParams", txParamVal )
         ]
 
 
@@ -616,10 +633,12 @@ newTxState send { onSign, onBroadcast, onMined } =
 
 
 debugHelp debug logText val =
-    if debug then
-        Debug.log ("TxSentry - " ++ logText) val
-    else
-        val
+    case debug of
+        Just debugFunc ->
+            debugFunc ("TxSentry - " ++ logText) val
+
+        Nothing ->
+            val
 
 
 log =

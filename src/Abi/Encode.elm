@@ -51,13 +51,13 @@ type Encoding
 
 
 {-| -}
-functionCall : String -> List Encoding -> Hex
+functionCall : String -> List Encoding -> Result String Hex
 functionCall =
     functionCall_ False
 
 
 {-| -}
-functionCallWithDebug : String -> List Encoding -> Hex
+functionCallWithDebug : String -> List Encoding -> Result String Hex
 functionCallWithDebug =
     functionCall_ True
 
@@ -123,7 +123,7 @@ abiEncode =
 
 
 {-| -}
-functionCall_ : Bool -> String -> List Encoding -> Hex
+functionCall_ : Bool -> String -> List Encoding -> Result String Hex
 functionCall_ isDebug sig encodings =
     let
         byteCodeEncodings =

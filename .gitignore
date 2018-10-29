@@ -3,4 +3,4 @@ Test.elm
 elm.js
 .DS_Store
 node_modules/
-*-notes.txt
+*-notes.*

@@ -134,12 +134,17 @@ for a variety of reasons including EVM mechanics and node performance.
 -}
 estimateGas : HttpProvider -> Call a -> Task Http.Error Int
 estimateGas ethNode txParams =
-    RPC.toTask
-        { url = ethNode
-        , method = "eth_estimateGas"
-        , params = [ Encode.txCall txParams ]
-        , decoder = Decode.hexInt
-        }
+    case Encode.txCall txParams of
+        Ok txParams_ ->
+            RPC.toTask
+                { url = ethNode
+                , method = "eth_estimateGas"
+                , params = [ txParams_ ]
+                , decoder = Decode.hexInt
+                }
+
+        Err err ->
+            Task.fail err
 
 
 {-| Returns the value from a storage position at a given address.
@@ -159,14 +164,19 @@ getCode ethNode address =
 
 {-| Call a function on an Ethereum contract from a particular point in history.
 -}
-callAtBlock : HttpProvider -> Call a -> BlockId -> Task Http.Error a
+callAtBlock : HttpProvider -> Call a -> BlockId -> Task Eth.Error a
 callAtBlock ethNode txParams blockId =
-    RPC.toTask
-        { url = ethNode
-        , method = "eth_call"
-        , params = [ Encode.txCall txParams, Encode.blockId blockId ]
-        , decoder = txParams.decoder
-        }
+    case Encode.txCall txParams of
+        Ok txParams_ ->
+            RPC.toTask
+                { url = ethNode
+                , method = "eth_call"
+                , params = [ txParams_, Encode.blockId blockId ]
+                , decoder = txParams.decoder
+                }
+
+        Err err ->
+            Task.fail err
 
 
 {-| Returns the value from a storage position at a given address, at a certain block height.
@@ -213,18 +223,31 @@ toSend { to, from, gas, gasPrice, value, data, nonce } =
 
 
 {-| Useful if your handling txParams in javascript land yourself.
+Will return Error if params are invalid. e.g., buffer overflow
 -}
-encodeSend : Send -> Value
+encodeSend : Send -> Result String Value
 encodeSend { to, from, gas, gasPrice, value, data, nonce } =
-    Encode.listOfMaybesToVal
-        [ ( "to", Maybe.map Encode.address to )
-        , ( "from", Maybe.map Encode.address from )
-        , ( "gas", Maybe.map Encode.hexInt gas )
-        , ( "gasPrice", Maybe.map Encode.bigInt gasPrice )
-        , ( "value", Maybe.map Encode.bigInt value )
-        , ( "data", Maybe.map Encode.hex data )
-        , ( "nonce", Maybe.map Encode.hexInt nonce )
-        ]
+    let
+        paramsToValue data_ =
+            Encode.listOfMaybesToVal
+                [ ( "to", Maybe.map Encode.address to )
+                , ( "from", Maybe.map Encode.address from )
+                , ( "gas", Maybe.map Encode.hexInt gas )
+                , ( "gasPrice", Maybe.map Encode.bigInt gasPrice )
+                , ( "value", Maybe.map Encode.bigInt value )
+                , ( "data", Maybe.map Encode.hex data_ )
+                , ( "nonce", Maybe.map Encode.hexInt nonce )
+                ]
+    in
+        case data of
+            Nothing ->
+                paramsToValue Nothing
+
+            Just (Ok data_) ->
+                paramsToValue (Just data_)
+
+            Just (Err err) ->
+                Err err
 
 
 {-| Get transaction information from it's hash.
