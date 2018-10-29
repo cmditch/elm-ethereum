@@ -1,10 +1,4 @@
-module Eth.Sentry.Wallet
-    exposing
-        ( WalletSentry
-        , default
-        , decoder
-        , decodeToMsg
-        )
+module Eth.Sentry.Wallet exposing (WalletSentry, default, decoder, decodeToMsg)
 
 {-| Wallet Sentry
 
@@ -12,10 +6,10 @@ module Eth.Sentry.Wallet
 
 -}
 
-import Eth.Types exposing (Address)
-import Eth.Net as Net exposing (NetworkId(..))
-import Json.Decode as Decode exposing (Decoder, Value)
 import Eth.Decode as Decode
+import Eth.Net as Net exposing (NetworkId(..))
+import Eth.Types exposing (Address)
+import Json.Decode as Decode exposing (Decoder, Value)
 
 
 {-| -}
@@ -44,7 +38,7 @@ decodeToMsg : (String -> msg) -> (WalletSentry -> msg) -> Value -> msg
 decodeToMsg failMsg successMsg val =
     case Decode.decodeValue decoder val of
         Err error ->
-            failMsg error
+            failMsg (Decode.errorToString error)
 
         Ok walletSentry ->
             successMsg walletSentry

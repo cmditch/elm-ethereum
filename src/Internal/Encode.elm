@@ -1,11 +1,12 @@
-module Internal.Encode exposing (..)
+module Internal.Encode exposing (address, bigInt, blockHash, blockId, hex, hexInt, listOfMaybesToVal, logFilter, topicsList, txCall, txHash)
 
 import BigInt exposing (BigInt)
-import Hex
-import Json.Encode as Encode exposing (Value, int, list, string, object, null)
 import Eth.Types exposing (..)
 import Eth.Utils exposing (..)
+import Hex
 import Internal.Utils exposing (..)
+import Json.Encode as Encode exposing (Value, int, list, null, object, string)
+
 
 
 -- Simple
@@ -56,8 +57,8 @@ txCall { to, from, gas, gasPrice, value, data } =
 
 {-| -}
 blockId : BlockId -> Value
-blockId blockId =
-    case blockId of
+blockId blockId_ =
+    case blockId_ of
         BlockNum num ->
             Hex.toString num
                 |> add0x
@@ -75,27 +76,27 @@ blockId blockId =
 
 {-| -}
 logFilter : LogFilter -> Value
-logFilter logFilter =
+logFilter lf =
     object
-        [ ( "fromBlock", blockId logFilter.fromBlock )
-        , ( "toBlock", blockId logFilter.toBlock )
-        , ( "address", address logFilter.address )
-        , ( "topics", topicsList logFilter.topics )
+        [ ( "fromBlock", blockId lf.fromBlock )
+        , ( "toBlock", blockId lf.toBlock )
+        , ( "address", address lf.address )
+        , ( "topics", topicsList lf.topics )
         ]
 
 
 topicsList : List (Maybe Hex) -> Value
-topicsList topicsList =
+topicsList topics =
     let
         toVal val =
             case val of
-                Just hex ->
-                    string (hexToString hex)
+                Just hexVal ->
+                    string (hexToString hexVal)
 
                 Nothing ->
                     null
     in
-        List.map toVal topicsList |> list
+    list toVal topics
 
 
 

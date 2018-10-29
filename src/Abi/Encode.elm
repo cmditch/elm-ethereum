@@ -1,17 +1,8 @@
-module Abi.Encode
-    exposing
-        ( Encoding
-        , functionCall
-        , functionCallWithDebug
-        , address
-        , uint
-        , int
-        , bool
-        , staticBytes
-        , ipfsHash
-        , custom
-        , abiEncode
-        )
+module Abi.Encode exposing
+    ( Encoding, functionCall, functionCallWithDebug
+    , address, uint, int, bool, staticBytes, ipfsHash, custom
+    , abiEncode
+    )
 
 {-| Encode before sending RPC Calls
 
@@ -28,13 +19,12 @@ module Abi.Encode
 
 import Abi.Int as AbiInt
 import BigInt exposing (BigInt)
-import Eth.Types exposing (Hex, IPFSHash)
+import Eth.Types exposing (Address, Hex, IPFSHash)
 import Eth.Utils as EthUtils exposing (functionSig, ipfsToBytes32)
-import Eth.Types exposing (Address)
-import String.UTF8 as UTF8
 import Hex
 import Internal.Types as Internal
 import Internal.Utils as IU exposing (..)
+import String.UTF8 as UTF8
 
 
 {-| Not yet implemented : Dynamic Bytes, String, List
@@ -76,18 +66,20 @@ address =
 
 {-| -}
 uint : Int -> BigInt -> Result String Encoding
-uint size uint =
+uint size num =
     if modBy 8 size /= 0 || size <= 0 || size > 256 then
         Err <| "Invalid size: " ++ String.fromInt size
-    else if BigInt.lt uint (BigInt.pow (BigInt.fromInt 2) (BigInt.fromInt size)) then
+
+    else if BigInt.lt num (BigInt.pow (BigInt.fromInt 2) (BigInt.fromInt size)) then
         -- TODO Figure out if it's 2^n or (2^n - 1), e.g. uint8 should not be over 255 or 256 ?
-        Ok <| UintE uint
+        Ok <| UintE num
+
     else
         Err <|
             "Uint overflow: "
-                ++ BigInt.toString uint
+                ++ BigInt.toString num
                 ++ " is larger than uint"
-                ++ String.fromInt uint
+                ++ String.fromInt size
 
 
 
@@ -98,7 +90,7 @@ uint size uint =
 {-| -}
 int : Int -> BigInt -> Result String Encoding
 int size =
-    IntE
+    IntE >> Ok
 
 
 {-| -}
@@ -110,19 +102,19 @@ bool =
 {-| -}
 staticBytes : Hex -> Result String Encoding
 staticBytes =
-    BytesE
+    BytesE >> Ok
 
 
 {-| -}
 dynamicBytes : Hex -> Result String Encoding
 dynamicBytes =
-    DBytesE
+    DBytesE >> Ok
 
 
 {-| -}
 string : String -> Result String Encoding
 string =
-    StringE
+    StringE >> Ok
 
 
 {-| -}
@@ -169,15 +161,16 @@ functionCall_ isDebug sig encodings =
             EthUtils.functionSig sig
                 |> EthUtils.hexToString
                 |> IU.remove0x
-                |> \str -> str ++ byteCodeEncodings
+                |> (\str -> str ++ byteCodeEncodings)
 
         data =
             if isDebug then
                 Debug.log ("Debug Contract Call " ++ sig) data_
+
             else
                 data_
     in
-        Internal.Hex data
+    Internal.Hex data
 
 
 {-| (Maybe (Size of Dynamic Value), Value)
@@ -206,17 +199,17 @@ toDynamicLLEncoding strVal =
 lowLevelEncode : Encoding -> LowLevelEncoding
 lowLevelEncode enc =
     case enc of
-        AddressE (Internal.Address address) ->
-            IU.leftPadTo64 address
+        AddressE (Internal.Address address_) ->
+            IU.leftPadTo64 address_
                 |> toStaticLLEncoding
 
-        UintE uint ->
-            BigInt.toHexString uint
+        UintE uint_ ->
+            BigInt.toHexString uint_
                 |> IU.leftPadTo64
                 |> toStaticLLEncoding
 
-        IntE int ->
-            AbiInt.toString int
+        IntE int_ ->
+            AbiInt.toString int_
                 |> toStaticLLEncoding
 
         BoolE True ->
@@ -235,8 +228,8 @@ lowLevelEncode enc =
                 |> IU.leftPadTo64
                 |> toStaticLLEncoding
 
-        StringE string ->
-            stringToHex string
+        StringE string_ ->
+            stringToHex string_
                 |> toDynamicLLEncoding
 
         ListE encodings ->
@@ -245,14 +238,15 @@ lowLevelEncode enc =
                         toDynamicLLEncoding hexString
                    )
 
-        IPFSHashE ipfsHash ->
-            EthUtils.ipfsToBytes32 ipfsHash
-                |> \(Internal.Hex zerolessHex) ->
-                    zerolessHex
-                        |> toStaticLLEncoding
+        IPFSHashE ipfsHash_ ->
+            EthUtils.ipfsToBytes32 ipfsHash_
+                |> (\(Internal.Hex zerolessHex) ->
+                        zerolessHex
+                            |> toStaticLLEncoding
+                   )
 
-        CustomE string ->
-            IU.remove0x string
+        CustomE string_ ->
+            IU.remove0x string_
                 |> toStaticLLEncoding
 
 
@@ -276,11 +270,11 @@ lowLevelEncodeList vals =
                                 |> IU.leftPadTo64
                                 |> (\lengthInHex -> lengthInHex ++ val)
                     in
-                        ( newDynValPointer
-                          -- newPointer - = previousPointer + (length of hexLengthWord) + (length of val words)
-                        , staticVals ++ newStaticVals
-                        , dynamicVals ++ newDynVals
-                        )
+                    ( newDynValPointer
+                      -- newPointer - = previousPointer + (length of hexLengthWord) + (length of val words)
+                    , staticVals ++ newStaticVals
+                    , dynamicVals ++ newDynVals
+                    )
 
                 Nothing ->
                     ( dynValPointer
@@ -288,8 +282,8 @@ lowLevelEncodeList vals =
                     , dynamicVals
                     )
     in
-        List.foldl reducer ( List.length vals * 32, "", "" ) vals
-            |> (\( _, sVals, dVals ) -> sVals ++ dVals)
+    List.foldl reducer ( List.length vals * 32, "", "" ) vals
+        |> (\( _, sVals, dVals ) -> sVals ++ dVals)
 
 
 
@@ -306,7 +300,7 @@ padToMod64 str =
 
 tillMod64 : Int -> Int
 tillMod64 n =
-    64 - (n % 64)
+    64 - modBy 64 n
 
 
 {-| Converts utf8 string to string of hex

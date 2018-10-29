@@ -1,21 +1,10 @@
-module Eth.Sentry.Tx
-    exposing
-        ( TxSentry
-        , Msg
-          -- , Error(..)
-        , update
-        , init
-        , OutPort
-        , InPort
-        , listen
-        , send
-        , sendWithReceipt
-        , CustomSend
-        , TxTracker
-        , customSend
-        , withDebug
-        , changeNode
-        )
+module Eth.Sentry.Tx exposing
+    ( TxSentry, Msg, update, init, OutPort, InPort, listen
+    , send, sendWithReceipt
+    , CustomSend, TxTracker, customSend
+    , withDebug, changeNode
+    -- , Error(..)
+    )
 
 {-|
 
@@ -47,7 +36,7 @@ import Eth.Decode as Decode
 import Eth.Types exposing (..)
 import Eth.Utils exposing (Retry, retry, txHashToString)
 import Http
-import Json.Decode as Decode exposing (Value, Decoder)
+import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
 import Maybe.Extra as Maybe
 import Process
@@ -142,6 +131,7 @@ sendWithReceipt onBroadcast onMined sentry txParams =
     onMined : ( message after tx is mined,
                 (number of blocks deep to watch tx, message on each mined block after tx is sent - stops sending messages when first tuple value is reached)
               )
+
 -}
 type alias CustomSend msg =
     { onSign : Maybe (Result String TxHash -> msg)
@@ -184,7 +174,7 @@ changeNode newNodePath (TxSentry sentry) =
         _ =
             debugHelp sentry.debug log.nodeChanged newNodePath
     in
-        TxSentry { sentry | nodePath = newNodePath }
+    TxSentry { sentry | nodePath = newNodePath }
 
 
 
@@ -199,8 +189,9 @@ send_ (TxSentry sentry) sendParams txParams =
                 newTxs =
                     Dict.insert sentry.ref (newTxState txParams sendParams) sentry.txs
             in
-                (TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 })
-                    ! [ Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref txParamVal) ]
+            ( TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 }
+            , Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref txParamVal)
+            )
 
         Err err ->
             let
@@ -209,13 +200,13 @@ send_ (TxSentry sentry) sendParams txParams =
                     Maybe.map (\tagger -> Task.perform tagger (Task.succeed <| Err err)) maybeTagger
                         |> Maybe.withDefault Cmd.none
             in
-                ( TxSentry sentry
-                , Cmd.batch
-                    [ sendError sendParams.onSignedTagger
-                    , sendError sendParams.onBroadcastTagger
-                    , sendError sendParams.onMinedTagger
-                    ]
-                )
+            ( TxSentry sentry
+            , Cmd.batch
+                [ sendError sendParams.onSignedTagger
+                , sendError sendParams.onBroadcastTagger
+                , sendError sendParams.onMinedTagger
+                ]
+            )
 
 
 type TxStatus
@@ -289,32 +280,33 @@ update msg (TxSentry sentry) =
                                 ( Nothing, Nothing, Nothing ) ->
                                     Cmd.none
                     in
-                        case txHashResult of
-                            Ok txHash ->
-                                let
-                                    -- If user cares about the tx being broadcast or mined, talk to the node accordingly, else nothing.
-                                    txBroadcastCmd =
-                                        if Maybe.isJust txState.onBroadcastTagger || Maybe.isJust txState.onMinedTagger then
-                                            Task.attempt (TxSent ref) (pollTxBroadcast sentry.nodePath txHash)
-                                                |> Cmd.map sentry.tagger
-                                        else
-                                            Cmd.none
-                                in
-                                    ( TxSentry { sentry | txs = Dict.update ref (txStatusSigned txHash) sentry.txs }
-                                    , Cmd.batch
-                                        [ txSignedCmd
-                                        , txBroadcastCmd
-                                        ]
-                                    )
+                    case txHashResult of
+                        Ok txHash ->
+                            let
+                                -- If user cares about the tx being broadcast or mined, talk to the node accordingly, else nothing.
+                                txBroadcastCmd =
+                                    if Maybe.isJust txState.onBroadcastTagger || Maybe.isJust txState.onMinedTagger then
+                                        Task.attempt (TxSent ref) (pollTxBroadcast sentry.nodePath txHash)
+                                            |> Cmd.map sentry.tagger
 
-                            -- If decoding TxHash fails, send Err to all of the user's callbacks.
-                            Err error ->
-                                ( TxSentry sentry
-                                , Cmd.batch
-                                    [ txSignedCmd
-                                    , failOtherCallbacks error
-                                    ]
-                                )
+                                    else
+                                        Cmd.none
+                            in
+                            ( TxSentry { sentry | txs = Dict.update ref (txStatusSigned txHash) sentry.txs }
+                            , Cmd.batch
+                                [ txSignedCmd
+                                , txBroadcastCmd
+                                ]
+                            )
+
+                        -- If decoding TxHash fails, send Err to all of the user's callbacks.
+                        Err error ->
+                            ( TxSentry sentry
+                            , Cmd.batch
+                                [ txSignedCmd
+                                , failOtherCallbacks error
+                                ]
+                            )
 
                 -- This shouldn't occur. A ref should always be associated with some TxState.
                 Nothing ->
@@ -330,56 +322,56 @@ update msg (TxSentry sentry) =
                 _ =
                     debugHelp sentry.debug log.broadcast (toString txResult)
             in
-                case Dict.get ref sentry.txs of
-                    Just txState ->
-                        case txResult of
-                            Ok tx ->
-                                let
-                                    txBroadcastCmd =
-                                        case txState.onBroadcastTagger of
-                                            Just txToMsg ->
-                                                Task.perform txToMsg (Task.succeed <| Ok tx)
+            case Dict.get ref sentry.txs of
+                Just txState ->
+                    case txResult of
+                        Ok tx ->
+                            let
+                                txBroadcastCmd =
+                                    case txState.onBroadcastTagger of
+                                        Just txToMsg ->
+                                            Task.perform txToMsg (Task.succeed <| Ok tx)
 
-                                            Nothing ->
-                                                Cmd.none
+                                        Nothing ->
+                                            Cmd.none
 
-                                    txMinedCmd =
-                                        case txState.onMinedTagger of
-                                            Just _ ->
-                                                Task.attempt (TxMined ref)
-                                                    (pollTxReceipt sentry.nodePath tx.hash)
-                                                    |> Cmd.map sentry.tagger
+                                txMinedCmd =
+                                    case txState.onMinedTagger of
+                                        Just _ ->
+                                            Task.attempt (TxMined ref)
+                                                (pollTxReceipt sentry.nodePath tx.hash)
+                                                |> Cmd.map sentry.tagger
 
-                                            Nothing ->
-                                                Cmd.none
-                                in
-                                    ( TxSentry { sentry | txs = Dict.update ref (txStatusSent tx) sentry.txs }
-                                    , Cmd.batch
-                                        [ txBroadcastCmd
-                                        , txMinedCmd
-                                        ]
-                                    )
+                                        Nothing ->
+                                            Cmd.none
+                            in
+                            ( TxSentry { sentry | txs = Dict.update ref (txStatusSent tx) sentry.txs }
+                            , Cmd.batch
+                                [ txBroadcastCmd
+                                , txMinedCmd
+                                ]
+                            )
 
-                            Err error ->
-                                let
-                                    failOtherCallbacks =
-                                        case ( txState.onBroadcastTagger, txState.onMinedTagger ) of
-                                            ( Just txToMsg, _ ) ->
-                                                Task.perform txToMsg (Task.succeed <| Err <| toString error)
+                        Err error ->
+                            let
+                                failOtherCallbacks =
+                                    case ( txState.onBroadcastTagger, txState.onMinedTagger ) of
+                                        ( Just txToMsg, _ ) ->
+                                            Task.perform txToMsg (Task.succeed <| Err <| toString error)
 
-                                            ( _, Just ( txReceiptToMsg, _ ) ) ->
-                                                Task.perform txReceiptToMsg (Task.succeed <| Err <| toString error)
+                                        ( _, Just ( txReceiptToMsg, _ ) ) ->
+                                            Task.perform txReceiptToMsg (Task.succeed <| Err <| toString error)
 
-                                            ( Nothing, Nothing ) ->
-                                                Cmd.none
-                                in
-                                    ( TxSentry sentry
-                                    , failOtherCallbacks
-                                    )
+                                        ( Nothing, Nothing ) ->
+                                            Cmd.none
+                            in
+                            ( TxSentry sentry
+                            , failOtherCallbacks
+                            )
 
-                    -- This shouldn't occur. A ref should always be associated with some TxState.
-                    Nothing ->
-                        ( TxSentry sentry, Cmd.none )
+                -- This shouldn't occur. A ref should always be associated with some TxState.
+                Nothing ->
+                    ( TxSentry sentry, Cmd.none )
 
         TxMined ref txReceiptResult ->
             -- When Tx is mined because a TxReceipt was returned by the network...
@@ -387,69 +379,69 @@ update msg (TxSentry sentry) =
                 _ =
                     debugHelp sentry.debug log.mined (toString txReceiptResult)
             in
-                case Dict.get ref sentry.txs of
-                    Just txState ->
-                        case txReceiptResult of
-                            Ok txReceipt ->
-                                let
-                                    cmdIfMined =
-                                        case txState.onMinedTagger of
-                                            Just ( txReceiptToMsg, Nothing ) ->
-                                                -- ...and user DOESN'T need to track the block depth of the tx,
-                                                -- then Send TxReceipt to User Land
-                                                Task.perform txReceiptToMsg (Task.succeed <| Ok txReceipt)
+            case Dict.get ref sentry.txs of
+                Just txState ->
+                    case txReceiptResult of
+                        Ok txReceipt ->
+                            let
+                                cmdIfMined =
+                                    case txState.onMinedTagger of
+                                        Just ( txReceiptToMsg, Nothing ) ->
+                                            -- ...and user DOESN'T need to track the block depth of the tx,
+                                            -- then Send TxReceipt to User Land
+                                            Task.perform txReceiptToMsg (Task.succeed <| Ok txReceipt)
 
-                                            Just ( txReceiptToMsg, Just tracker ) ->
-                                                let
-                                                    txTracker =
-                                                        { currentDepth = 1
-                                                        , minedInBlock = txReceipt.blockNumber
-                                                        , stopWatchingAtBlock = txReceipt.blockNumber + (tracker.confirmations - 1)
-                                                        , lastCheckedBlock = txReceipt.blockNumber
-                                                        , txHash = txReceipt.hash
-                                                        , doneWatching = False
-                                                        , reOrg = False
-                                                        }
+                                        Just ( txReceiptToMsg, Just tracker ) ->
+                                            let
+                                                txTracker =
+                                                    { currentDepth = 1
+                                                    , minedInBlock = txReceipt.blockNumber
+                                                    , stopWatchingAtBlock = txReceipt.blockNumber + (tracker.confirmations - 1)
+                                                    , lastCheckedBlock = txReceipt.blockNumber
+                                                    , txHash = txReceipt.hash
+                                                    , doneWatching = False
+                                                    , reOrg = False
+                                                    }
 
-                                                    _ =
-                                                        debugHelp sentry.debug log.trackTx txTracker
-                                                in
-                                                    -- ...or user DOES need to trackthe  block depth of the tx,
-                                                    -- then Send TxReceipt and/or TxTracker to User Land
-                                                    Cmd.batch
-                                                        [ Task.attempt (TrackTx ref txTracker) (Eth.getBlockNumber sentry.nodePath)
-                                                            |> Cmd.map sentry.tagger
-                                                        , Task.perform txReceiptToMsg (Task.succeed <| Ok txReceipt)
-                                                        , Task.perform tracker.toMsg (Task.succeed txTracker)
-                                                        ]
+                                                _ =
+                                                    debugHelp sentry.debug log.trackTx txTracker
+                                            in
+                                            -- ...or user DOES need to trackthe  block depth of the tx,
+                                            -- then Send TxReceipt and/or TxTracker to User Land
+                                            Cmd.batch
+                                                [ Task.attempt (TrackTx ref txTracker) (Eth.getBlockNumber sentry.nodePath)
+                                                    |> Cmd.map sentry.tagger
+                                                , Task.perform txReceiptToMsg (Task.succeed <| Ok txReceipt)
+                                                , Task.perform tracker.toMsg (Task.succeed txTracker)
+                                                ]
 
-                                            -- This should not happen. OnMined tagger will exist if we've gotten to this point.
-                                            Nothing ->
-                                                Cmd.none
-                                in
-                                    -- Change TxState from pending to Mined, and fire the relevant Cmd (see above).
-                                    ( TxSentry { sentry | txs = Dict.update ref (txStatusMined txReceipt) sentry.txs }
-                                    , cmdIfMined
-                                    )
+                                        -- This should not happen. OnMined tagger will exist if we've gotten to this point.
+                                        Nothing ->
+                                            Cmd.none
+                            in
+                            -- Change TxState from pending to Mined, and fire the relevant Cmd (see above).
+                            ( TxSentry { sentry | txs = Dict.update ref (txStatusMined txReceipt) sentry.txs }
+                            , cmdIfMined
+                            )
 
-                            -- If TxReceipt Decoding Fails, alert user.
-                            Err error ->
-                                let
-                                    cmdIfMinedFail =
-                                        case txState.onMinedTagger of
-                                            Just ( txReceiptToMsg, _ ) ->
-                                                Task.perform txReceiptToMsg (Task.succeed <| Err <| toString error)
+                        -- If TxReceipt Decoding Fails, alert user.
+                        Err error ->
+                            let
+                                cmdIfMinedFail =
+                                    case txState.onMinedTagger of
+                                        Just ( txReceiptToMsg, _ ) ->
+                                            Task.perform txReceiptToMsg (Task.succeed <| Err <| toString error)
 
-                                            Nothing ->
-                                                Cmd.none
-                                in
-                                    ( TxSentry sentry
-                                    , cmdIfMinedFail
-                                    )
+                                        Nothing ->
+                                            Cmd.none
+                            in
+                            ( TxSentry sentry
+                            , cmdIfMinedFail
+                            )
 
-                    -- This shouldn't occur. A ref should always be associated with some TxState.
-                    Nothing ->
-                        ( TxSentry sentry, Cmd.none )
+                -- This shouldn't occur. A ref should always be associated with some TxState.
+                Nothing ->
+                    ( TxSentry sentry, Cmd.none )
 
         TrackTx ref txTracker (Ok newBlockNum) ->
             let
@@ -459,76 +451,77 @@ update msg (TxSentry sentry) =
                         , currentDepth = (newBlockNum - txTracker.minedInBlock) + 1
                     }
             in
-                if newBlockNum == txTracker.stopWatchingAtBlock then
-                    -- If block depth is reached, send DeepEnough msg
-                    case getTxTrackerToMsg sentry.txs ref of
-                        Just blockDepthToMsg ->
-                            let
-                                _ =
-                                    debugHelp sentry.debug log.trackTx { newTxTracker | doneWatching = True }
-                            in
-                                ( TxSentry sentry
-                                , Task.perform blockDepthToMsg
-                                    (Eth.getTxReceipt sentry.nodePath txTracker.txHash
-                                        |> Task.andThen (\_ -> Task.succeed { newTxTracker | doneWatching = True })
-                                        |> Task.onError
-                                            (\_ ->
-                                                (Task.succeed <|
-                                                    Debug.log
-                                                        "TxTracker - Possible Chain ReOrg"
-                                                        { newTxTracker | reOrg = True, doneWatching = True }
-                                                )
-                                            )
+            if newBlockNum == txTracker.stopWatchingAtBlock then
+                -- If block depth is reached, send DeepEnough msg
+                case getTxTrackerToMsg sentry.txs ref of
+                    Just blockDepthToMsg ->
+                        let
+                            _ =
+                                debugHelp sentry.debug log.trackTx { newTxTracker | doneWatching = True }
+                        in
+                        ( TxSentry sentry
+                        , Task.perform blockDepthToMsg
+                            (Eth.getTxReceipt sentry.nodePath txTracker.txHash
+                                |> Task.andThen (\_ -> Task.succeed { newTxTracker | doneWatching = True })
+                                |> Task.onError
+                                    (\_ ->
+                                        Task.succeed <|
+                                            Debug.log
+                                                "TxTracker - Possible Chain ReOrg"
+                                                { newTxTracker | reOrg = True, doneWatching = True }
                                     )
-                                )
-
-                        Nothing ->
-                            ( TxSentry sentry, Cmd.none )
-                else if newBlockNum == txTracker.lastCheckedBlock then
-                    -- Else keep polling for a new block
-                    ( TxSentry sentry
-                    , Task.attempt (TrackTx ref txTracker)
-                        (Process.sleep 2000
-                            |> Task.andThen (\_ -> Eth.getBlockNumber sentry.nodePath)
+                            )
                         )
-                        |> Cmd.map sentry.tagger
-                    )
-                else
-                    -- If the newly polled blockNumber /= the previously polled blockNumber,
-                    -- let the user know a new block depth has been reached.
-                    case getTxTrackerToMsg sentry.txs ref of
-                        Just blockDepthToMsg ->
-                            let
-                                _ =
-                                    debugHelp sentry.debug log.trackTx newTxTracker
-                            in
-                                ( TxSentry sentry
-                                , Cmd.batch
-                                    [ Task.attempt (TrackTx ref newTxTracker)
-                                        (Process.sleep 2000
-                                            |> Task.andThen (\_ -> Eth.getBlockNumber sentry.nodePath)
-                                        )
-                                        |> Cmd.map sentry.tagger
-                                    , Task.perform blockDepthToMsg (Task.succeed newTxTracker)
-                                    ]
-                                )
 
-                        Nothing ->
-                            ( TxSentry sentry, Cmd.none )
+                    Nothing ->
+                        ( TxSentry sentry, Cmd.none )
+
+            else if newBlockNum == txTracker.lastCheckedBlock then
+                -- Else keep polling for a new block
+                ( TxSentry sentry
+                , Task.attempt (TrackTx ref txTracker)
+                    (Process.sleep 2000
+                        |> Task.andThen (\_ -> Eth.getBlockNumber sentry.nodePath)
+                    )
+                    |> Cmd.map sentry.tagger
+                )
+
+            else
+                -- If the newly polled blockNumber /= the previously polled blockNumber,
+                -- let the user know a new block depth has been reached.
+                case getTxTrackerToMsg sentry.txs ref of
+                    Just blockDepthToMsg ->
+                        let
+                            _ =
+                                debugHelp sentry.debug log.trackTx newTxTracker
+                        in
+                        ( TxSentry sentry
+                        , Cmd.batch
+                            [ Task.attempt (TrackTx ref newTxTracker)
+                                (Process.sleep 2000
+                                    |> Task.andThen (\_ -> Eth.getBlockNumber sentry.nodePath)
+                                )
+                                |> Cmd.map sentry.tagger
+                            , Task.perform blockDepthToMsg (Task.succeed newTxTracker)
+                            ]
+                        )
+
+                    Nothing ->
+                        ( TxSentry sentry, Cmd.none )
 
         TrackTx ref _ (Err error) ->
             let
                 _ =
                     debugHelp sentry.debug log.trackTx ("Error getting latest block. Info: " ++ toString error)
             in
-                ( TxSentry sentry, Cmd.none )
+            ( TxSentry sentry, Cmd.none )
 
         ErrorDecoding error ->
             let
                 _ =
                     debugHelp sentry.debug log.decodeError error
             in
-                ( TxSentry sentry, Cmd.none )
+            ( TxSentry sentry, Cmd.none )
 
 
 

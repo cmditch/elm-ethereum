@@ -1,4 +1,4 @@
-module Internal.Types exposing (..)
+module Internal.Types exposing (Address(..), BlockHash(..), Hex(..), IPFSHash(..), TxHash(..), WhisperId(..))
 
 
 type Address

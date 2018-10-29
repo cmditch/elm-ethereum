@@ -1,12 +1,7 @@
-module Eth.Units
-    exposing
-        ( gwei
-        , eth
-        , EthUnit(..)
-        , toWei
-        , fromWei
-        , bigIntToWei
-        )
+module Eth.Units exposing
+    ( gwei, eth
+    , EthUnit(..), toWei, fromWei, bigIntToWei
+    )
 
 {-| Conversions and Helpers
 
@@ -41,6 +36,7 @@ import BigInt exposing (BigInt)
 import Regex
 
 
+
 -- fromInts, useful for building contract params
 
 
@@ -57,7 +53,7 @@ eth =
         oneEth =
             BigInt.mul (BigInt.fromInt 100) (BigInt.fromInt 10000000000000000)
     in
-        BigInt.fromInt >> (BigInt.mul oneEth)
+    BigInt.fromInt >> BigInt.mul oneEth
 
 
 {-| Eth Unit
@@ -80,15 +76,18 @@ type EthUnit
 {-| Convert a given stringy EthUnit to it's Wei equivalent
 
     toWei Gwei "50" == Ok (BigInt.fromInt 50000000000)
+
     toWei Wei "40.9123" == Ok (BigInt.fromInt 40)
+
     toWei Kwei "40.9123" == Ok (BigInt.fromInt 40912)
+
     toWei Gwei "ten" == Err
 
 -}
 toWei : EthUnit -> String -> Result String BigInt
 toWei unit amount =
     -- check to make sure input string is formatted correctly, should never error in here.
-    if Regex.contains (Regex.regex "^\\d*\\.?\\d+$") amount then
+    if Regex.contains (Maybe.withDefault Regex.never (Regex.fromString "^\\d*\\.?\\d+$")) amount then
         let
             decimalPoints =
                 decimalShift unit
@@ -97,33 +96,35 @@ toWei unit amount =
                 String.slice 0 decimalPoints >> String.padRight decimalPoints '0'
 
             finalResult =
-                case (String.split "." amount) of
+                case String.split "." amount of
                     [ a, b ] ->
-                        a ++ (formatMantissa b)
+                        a ++ formatMantissa b
 
                     [ a ] ->
-                        a ++ (formatMantissa "")
+                        a ++ formatMantissa ""
 
                     _ ->
                         "ImpossibleError"
         in
-            case (BigInt.fromString finalResult) of
-                Just result ->
-                    Ok result
+        case BigInt.fromString finalResult of
+            Just result ->
+                Ok result
 
-                Nothing ->
-                    Err ("There was an error calculating toWei result. However, the fault is not yours; please report this bug on github. Logs: " ++ finalResult)
+            Nothing ->
+                Err ("There was an error calculating toWei result. However, the fault is not yours; please report this bug on github. Logs: " ++ finalResult)
+
     else
-        Err ("Malformed number string passed to `toWei` method.")
+        Err "Malformed number string passed to `toWei` method."
 
 
 {-| Convert stringy Wei to a given EthUnit
 
     fromWei Gwei (BigInt.fromInt 123456789) == "0.123456789"
+
     fromWei Ether (BigInt.fromInt 123456789) == "0.000000000123456789"
 
-**Note** Do not pass anything larger than MAX_SAFE_INTEGER into BigInt.fromInt
-MAX_SAFE_INTEGER == 9007199254740991
+**Note** Do not pass anything larger than MAX\_SAFE\_INTEGER into BigInt.fromInt
+MAX\_SAFE\_INTEGER == 9007199254740991
 
 -}
 fromWei : EthUnit -> BigInt -> String
@@ -137,14 +138,14 @@ fromWei unit amount =
             BigInt.toString amount |> String.padLeft 27 '0'
 
         result =
-            (String.left (27 - decimalIndex) amountStr)
+            String.left (27 - decimalIndex) amountStr
                 ++ "."
-                ++ (String.right decimalIndex amountStr)
+                ++ String.right decimalIndex amountStr
     in
-        result
-            |> Regex.replace Regex.All
-                (Regex.regex "(^0*(?=0\\.|[1-9]))|(\\.?0*$)")
-                (\i -> "")
+    result
+        |> Regex.replace
+            (Maybe.withDefault Regex.never (Regex.fromString "(^0*(?=0\\.|[1-9]))|(\\.?0*$)"))
+            (\i -> "")
 
 
 {-| Convert a given BigInt EthUnit to it's Wei equivalent

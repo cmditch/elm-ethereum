@@ -1,12 +1,10 @@
-module Eth.RPC
-    exposing
-        ( RpcRequest
-        , toTask
-        , toHttpBody
-        , encode
-        )
+module Eth.RPC exposing
+    ( RpcRequest, toTask
+    , encode, toHttpBody
+    )
 
 {-| Json RPC Helpers
+
 @docs RpcRequest, toTask
 
 
@@ -18,7 +16,7 @@ module Eth.RPC
 
 import Http
 import Json.Decode as Decode exposing (Decoder)
-import Json.Encode as Encode exposing (Value, object, int, string, list)
+import Json.Encode as Encode exposing (Value, int, list, object, string)
 import Task exposing (Task)
 
 
@@ -61,5 +59,5 @@ encode id method params =
         [ ( "id", int id )
         , ( "jsonrpc", string jsonRPCVersion )
         , ( "method", string method )
-        , ( "params", list params )
+        , ( "params", list identity params )
         ]

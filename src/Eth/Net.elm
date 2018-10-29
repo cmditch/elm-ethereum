@@ -1,15 +1,4 @@
-module Eth.Net
-    exposing
-        ( version
-        , clientVersion
-        , listening
-        , peerCount
-        , toNetworkId
-        , networkIdToInt
-        , networkIdToString
-        , networkIdDecoder
-        , NetworkId(..)
-        )
+module Eth.Net exposing (NetworkId(..), version, clientVersion, listening, peerCount, toNetworkId, networkIdToInt, networkIdToString, networkIdDecoder)
 
 {-| NetworkId and RPC Methods
 
@@ -17,10 +6,10 @@ module Eth.Net
 
 -}
 
-import Eth.Types exposing (HttpProvider)
-import Internal.Decode as Decode
 import Eth.RPC as RPC
+import Eth.Types exposing (HttpProvider)
 import Http
+import Internal.Decode as Decode
 import Json.Decode as Decode exposing (Decoder)
 import Task exposing (Task)
 
@@ -110,7 +99,7 @@ networkIdDecoder =
 
 stringyIdDecoder : Decoder NetworkId
 stringyIdDecoder =
-    (String.toInt >> Result.map toNetworkId)
+    (String.toInt >> Result.fromMaybe "Failure decoding stringy int" >> Result.map toNetworkId)
         |> Decode.resultToDecoder
 
 
@@ -224,4 +213,4 @@ networkIdToString networkId =
             "ETC Testnet"
 
         Private num ->
-            "Private Chain: " ++ toString num
+            "Private Chain: " ++ String.fromInt num

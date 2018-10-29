@@ -1,23 +1,10 @@
-module Eth.Sentry.Event
-    exposing
-        ( EventSentry
-        , Msg
-        , FilterKey
-        , init
-        , update
-        , changeNode
-        , listen
-        , watch
-        , watchOnce
-        , unWatch
-        , newBlocks
-        , unWatchNewBlocks
-        , nextBlock
-        , pendingTxs
-        , unWatchPendingTxs
-        , toFilterKey
-        , withDebug
-        )
+module Eth.Sentry.Event exposing
+    ( EventSentry, Msg, FilterKey
+    , init, update, changeNode, listen, withDebug
+    , watch, watchOnce, unWatch, toFilterKey
+    , newBlocks, unWatchNewBlocks, nextBlock
+    , pendingTxs, unWatchPendingTxs
+    )
 
 {-| Listen to contract events, and other chain activity
 
@@ -50,16 +37,17 @@ module Eth.Sentry.Event
 
 import BigInt
 import Dict exposing (Dict)
-import Eth.Utils as U exposing (keccak256, addressToString)
 import Eth.Defaults as Default
-import Eth.Types exposing (..)
 import Eth.RPC as RPC
+import Eth.Types exposing (..)
+import Eth.Utils as U exposing (addressToString, keccak256)
 import Internal.Decode as Decode
 import Internal.Encode as Encode
-import Json.Decode as Decode exposing (Value, Decoder)
+import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
+import Legacy.WebSocket as WS
 import Task
-import WebSocket as WS
+
 
 
 {--Internal Docs
@@ -222,7 +210,7 @@ toFilterKey { address, topics } =
                 |> Maybe.map U.hexToString
                 |> Maybe.withDefault ""
     in
-        FilterKey ( addressToString address, eventTopic )
+    FilterKey ( addressToString address, eventTopic )
 
 
 type alias RpcId =
@@ -263,15 +251,15 @@ unWatch_ ((EventSentry sentry) as sentry_) (FilterKey filterKey) =
                         _ =
                             debugHelp sentry log.subClosed { rpcId = filterState.rpcId, subId = subId }
                     in
-                        ( EventSentry
-                            { sentry
-                                | filters = Dict.remove filterKey sentry.filters
-                                , rpcIdToFKey = Dict.remove filterState.rpcId sentry.rpcIdToFKey
-                                , subIdToFKey = Dict.remove subId sentry.subIdToFKey
-                                , ref = sentry.ref + 1
-                            }
-                        , WS.send sentry.nodePath (closeFilterRpc sentry.ref subId)
-                        )
+                    ( EventSentry
+                        { sentry
+                            | filters = Dict.remove filterKey sentry.filters
+                            , rpcIdToFKey = Dict.remove filterState.rpcId sentry.rpcIdToFKey
+                            , subIdToFKey = Dict.remove subId sentry.subIdToFKey
+                            , ref = sentry.ref + 1
+                        }
+                    , WS.send sentry.nodePath (closeFilterRpc sentry.ref subId)
+                    )
 
                 Nothing ->
                     ( sentry_, Cmd.none )
@@ -370,26 +358,26 @@ update msg ((EventSentry sentry) as sentry_) =
                 subId =
                     eventMsg.params.subId
             in
-                case getFilterBySubscriptionId subId sentry_ of
-                    Just ( FilterKey filterKey, filterState, True ) ->
-                        ( EventSentry
-                            { sentry
-                                | filters = Dict.remove filterKey sentry.filters
-                                , rpcIdToFKey = Dict.remove filterState.rpcId sentry.rpcIdToFKey
-                                , subIdToFKey = Dict.remove subId sentry.subIdToFKey
-                                , ref = sentry.ref + 1
-                            }
-                        , Cmd.batch
-                            [ Task.perform filterState.tagger (Task.succeed result)
-                            , WS.send sentry.nodePath (closeFilterRpc sentry.ref subId)
-                            ]
-                        )
+            case getFilterBySubscriptionId subId sentry_ of
+                Just ( FilterKey filterKey, filterState, True ) ->
+                    ( EventSentry
+                        { sentry
+                            | filters = Dict.remove filterKey sentry.filters
+                            , rpcIdToFKey = Dict.remove filterState.rpcId sentry.rpcIdToFKey
+                            , subIdToFKey = Dict.remove subId sentry.subIdToFKey
+                            , ref = sentry.ref + 1
+                        }
+                    , Cmd.batch
+                        [ Task.perform filterState.tagger (Task.succeed result)
+                        , WS.send sentry.nodePath (closeFilterRpc sentry.ref subId)
+                        ]
+                    )
 
-                    Just ( filterKey, filterState, False ) ->
-                        ( sentry_, Task.perform filterState.tagger (Task.succeed result) )
+                Just ( filterKey, filterState, False ) ->
+                    ( sentry_, Task.perform filterState.tagger (Task.succeed result) )
 
-                    Nothing ->
-                        ( sentry_, Cmd.none )
+                Nothing ->
+                    ( sentry_, Cmd.none )
 
         NoOp ->
             ( sentry_, Cmd.none )
@@ -401,21 +389,22 @@ nodeResponseToMsg debug mNodeResponse =
         _ =
             if debug then
                 Debug.log "EventSentry" mNodeResponse
+
             else
                 mNodeResponse
     in
-        case mNodeResponse of
-            Just (Event eventMsg) ->
-                EventReceived eventMsg
+    case mNodeResponse of
+        Just (Event eventMsg) ->
+            EventReceived eventMsg
 
-            Just (Subscribed openedMsg) ->
-                SubscriptionOpened openedMsg
+        Just (Subscribed openedMsg) ->
+            SubscriptionOpened openedMsg
 
-            Just (Unsubscribed closedMsg) ->
-                NoOp
+        Just (Unsubscribed closedMsg) ->
+            NoOp
 
-            Nothing ->
-                NoOp
+        Nothing ->
+            NoOp
 
 
 
@@ -519,10 +508,10 @@ eventDecoder =
                 (Decode.field "subscription" Decode.string)
                 (Decode.field "result" Decode.value)
     in
-        Decode.map Event <|
-            Decode.map2 EventMsg
-                (Decode.field "method" Decode.string)
-                (Decode.field "params" eventParamsDecoder)
+    Decode.map Event <|
+        Decode.map2 EventMsg
+            (Decode.field "method" Decode.string)
+            (Decode.field "params" eventParamsDecoder)
 
 
 decodeBlockHead : Value -> BlockHead
@@ -562,6 +551,7 @@ newBlockHeadsKey =
 debugHelp sentry logText val =
     if sentry.debug then
         Debug.log ("EventSentry - " ++ logText) val
+
     else
         val
 

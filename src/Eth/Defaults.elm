@@ -1,11 +1,4 @@
-module Eth.Defaults
-    exposing
-        ( zeroAddress
-        , invalidAddress
-        , emptyBlockHash
-        , emptyTxHash
-        , emptyLogFilter
-        )
+module Eth.Defaults exposing (invalidAddress, zeroAddress, emptyBlockHash, emptyTxHash, emptyLogFilter)
 
 {-| Default values.
 For those withDefault shenanigans.
@@ -14,8 +7,8 @@ For those withDefault shenanigans.
 
 -}
 
-import Internal.Types as Internal
 import Eth.Types exposing (..)
+import Internal.Types as Internal
 
 
 {-| -}

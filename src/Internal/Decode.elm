@@ -1,19 +1,19 @@
-module Internal.Decode exposing (..)
+module Internal.Decode exposing (address, bigInt, block, blockHash, blockHead, event, hex, hexBool, hexInt, hexTime, log, nonZero, resultToDecoder, stringInt, syncStatus, tx, txHash, txReceipt, uncle)
 
 import BigInt exposing (BigInt)
 import Eth.Types exposing (..)
-import Eth.Utils exposing (toAddress, toHex, toTxHash, toBlockHash)
+import Eth.Utils exposing (toAddress, toBlockHash, toHex, toTxHash)
 import Hex
-import Internal.Utils exposing (remove0x, add0x)
+import Internal.Utils exposing (add0x, remove0x)
 import Json.Decode as Decode exposing (..)
-import Json.Decode.Pipeline exposing (required, decode, custom, optional)
-import Time exposing (Time)
+import Json.Decode.Pipeline exposing (custom, optional, required)
+import Time exposing (Posix)
 
 
 {-| -}
 block : Decoder a -> Decoder (Block a)
 block txsDecoder =
-    decode Block
+    succeed Block
         |> required "number" hexInt
         |> required "hash" blockHash
         |> required "parentHash" blockHash
@@ -31,7 +31,7 @@ block txsDecoder =
         |> required "size" hexInt
         |> required "gasLimit" hexInt
         |> required "gasUsed" hexInt
-        |> optional "timestamp" hexTime 0
+        |> optional "timestamp" hexTime (Time.millisToPosix 0)
         -- See comment above
         |> optional "transactions" (list txsDecoder) []
         |> optional "uncles" (list string) []
@@ -46,7 +46,7 @@ uncle =
 {-| -}
 blockHead : Decoder BlockHead
 blockHead =
-    decode BlockHead
+    succeed BlockHead
         |> required "number" hexInt
         |> required "hash" blockHash
         |> required "parentHash" blockHash
@@ -68,7 +68,7 @@ blockHead =
 {-| -}
 tx : Decoder Tx
 tx =
-    decode Tx
+    succeed Tx
         |> required "hash" txHash
         |> required "nonce" hexInt
         |> required "blockHash" (nonZero blockHash)
@@ -85,7 +85,7 @@ tx =
 {-| -}
 txReceipt : Decoder TxReceipt
 txReceipt =
-    decode TxReceipt
+    succeed TxReceipt
         |> required "transactionHash" txHash
         |> required "transactionIndex" hexInt
         |> required "blockHash" blockHash
@@ -102,11 +102,11 @@ txReceipt =
 {-| -}
 log : Decoder Log
 log =
-    decode Log
+    succeed Log
         |> required "address" address
         |> required "data" string
         |> required "topics" (list hex)
-        |> required "removed" bool
+        |> optional "removed" bool False
         |> required "logIndex" hexInt
         |> required "transactionIndex" hexInt
         |> required "transactionHash" txHash
@@ -117,11 +117,11 @@ log =
 {-| -}
 event : Decoder a -> Decoder (Event a)
 event returnDataDecoder =
-    decode Event
+    succeed Event
         |> required "address" address
         |> required "data" string
         |> required "topics" (list hex)
-        |> required "removed" bool
+        |> optional "removed" bool False
         |> required "logIndex" hexInt
         |> required "transactionIndex" hexInt
         |> required "transactionHash" txHash
@@ -133,7 +133,7 @@ event returnDataDecoder =
 {-| -}
 syncStatus : Decoder (Maybe SyncStatus)
 syncStatus =
-    decode SyncStatus
+    succeed SyncStatus
         |> required "startingBlock" int
         |> required "currentBlock" int
         |> required "highestBlock" int
@@ -173,7 +173,8 @@ hex =
 {-| -}
 stringInt : Decoder Int
 stringInt =
-    resultToDecoder String.toInt
+    (String.toInt >> Result.fromMaybe "Failure decoding stringy int")
+        |> resultToDecoder
 
 
 {-| -}
@@ -189,9 +190,9 @@ bigInt =
 
 
 {-| -}
-hexTime : Decoder Time
+hexTime : Decoder Posix
 hexTime =
-    resultToDecoder (remove0x >> Hex.fromString >> Result.map toFloat)
+    resultToDecoder (remove0x >> Hex.fromString >> Result.map (\v -> v * 1000 |> Time.millisToPosix))
 
 
 {-| -}
@@ -209,7 +210,7 @@ hexBool =
                 _ ->
                     Err <| "Error decoding " ++ n ++ "as bool."
     in
-        resultToDecoder isBool
+    resultToDecoder isBool
 
 
 
@@ -228,7 +229,7 @@ resultToDecoder strToResult =
                 Err error ->
                     Decode.fail error
     in
-        Decode.string |> Decode.andThen convert
+    Decode.string |> Decode.andThen convert
 
 
 {-| -}
@@ -238,9 +239,11 @@ nonZero decoder =
         checkZero str =
             if str == "0x" || str == "0x0" then
                 Decode.succeed Nothing
+
             else if remove0x str |> String.all (\s -> s == '0') then
                 Decode.succeed Nothing
+
             else
                 Decode.map Just decoder
     in
-        Decode.string |> Decode.andThen checkZero
+    Decode.string |> Decode.andThen checkZero

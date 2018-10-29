@@ -1,26 +1,8 @@
-module Eth.Types
-    exposing
-        ( Address
-        , TxHash
-        , BlockHash
-        , IPFSHash
-        , BlockId(..)
-        , Call
-        , Send
-        , Tx
-        , TxReceipt
-        , Block
-        , Uncle
-        , BlockHead
-        , Log
-        , Event
-        , LogFilter
-        , SyncStatus
-        , HttpProvider
-        , WebsocketProvider
-        , FilterId
-        , Hex
-        )
+module Eth.Types exposing
+    ( Address, TxHash, BlockHash, Hex
+    , Call, Send, Tx, TxReceipt, BlockId(..), Block, Uncle, BlockHead, Log, Event, LogFilter, SyncStatus
+    , HttpProvider, WebsocketProvider, FilterId, IPFSHash
+    )
 
 {-| Types
 
@@ -42,9 +24,10 @@ module Eth.Types
 -}
 
 import BigInt exposing (BigInt)
-import Json.Decode exposing (Decoder)
-import Time exposing (Time)
 import Internal.Types as Internal
+import Json.Decode exposing (Decoder)
+import Time exposing (Posix)
+
 
 
 -- Simple
@@ -157,7 +140,7 @@ type alias Block a =
     , size : Int
     , gasLimit : Int
     , gasUsed : Int
-    , timestamp : Time
+    , timestamp : Posix
     , transactions : List a
     , uncles : List String
     }
@@ -185,7 +168,7 @@ type alias BlockHead =
     , gasLimit : Int
     , gasUsed : Int
     , mixHash : String
-    , timestamp : Time
+    , timestamp : Posix
     }
 
 

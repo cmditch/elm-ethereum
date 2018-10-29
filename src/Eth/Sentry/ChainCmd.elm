@@ -1,18 +1,8 @@
-module Eth.Sentry.ChainCmd
-    exposing
-        ( ChainCmd
-        , Sentry
-        , execute
-        , batch
-        , none
-        , map
-        , sendTx
-        , sendWithReceipt
-        , customSend
-        , watchEvent
-        , watchEventOnce
-        , unWatch
-        )
+module Eth.Sentry.ChainCmd exposing
+    ( ChainCmd, Sentry, execute, batch, none, map
+    , sendTx, sendWithReceipt, customSend
+    , watchEvent, watchEventOnce, unWatch
+    )
 
 {-| For dApp Single Page Applications
 If your EventSentry or TxSentry live at the top level of your model, and you are sending txs or listening to event in your sub-pages,
@@ -35,10 +25,10 @@ use ChainCmd. See examples.
 
 -}
 
-import Json.Decode exposing (Value)
 import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (..)
+import Json.Decode exposing (Value)
 
 
 {-| -}
@@ -103,7 +93,7 @@ map f subEff =
                             onMined
                         )
             in
-                CustomSend newCustomSend send
+            CustomSend newCustomSend send
 
         WatchEvent subMsg logFilter ->
             WatchEvent (subMsg >> f) logFilter
@@ -212,7 +202,7 @@ sendTxHelp toMsg txParams cmds ( txSentry, eventSentry ) xs =
         ( newTxSentry, txCmd ) =
             TxSentry.send toMsg txSentry txParams
     in
-        executeHelp (txCmd :: cmds) ( newTxSentry, eventSentry ) xs
+    executeHelp (txCmd :: cmds) ( newTxSentry, eventSentry ) xs
 
 
 sendWithReceiptHelp :
@@ -228,7 +218,7 @@ sendWithReceiptHelp toMsg1 toMsg2 txParams cmds ( txSentry, eventSentry ) xs =
         ( newTxSentry, txCmd ) =
             TxSentry.sendWithReceipt toMsg1 toMsg2 txSentry txParams
     in
-        executeHelp (txCmd :: cmds) ( newTxSentry, eventSentry ) xs
+    executeHelp (txCmd :: cmds) ( newTxSentry, eventSentry ) xs
 
 
 customSendHelp :
@@ -243,7 +233,7 @@ customSendHelp customSend txParams cmds ( txSentry, eventSentry ) xs =
         ( newTxSentry, txCmd ) =
             TxSentry.customSend txSentry customSend txParams
     in
-        executeHelp (txCmd :: cmds) ( newTxSentry, eventSentry ) xs
+    executeHelp (txCmd :: cmds) ( newTxSentry, eventSentry ) xs
 
 
 
@@ -262,7 +252,7 @@ watchEventHelp toMsg logFilter cmds ( txSentry, eventSentry ) xs =
         ( newEventSentry, eventCmd ) =
             EventSentry.watch toMsg eventSentry logFilter
     in
-        executeHelp (eventCmd :: cmds) ( txSentry, newEventSentry ) xs
+    executeHelp (eventCmd :: cmds) ( txSentry, newEventSentry ) xs
 
 
 watchEventOnceHelp :
@@ -277,7 +267,7 @@ watchEventOnceHelp toMsg logFilter cmds ( txSentry, eventSentry ) xs =
         ( newEventSentry, eventCmd ) =
             EventSentry.watchOnce toMsg eventSentry logFilter
     in
-        executeHelp (eventCmd :: cmds) ( txSentry, newEventSentry ) xs
+    executeHelp (eventCmd :: cmds) ( txSentry, newEventSentry ) xs
 
 
 unWatchHelp :
@@ -291,4 +281,4 @@ unWatchHelp logFilter cmds ( txSentry, eventSentry ) xs =
         ( newEventSentry, eventCmd ) =
             EventSentry.unWatch eventSentry logFilter
     in
-        executeHelp (eventCmd :: cmds) ( txSentry, newEventSentry ) xs
+    executeHelp (eventCmd :: cmds) ( txSentry, newEventSentry ) xs

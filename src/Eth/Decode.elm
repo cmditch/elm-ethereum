@@ -1,14 +1,4 @@
-module Eth.Decode
-    exposing
-        ( address
-        , hex
-        , txHash
-        , blockHash
-        , ipfsHash
-        , event
-        , blockHead
-        , tx
-        )
+module Eth.Decode exposing (address, hex, txHash, blockHash, ipfsHash, event, blockHead, tx)
 
 {-| Eth Decoders
 
@@ -17,10 +7,10 @@ module Eth.Decode
 -}
 
 import Eth.Types exposing (..)
-import Eth.Utils exposing (toAddress, toHex, toTxHash, toBlockHash, toIPFSHash)
-import Internal.Decode exposing (stringInt, hexInt, bigInt, hexTime, hexBool, resultToDecoder, nonZero)
-import Json.Decode as Decode exposing (Decoder, string, bool, list, nullable)
-import Json.Decode.Pipeline exposing (required, decode, custom)
+import Eth.Utils exposing (toAddress, toBlockHash, toHex, toIPFSHash, toTxHash)
+import Internal.Decode exposing (bigInt, hexBool, hexInt, hexTime, nonZero, resultToDecoder, stringInt)
+import Json.Decode as Decode exposing (..)
+import Json.Decode.Pipeline exposing (custom, required)
 
 
 {-| -}
@@ -60,7 +50,7 @@ Useful with `Eth.Sentry.Event` and `LogFilter` related functions in `Eth` module
 -}
 event : Decoder a -> Decoder (Event a)
 event returnDataDecoder =
-    decode Event
+    succeed Event
         |> required "address" address
         |> required "data" string
         |> required "topics" (list hex)
@@ -76,7 +66,7 @@ event returnDataDecoder =
 {-| -}
 blockHead : Decoder BlockHead
 blockHead =
-    decode BlockHead
+    succeed BlockHead
         |> required "number" hexInt
         |> required "hash" blockHash
         |> required "parentHash" blockHash
@@ -98,7 +88,7 @@ blockHead =
 {-| -}
 tx : Decoder Tx
 tx =
-    decode Tx
+    succeed Tx
         |> required "hash" txHash
         |> required "nonce" hexInt
         |> required "blockHash" (nonZero blockHash)

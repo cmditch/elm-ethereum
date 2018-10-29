@@ -1,8 +1,8 @@
-module Abi.Int exposing (..)
+module Abi.Int exposing (fromBinaryUnsafe, fromString, isNegIntUnsafe, toBinaryUnsafe, toString, twosComplementUnsafe)
 
 import BigInt exposing (BigInt)
+import Internal.Utils exposing (add0x, remove0x)
 import String.Extra as StringExtra
-import Internal.Utils exposing (remove0x, add0x)
 
 
 fromString : String -> Maybe BigInt
@@ -11,26 +11,27 @@ fromString str =
         no0x =
             remove0x str
     in
-        if isNegIntUnsafe no0x then
-            no0x
-                |> String.toList
-                |> List.map toBinaryUnsafe
-                |> String.join ""
-                |> twosComplementUnsafe
-                |> StringExtra.break 4
-                |> List.map fromBinaryUnsafe
-                |> String.fromList
-                |> add0x
-                |> String.cons '-'
-                |> BigInt.fromString
-        else
-            BigInt.fromString (add0x str)
+    if isNegIntUnsafe no0x then
+        no0x
+            |> String.toList
+            |> List.map toBinaryUnsafe
+            |> String.join ""
+            |> twosComplementUnsafe
+            |> StringExtra.break 4
+            |> List.map fromBinaryUnsafe
+            |> String.fromList
+            |> add0x
+            |> String.cons '-'
+            |> BigInt.fromString
+
+    else
+        BigInt.fromString (add0x str)
 
 
 toString : BigInt -> String
 toString num =
     let
-        ( xs, twosComplementOrNotTwosComplement ) =
+        ( xs_, twosComplementOrNotTwosComplement ) =
             case BigInt.toHexString num |> String.toList of
                 '-' :: xs ->
                     ( xs, twosComplementUnsafe >> String.padLeft 256 '1' )
@@ -38,12 +39,12 @@ toString num =
                 xs ->
                     ( xs, String.padLeft 256 '0' )
     in
-        List.map toBinaryUnsafe xs
-            |> String.join ""
-            |> twosComplementOrNotTwosComplement
-            |> StringExtra.break 4
-            |> List.map fromBinaryUnsafe
-            |> String.fromList
+    List.map toBinaryUnsafe xs_
+        |> String.join ""
+        |> twosComplementOrNotTwosComplement
+        |> StringExtra.break 4
+        |> List.map fromBinaryUnsafe
+        |> String.fromList
 
 
 {-| Bit-Flip-Fold-Holla-for-a-Dolla
@@ -78,8 +79,8 @@ twosComplementUnsafe str =
                 _ ->
                     ( accum, True )
     in
-        String.foldr reducer ( "", False ) str
-            |> Tuple.first
+    String.foldr reducer ( "", False ) str
+        |> Tuple.first
 
 
 toBinaryUnsafe : Char -> String

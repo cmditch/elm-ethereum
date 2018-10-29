@@ -1,24 +1,11 @@
-module Abi.Decode
-    exposing
-        ( AbiDecoder
-        , uint
-        , int
-        , bool
-        , address
-        , string
-        , staticBytes
-        , dynamicBytes
-        , staticArray
-        , dynamicArray
-        , ipfsHash
-        , abiDecode
-        , andMap
-        , toElmDecoder
-        , toElmDecoderWithDebug
-        , fromString
-        , topic
-        , data
-        )
+module Abi.Decode exposing
+    ( AbiDecoder, uint, int, bool, address, string
+    , staticBytes, dynamicBytes
+    , staticArray, dynamicArray
+    , ipfsHash
+    , abiDecode, andMap, toElmDecoder, toElmDecoderWithDebug, fromString
+    , topic, data
+    )
 
 {-| Decode RPC Responses
 
@@ -56,18 +43,18 @@ module Abi.Decode
 
 -}
 
-import Base58
-import BigInt exposing (BigInt)
-import Internal.Decode exposing (resultToDecoder)
-import Eth.Types exposing (IPFSHash, Address)
-import Eth.Utils as U exposing (toAddress)
 import Abi.Int as AbiInt
+import BigInt exposing (BigInt)
+import Eth.Types exposing (Address, IPFSHash)
+import Eth.Utils as U exposing (toAddress)
 import Hex
+import Internal.Decode exposing (resultToDecoder)
 import Internal.Utils exposing (..)
-import String.UTF8 as UTF8
-import String.Extra as StringExtra
-import Result.Extra as ResultExtra
 import Json.Decode as Decode exposing (Decoder)
+import Legacy.Base58 as Base58
+import Result.Extra as ResultExtra
+import String.Extra as StringExtra
+import String.UTF8 as UTF8
 
 
 {-| -}
@@ -84,6 +71,7 @@ type AbiDecoder a
     Original : Untouched copy of the initial input string, i.e., the full hex return from a JSON RPC Call.
                This remains untouched during the entire decoding process,
                and is needed to help grab dynamic solidity values, such as 'bytes', 'address[]', or 'uint256[]'
+
 -}
 type Tape
     = Tape String String
@@ -137,10 +125,10 @@ decodeStringWithDebug debug (AbiDecoder abiDecoder) abiString =
                 Nothing ->
                     abiString
     in
-        remove0x abiString
-            |> (\a -> Tape a a)
-            |> abiDecoder
-            |> Result.map Tuple.second
+    remove0x abiString
+        |> (\a -> Tape a a)
+        |> abiDecoder
+        |> Result.map Tuple.second
 
 
 {-| -}
@@ -212,11 +200,11 @@ bool =
                 False ->
                     Err ("Boolean decode error. " ++ b ++ " is not 1 or 0.")
     in
-        AbiDecoder <|
-            \(Tape original altered) ->
-                take64 altered
-                    |> parseBool
-                    |> Result.map (newTape original altered)
+    AbiDecoder <|
+        \(Tape original altered) ->
+            take64 altered
+                |> parseBool
+                |> Result.map (newTape original altered)
 
 
 {-| -}
@@ -275,7 +263,7 @@ dynamicBytes =
 
 {-| Decode Statically Sized Arrays
 
-    staticArray 10 uint == uint256[10]
+    staticArray 10 uint == uint256 [ 10 ]
 
 -}
 staticArray : Int -> AbiDecoder a -> AbiDecoder (List a)
@@ -286,7 +274,7 @@ staticArray len dec =
 
 {-| Decode Dynamically Sized Arrays
 
-    dynamicArray address == address[]
+    dynamicArray address == address []
 
 -}
 
@@ -330,17 +318,17 @@ dynamicArray valDecoder =
                         |> Hex.fromString
                         |> Result.map (\arrayLength -> ( arrayLength, String.dropLeft (lengthIndex + 64) original ))
             in
-                getPointerToArrayData
-                    |> Result.andThen getArrayData
-                    |> Result.andThen
-                        (\( arrayLength, rawArrayData ) ->
-                            (Tape original rawArrayData)
-                                |> arrayHelp [] arrayLength valDecoder
-                                |> Result.map
-                                    (\( Tape _ _, arrayData ) ->
-                                        ( Tape original (drop64 altered), arrayData )
-                                    )
-                        )
+            getPointerToArrayData
+                |> Result.andThen getArrayData
+                |> Result.andThen
+                    (\( arrayLength, rawArrayData ) ->
+                        Tape original rawArrayData
+                            |> arrayHelp [] arrayLength valDecoder
+                            |> Result.map
+                                (\( Tape _ _, arrayData ) ->
+                                    ( Tape original (drop64 altered), arrayData )
+                                )
+                    )
 
 
 {-|
@@ -353,6 +341,7 @@ dynamicArray valDecoder =
     And would break the string into 32 byte chunks and map a decoder over them.
     This new fold style approach, vs the previous map style approach,
     helps us deal with array elements of arbitrary lengths.
+
 -}
 arrayHelp : List a -> Int -> AbiDecoder a -> Tape -> Result String ( Tape, List a )
 arrayHelp accum len (AbiDecoder decoder) tape =
@@ -363,8 +352,8 @@ arrayHelp accum len (AbiDecoder decoder) tape =
         n ->
             decoder tape
                 |> Result.andThen
-                    (\( tape, val ) ->
-                        arrayHelp (val :: accum) (n - 1) (AbiDecoder decoder) tape
+                    (\( tape_, val ) ->
+                        arrayHelp (val :: accum) (n - 1) (AbiDecoder decoder) tape_
                     )
 
 
@@ -440,13 +429,13 @@ buildBytes fullTape lengthIndex =
         sliceData dataIndex strLength =
             String.slice dataIndex (dataIndex + (strLength * 2)) fullTape
     in
-        hexToLength lengthIndex
-            |> Result.andThen
-                (\index ->
-                    String.slice index (index + 64) fullTape
-                        |> Hex.fromString
-                        |> Result.map (\dataLength -> sliceData (index + 64) dataLength)
-                )
+    hexToLength lengthIndex
+        |> Result.andThen
+            (\index ->
+                String.slice index (index + 64) fullTape
+                    |> Hex.fromString
+                    |> Result.map (\dataLength -> sliceData (index + 64) dataLength)
+            )
 
 
 {-| Useful for decoding data withing events/logs.
