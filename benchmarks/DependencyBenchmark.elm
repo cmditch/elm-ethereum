@@ -2,6 +2,7 @@ module DependencyBenchmark exposing (main)
 
 import Benchmark exposing (..)
 import Benchmark.Runner exposing (BenchmarkProgram, program)
+import BigInt
 import Keccak exposing (ethereum_keccak_256)
 
 

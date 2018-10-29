@@ -34,3 +34,26 @@ encodeInt =
                     |> Maybe.map (Abi.int >> Abi.abiEncode >> EthUtil.hexToString)
                     |> Expect.equal (Just "0x8000000000000000000000000000000000000000000000000000000000000000")
         ]
+
+
+
+-- encodeComplex : Hex
+-- encodeComplex =
+--     let
+--         testAddr =
+--             Internal.Address "89d24a6b4ccb1b6faa2625fe562bdd9a23260359"
+--         testAddr2 =
+--             Internal.Address "c1cc40ccc2441d1e6170cc40a60aa35127cc6e7"
+--         testAmount =
+--             BigInt.fromString "0xde0b6b3a7640000"
+--                 |> Maybe.withDefault (BigInt.fromInt 0)
+--         zer =
+--             (BigInt.fromInt 0)
+--         functionSig =
+--             EthUtils.functionSig "transfer(address,uint256)"
+--                 |> EthUtils.hexToString
+--         testBytes =
+--             functionCall "transfer(address,uint256)" [ address testAddr2, uint testAmount ]
+--     in
+--         functionCall "propose(address,bytes,uint256)"
+--             [ address testAddr, dynamicBytes testBytes, uint zer, dynamicBytes testBytes, dynamicBytes testBytes ]
