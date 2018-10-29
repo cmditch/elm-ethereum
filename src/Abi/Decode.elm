@@ -77,7 +77,7 @@ type AbiDecoder a
 
 {-|
 
-    Tape == Tape Original Altered
+    type Tape == Tape Original Altered
 
     Altered : Tape that is being read and eaten up in 32 byte / 64 character chunks, and passed down to the next decoder
 
