@@ -69,15 +69,25 @@ functionCallWithDebug =
 
 
 {-| -}
-address : Address -> Encoding
+address : Address -> Result String Encoding
 address =
-    AddressE
+    AddressE >> Ok
 
 
 {-| -}
-uint : BigInt -> Encoding
-uint =
-    UintE
+uint : Int -> BigInt -> Result String Encoding
+uint size uint =
+    if modBy 8 size /= 0 || size <= 0 || size > 256 then
+        Err <| "Invalid size: " ++ String.fromInt size
+    else if BigInt.lt uint (BigInt.pow (BigInt.fromInt 2) (BigInt.fromInt size)) then
+        -- TODO Figure out if it's 2^n or (2^n - 1), e.g. uint8 should not be over 255 or 256 ?
+        Ok <| UintE uint
+    else
+        Err <|
+            "Uint overflow: "
+                ++ BigInt.toString uint
+                ++ " is larger than uint"
+                ++ String.fromInt uint
 
 
 
@@ -86,45 +96,45 @@ uint =
 
 
 {-| -}
-int : BigInt -> Encoding
-int =
+int : Int -> BigInt -> Result String Encoding
+int size =
     IntE
 
 
 {-| -}
-bool : Bool -> Encoding
+bool : Bool -> Result String Encoding
 bool =
-    BoolE
+    BoolE >> Ok
 
 
 {-| -}
-staticBytes : Hex -> Encoding
+staticBytes : Hex -> Result String Encoding
 staticBytes =
     BytesE
 
 
 {-| -}
-dynamicBytes : Hex -> Encoding
+dynamicBytes : Hex -> Result String Encoding
 dynamicBytes =
     DBytesE
 
 
 {-| -}
-string : String -> Encoding
+string : String -> Result String Encoding
 string =
     StringE
 
 
 {-| -}
-ipfsHash : IPFSHash -> Encoding
+ipfsHash : IPFSHash -> Result String Encoding
 ipfsHash =
-    IPFSHashE
+    IPFSHashE >> Ok
 
 
 {-| -}
-custom : String -> Encoding
+custom : String -> Result String Encoding
 custom =
-    CustomE
+    CustomE >> Ok
 
 
 
@@ -148,7 +158,7 @@ abiEncodeList =
 
 
 {-| -}
-functionCall_ : Bool -> String -> List Encoding -> Result String Hex
+functionCall_ : Bool -> String -> List (Result String Encoding) -> Result String Hex
 functionCall_ isDebug sig encodings =
     let
         byteCodeEncodings =
