@@ -183,7 +183,7 @@ type alias LowLevelEncoding =
 toStaticLLEncoding : String -> LowLevelEncoding
 toStaticLLEncoding strVal =
     ( Nothing
-    , strVal
+    , IU.leftPadTo64 strVal
     )
 
 
@@ -200,12 +200,10 @@ lowLevelEncode : Encoding -> LowLevelEncoding
 lowLevelEncode enc =
     case enc of
         AddressE (Internal.Address address_) ->
-            IU.leftPadTo64 address_
-                |> toStaticLLEncoding
+            toStaticLLEncoding address_
 
         UintE uint_ ->
             BigInt.toHexString uint_
-                |> IU.leftPadTo64
                 |> toStaticLLEncoding
 
         IntE int_ ->
@@ -213,19 +211,16 @@ lowLevelEncode enc =
                 |> toStaticLLEncoding
 
         BoolE True ->
-            IU.leftPadTo64 "1"
-                |> toStaticLLEncoding
+            toStaticLLEncoding "1"
 
         BoolE False ->
-            IU.leftPadTo64 "0"
-                |> toStaticLLEncoding
+            toStaticLLEncoding "0"
 
         DBytesE (Internal.Hex hexString) ->
             toDynamicLLEncoding hexString
 
         BytesE (Internal.Hex hexString) ->
             IU.remove0x hexString
-                |> IU.leftPadTo64
                 |> toStaticLLEncoding
 
         StringE string_ ->
