@@ -1,4 +1,4 @@
-module Internal.Types exposing (Address(..), BlockHash(..), Hex(..), IPFSHash(..), TxHash(..), WhisperId(..))
+module Internal.Types exposing (Address(..), BlockHash(..), DebugLogger, Hex(..), IPFSHash(..), TxHash(..), WhisperId(..))
 
 
 type Address
@@ -23,3 +23,7 @@ type IPFSHash
 
 type Hex
     = Hex String
+
+
+type alias DebugLogger a =
+    String -> a -> a

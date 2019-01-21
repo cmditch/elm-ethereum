@@ -64,13 +64,13 @@ type AbiDecoder a
 
 {-|
 
-    type Tape == Tape Original Altered
+    type Tape = Tape Original Altered
 
-    Altered : Tape that is being read and eaten up in 32 byte / 64 character chunks, and passed down to the next decoder
+    Altered : Tape of bytes that is being read and eaten up in 32 byte / 64 character chunks, and passed down to the next decoder
 
     Original : Untouched copy of the initial input string, i.e., the full hex return from a JSON RPC Call.
                This remains untouched during the entire decoding process,
-               and is needed to help grab dynamic solidity values, such as 'bytes', 'address[]', or 'uint256[]'
+               and is needed to help grab dynamic values, such as 'bytes', 'string', 'address[]', or 'uint256[][]'
 
 -}
 type Tape
@@ -391,6 +391,9 @@ topic index abiDecoder =
 
 
 {-| Useful for decoding data withing events/logs.
+
+TODO - Will this work if dynamic types are in the log data?
+dropBytes might mess with the length of grabbing dyn vals off the Original Tape
 -}
 data : Int -> AbiDecoder a -> Decoder a
 data index abiDecoder =
@@ -402,7 +405,9 @@ data index abiDecoder =
 -- Internal
 
 
-{-| -}
+{-|
+Eat and accumulate. Travel down the tape one word at a time, and return the value from what was just eaten.
+-}
 newTape : String -> String -> a -> ( Tape, a )
 newTape original altered val =
     ( Tape original (drop64 altered), val )
@@ -438,7 +443,7 @@ buildBytes fullTape lengthIndex =
             )
 
 
-{-| Useful for decoding data withing events/logs.
+{-| Useful for decoding data within events/logs.
 -}
 dropBytes : Int -> AbiDecoder a -> AbiDecoder a
 dropBytes location (AbiDecoder decoder) =

@@ -24,9 +24,23 @@ module Eth.Types exposing
 -}
 
 import BigInt exposing (BigInt)
+import Http
 import Internal.Types as Internal
 import Json.Decode exposing (Decoder)
 import Time exposing (Posix)
+
+
+type Error
+    = Http Http.Error -- Standard HTTP Errors
+    | Encoding String -- Most likely an overflow of int/uint
+      -- Call returns 0x, could mean:
+      -- Contract doesn't exist
+      -- Contract function doesn't exist
+      -- Other things (look at the talk by Augur team at Devcon4 on mainstage)
+    | ZeroX String
+      -- TxSentry Errors:
+    | UserRejected -- User dissapproved of tx in Wallet
+    | Web3Undefined -- Web3 object, or provider not found.
 
 
 
@@ -64,7 +78,7 @@ type alias Call a =
     , gas : Maybe Int
     , gasPrice : Maybe BigInt
     , value : Maybe BigInt
-    , data : Maybe (Result String Hex)
+    , data : Maybe Hex
     , nonce : Maybe Int
     , decoder : Decoder a
     }
