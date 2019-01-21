@@ -91,7 +91,7 @@ type alias Send =
     , gas : Maybe Int
     , gasPrice : Maybe BigInt
     , value : Maybe BigInt
-    , data : Maybe (Result String Hex)
+    , data : Maybe Hex
     , nonce : Maybe Int
     }
 

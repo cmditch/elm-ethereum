@@ -1,11 +1,19 @@
 module Internal.Utils exposing (add0x, drop64, leftPadTo64, quote, remove0x, take64, toByteLength)
 
+{-|
 
+@docs add0x, drop64, leftPadTo64, quote, remove0x, take64, toByteLength
+
+-}
+
+
+{-| -}
 quote : String -> String
 quote str =
     "\"" ++ str ++ "\""
 
 
+{-| -}
 toByteLength : String -> String
 toByteLength str =
     if String.length str == 1 then
@@ -15,16 +23,19 @@ toByteLength str =
         str
 
 
+{-| -}
 take64 : String -> String
 take64 =
     String.left 64
 
 
+{-| -}
 drop64 : String -> String
 drop64 =
     String.dropLeft 64
 
 
+{-| -}
 leftPadTo64 : String -> String
 leftPadTo64 str =
     String.padLeft 64 '0' str

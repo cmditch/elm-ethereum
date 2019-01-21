@@ -116,15 +116,14 @@ toElmDecoderWithDebug functionName =
 {-| -}
 decodeStringWithDebug : Maybe String -> AbiDecoder a -> String -> Result String a
 decodeStringWithDebug debug (AbiDecoder abiDecoder) abiString =
-    let
-        _ =
-            case debug of
-                Just function ->
-                    Debug.log ("Debug Contract Call Response " ++ function) abiString
-
-                Nothing ->
-                    abiString
-    in
+    -- let
+    --     _ =
+    --         case debug of
+    --             Just function ->
+    --                 Debug.log ("Debug Contract Call Response " ++ function) abiString
+    --             Nothing ->
+    --                 abiString
+    -- in
     remove0x abiString
         |> (\a -> Tape a a)
         |> abiDecoder
@@ -394,6 +393,7 @@ topic index abiDecoder =
 
 TODO - Will this work if dynamic types are in the log data?
 dropBytes might mess with the length of grabbing dyn vals off the Original Tape
+
 -}
 data : Int -> AbiDecoder a -> Decoder a
 data index abiDecoder =
@@ -405,8 +405,7 @@ data index abiDecoder =
 -- Internal
 
 
-{-|
-Eat and accumulate. Travel down the tape one word at a time, and return the value from what was just eaten.
+{-| Eat and accumulate. Travel down the tape one word at a time, and return the value from what was just eaten.
 -}
 newTape : String -> String -> a -> ( Tape, a )
 newTape original altered val =

@@ -1,5 +1,11 @@
 module Internal.Decode exposing (address, bigInt, block, blockHash, blockHead, event, hex, hexBool, hexInt, hexTime, log, nonZero, resultToDecoder, stringInt, syncStatus, tx, txHash, txReceipt, uncle)
 
+{-|
+
+@docs address, bigInt, block, blockHash, blockHead, event, hex, hexBool, hexInt, hexTime, log, nonZero, resultToDecoder, stringInt, syncStatus, tx, txHash, txReceipt, uncle
+
+-}
+
 import BigInt exposing (BigInt)
 import Eth.Types exposing (..)
 import Eth.Utils exposing (toAddress, toBlockHash, toHex, toTxHash)

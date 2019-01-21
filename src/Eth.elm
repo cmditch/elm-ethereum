@@ -1,5 +1,5 @@
 module Eth exposing
-    ( call, estimateGas, getStorageAt, getCode, callAtBlock, getStorageAtBlock, getCodeAtBlock
+    ( call, getStorageAt, getCode, callAtBlock, getStorageAtBlock, getCodeAtBlock
     , getTx, getTxReceipt, toSend, encodeSend, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
     , getBalance, getTxCount, getBalanceAtBlock, getTxCountAtBlock
     , getBlockNumber, getBlock, getBlockByHash, getBlockWithTxObjs, getBlockByHashWithTxObjs, getBlockTxCount, getBlockTxCountByHash, getUncleCount, getUncleCountByHash, getUncleAtIndex, getUncleByBlockHashAtIndex
@@ -27,7 +27,7 @@ convert it to a `Send`, and use `Eth.Sentry.Tx` to hand it off to your browser's
             |> Eth.toSend
             |> TxSentry.send TxSendResponse model.txSentry
 
-@docs call, estimateGas, getStorageAt, getCode, callAtBlock, getStorageAtBlock, getCodeAtBlock
+@docs call, getStorageAt, getCode, callAtBlock, getStorageAtBlock, getCodeAtBlock
 
 
 # Transactions
@@ -87,25 +87,23 @@ call ethNode txParams =
     callAtBlock ethNode txParams LatestBlock
 
 
-{-| Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
 
-**Note** that the estimate may be significantly more than the amount of gas actually used by the transaction,
-for a variety of reasons including EVM mechanics and node performance.
-
--}
-estimateGas : HttpProvider -> Call a -> Task Http.Error Int
-estimateGas ethNode txParams =
-    case Encode.txCall txParams of
-        Ok txParams_ ->
-            RPC.toTask
-                { url = ethNode
-                , method = "eth_estimateGas"
-                , params = [ txParams_ ]
-                , decoder = Decode.hexInt
-                }
-
-        Err err ->
-            Task.fail err
+-- {-| Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
+-- **Note** that the estimate may be significantly more than the amount of gas actually used by the transaction,
+-- for a variety of reasons including EVM mechanics and node performance.
+-- -}
+-- estimateGas : HttpProvider -> Call a -> Task Http.Error Int
+-- estimateGas ethNode txParams =
+--     case Encode.txCall txParams of
+--         Ok txParams_ ->
+--             RPC.toTask
+--                 { url = ethNode
+--                 , method = "eth_estimateGas"
+--                 , params = [ txParams_ ]
+--                 , decoder = Decode.hexInt
+--                 }
+--         Err err ->
+--             Task.fail err
 
 
 {-| Returns the value from a storage position at a given address.
@@ -125,19 +123,30 @@ getCode ethNode address =
 
 {-| Call a function on an Ethereum contract from a particular point in history.
 -}
-callAtBlock : HttpProvider -> Call a -> BlockId -> Task Eth.Error a
+callAtBlock : HttpProvider -> Call a -> BlockId -> Task Http.Error a
 callAtBlock ethNode txParams blockId =
-    case Encode.txCall txParams of
-        Ok txParams_ ->
-            RPC.toTask
-                { url = ethNode
-                , method = "eth_call"
-                , params = [ txParams_, Encode.blockId blockId ]
-                , decoder = txParams.decoder
-                }
+    RPC.toTask
+        { url = ethNode
+        , method = "eth_call"
+        , params = [ Encode.txCall txParams, Encode.blockId blockId ]
+        , decoder = txParams.decoder
+        }
 
-        Err err ->
-            Task.fail err
+
+
+-- TODO: IMPLEMENT THIS SOON
+-- callAtBlock : HttpProvider -> Call a -> BlockId -> Task Eth.Error a
+-- callAtBlock ethNode txParams blockId =
+--     case Encode.txCall txParams of
+--         Ok txParams_ ->
+--             RPC.toTask
+--                 { url = ethNode
+--                 , method = "eth_call"
+--                 , params = [ txParams_, Encode.blockId blockId ]
+--                 , decoder = txParams.decoder
+--                 }
+--         Err err ->
+--             Task.fail err
 
 
 {-| Returns the value from a storage position at a given address, at a certain block height.
@@ -172,43 +181,55 @@ getCodeAtBlock ethNode address blockId =
 Used in `Eth.Sentry.Tx`, a means to interact with MetaMask.
 -}
 toSend : Call a -> Send
-toSend { to, from, gas, gasPrice, value, data, nonce } =
-    { to = to
-    , from = from
-    , gas = gas
-    , gasPrice = gasPrice
-    , value = value
-    , data = data
-    , nonce = nonce
+toSend callData =
+    { to = callData.to
+    , from = callData.from
+    , gas = callData.gas
+    , gasPrice = callData.gasPrice
+    , value = callData.value
+    , data = callData.data
+    , nonce = callData.nonce
     }
 
 
 {-| Useful if your handling txParams in javascript land yourself.
 Will return Error if params are invalid. e.g., buffer overflow
 -}
-encodeSend : Send -> Result String Value
-encodeSend { to, from, gas, gasPrice, value, data, nonce } =
-    let
-        paramsToValue data_ =
-            Encode.listOfMaybesToVal
-                [ ( "to", Maybe.map Encode.address to )
-                , ( "from", Maybe.map Encode.address from )
-                , ( "gas", Maybe.map Encode.hexInt gas )
-                , ( "gasPrice", Maybe.map Encode.bigInt gasPrice )
-                , ( "value", Maybe.map Encode.bigInt value )
-                , ( "data", Maybe.map Encode.hex data_ )
-                , ( "nonce", Maybe.map Encode.hexInt nonce )
-                ]
-    in
-    case data of
-        Nothing ->
-            paramsToValue Nothing
+encodeSend : Send -> Value
+encodeSend callData =
+    Encode.listOfMaybesToVal
+        [ ( "to", Maybe.map Encode.address callData.to )
+        , ( "from", Maybe.map Encode.address callData.from )
+        , ( "gas", Maybe.map Encode.hexInt callData.gas )
+        , ( "gasPrice", Maybe.map Encode.bigInt callData.gasPrice )
+        , ( "value", Maybe.map Encode.bigInt callData.value )
+        , ( "data", Maybe.map Encode.hex callData.data )
+        , ( "nonce", Maybe.map Encode.hexInt callData.nonce )
+        ]
 
-        Just (Ok data_) ->
-            paramsToValue (Just data_)
 
-        Just (Err err) ->
-            Err err
+
+-- encodeSend : Send -> Result String Value
+-- encodeSend callData =
+--     let
+--         paramsToValue data_ =
+--             Encode.listOfMaybesToVal
+--                 [ ( "to", Maybe.map Encode.address callData.to )
+--                 , ( "from", Maybe.map Encode.address callData.from )
+--                 , ( "gas", Maybe.map Encode.hexInt callData.gas )
+--                 , ( "gasPrice", Maybe.map Encode.bigInt callData.gasPrice )
+--                 , ( "value", Maybe.map Encode.bigInt callData.value )
+--                 , ( "data", Maybe.map Encode.hex callData.data_ )
+--                 , ( "nonce", Maybe.map Encode.hexInt callData.nonce )
+--                 ]
+--     in
+--     case data of
+--         Nothing ->
+--             paramsToValue Nothing
+--         Just (Ok data_) ->
+--             paramsToValue (Just data_)
+--         Just (Err err) ->
+--             Err err
 
 
 {-| Get transaction information from it's hash.

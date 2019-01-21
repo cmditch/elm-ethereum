@@ -2,7 +2,7 @@ module Eth.Sentry.Tx exposing
     ( TxSentry, Msg, update, init, OutPort, InPort, listen
     , send, sendWithReceipt
     , CustomSend, TxTracker, customSend
-    , withDebug, changeNode
+    , changeNode
     -- , Error(..)
     )
 
@@ -26,7 +26,7 @@ module Eth.Sentry.Tx exposing
 
 # Utils
 
-@docs withDebug, changeNode
+@docs changeNode
 
 -}
 
@@ -51,8 +51,9 @@ type TxSentry msg
         , nodePath : HttpProvider
         , tagger : Msg -> msg
         , txs : Dict Int (TxState msg)
-        , debug : Maybe (String -> a -> a)
         , ref : Int
+
+        -- , debug : Maybe (String -> a -> a)
         }
 
 
@@ -79,8 +80,9 @@ init ( outPort, inPort ) tagger nodePath =
         , nodePath = nodePath
         , tagger = tagger
         , txs = Dict.empty
-        , debug = Nothing
         , ref = 1
+
+        -- , debug = Nothing
         }
 
 
@@ -159,10 +161,11 @@ customSend =
     send_
 
 
-{-| -}
-withDebug : (String -> a -> a) -> TxSentry msg -> TxSentry msg
-withDebug logFunc (TxSentry sentry) =
-    TxSentry { sentry | debug = Just logFunc }
+
+-- {-| -}
+-- withDebug : (String -> a -> a) -> TxSentry msg -> TxSentry msg
+-- withDebug logFunc (TxSentry sentry) =
+--     TxSentry { sentry | debug = Just logFunc }
 
 
 {-| Look into the errors this might cause,
@@ -170,43 +173,54 @@ some kind of cleanup process should probably occur on changing a node.
 -}
 changeNode : HttpProvider -> TxSentry msg -> TxSentry msg
 changeNode newNodePath (TxSentry sentry) =
-    let
-        _ =
-            debugHelp sentry.debug log.nodeChanged newNodePath
-    in
+    -- let
+    --     _ =
+    --         debugHelp sentry.debug log.nodeChanged newNodePath
+    -- in
     TxSentry { sentry | nodePath = newNodePath }
 
 
 
 -- INTERNAL
+-- send_ : TxSentry msg -> CustomSend msg -> Send -> ( TxSentry msg, Cmd msg )
+-- send_ (TxSentry sentry) sendParams txParams =
+--     case Encode.encodeSend txParams of
+--         Ok txParamVal ->
+--             let
+--                 newTxs =
+--                     Dict.insert sentry.ref (newTxState txParams sendParams) sentry.txs
+--             in
+--             ( TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 }
+--             , Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref txParamVal)
+--             )
+--         Err err ->
+--             let
+--                 sendError : Maybe (Result String a -> msg) -> Cmd msg
+--                 sendError maybeTagger =
+--                     Maybe.map (\tagger -> Task.perform tagger (Task.succeed <| Err err)) maybeTagger
+--                         |> Maybe.withDefault Cmd.none
+--             in
+--             ( TxSentry sentry
+--             , Cmd.batch
+--                 [ sendError sendParams.onSignedTagger
+--                 , sendError sendParams.onBroadcastTagger
+--                 , sendError sendParams.onMinedTagger
+--                 ]
+--             )
 
 
 send_ : TxSentry msg -> CustomSend msg -> Send -> ( TxSentry msg, Cmd msg )
 send_ (TxSentry sentry) sendParams txParams =
-    case Encode.encodeSend txParams of
-        Ok txParamVal ->
-            let
-                newTxs =
-                    Dict.insert sentry.ref (newTxState txParams sendParams) sentry.txs
-            in
-            ( TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 }
-            , Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref txParamVal)
-            )
+    let
+        txParamVal =
+            Eth.encodeSend txParams
 
-        Err err ->
-            let
-                sendError : Maybe (Result String a -> msg) -> Cmd msg
-                sendError maybeTagger =
-                    Maybe.map (\tagger -> Task.perform tagger (Task.succeed <| Err err)) maybeTagger
-                        |> Maybe.withDefault Cmd.none
-            in
-            ( TxSentry sentry
-            , Cmd.batch
-                [ sendError sendParams.onSignedTagger
-                , sendError sendParams.onBroadcastTagger
-                , sendError sendParams.onMinedTagger
-                ]
-            )
+        newTxs =
+            Dict.insert sentry.ref (newTxState txParams sendParams) sentry.txs
+    in
+    ( TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 }
+    , Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref txParamVal)
+    )
 
 
 type TxStatus
@@ -254,9 +268,8 @@ update msg (TxSentry sentry) =
             case Dict.get ref sentry.txs of
                 Just txState ->
                     let
-                        _ =
-                            debugHelp sentry.debug log.signed (toString txHashResult)
-
+                        -- _ =
+                        --     debugHelp sentry.debug log.signed (toString txHashResult)
                         txSignedCmd =
                             case txState.onSignedTagger of
                                 Just txHashToMsg ->
@@ -318,10 +331,10 @@ update msg (TxSentry sentry) =
             -- When Tx has been sucessfully broadcast and verifiably sits within the networks Tx Queue,
             -- AND an "onBroadcastTagger" and/or "onMinedTagger" was provided by the user,
             -- Msg User Land accordingly.
-            let
-                _ =
-                    debugHelp sentry.debug log.broadcast (toString txResult)
-            in
+            -- let
+            --     _ =
+            --         debugHelp sentry.debug log.broadcast (toString txResult)
+            -- in
             case Dict.get ref sentry.txs of
                 Just txState ->
                     case txResult of
@@ -357,11 +370,13 @@ update msg (TxSentry sentry) =
                                 failOtherCallbacks =
                                     case ( txState.onBroadcastTagger, txState.onMinedTagger ) of
                                         ( Just txToMsg, _ ) ->
-                                            Task.perform txToMsg (Task.succeed <| Err <| toString error)
+                                            Task.perform txToMsg (Task.succeed <| Err "Error with TxSent stuff")
 
+                                        -- Task.perform txToMsg (Task.succeed <| Err <| toString error)
                                         ( _, Just ( txReceiptToMsg, _ ) ) ->
-                                            Task.perform txReceiptToMsg (Task.succeed <| Err <| toString error)
+                                            Task.perform txReceiptToMsg (Task.succeed <| Err "Error with TxSent stuff")
 
+                                        -- Task.perform txReceiptToMsg (Task.succeed <| Err <| toString error)
                                         ( Nothing, Nothing ) ->
                                             Cmd.none
                             in
@@ -375,10 +390,10 @@ update msg (TxSentry sentry) =
 
         TxMined ref txReceiptResult ->
             -- When Tx is mined because a TxReceipt was returned by the network...
-            let
-                _ =
-                    debugHelp sentry.debug log.mined (toString txReceiptResult)
-            in
+            -- let
+            --     _ =
+            --         debugHelp sentry.debug log.mined (toString txReceiptResult)
+            -- in
             case Dict.get ref sentry.txs of
                 Just txState ->
                     case txReceiptResult of
@@ -403,8 +418,8 @@ update msg (TxSentry sentry) =
                                                     , reOrg = False
                                                     }
 
-                                                _ =
-                                                    debugHelp sentry.debug log.trackTx txTracker
+                                                -- _ =
+                                                --     debugHelp sentry.debug log.trackTx txTracker
                                             in
                                             -- ...or user DOES need to trackthe  block depth of the tx,
                                             -- then Send TxReceipt and/or TxTracker to User Land
@@ -430,8 +445,10 @@ update msg (TxSentry sentry) =
                                 cmdIfMinedFail =
                                     case txState.onMinedTagger of
                                         Just ( txReceiptToMsg, _ ) ->
-                                            Task.perform txReceiptToMsg (Task.succeed <| Err <| toString error)
+                                            Task.perform txReceiptToMsg (Task.succeed <| Err "TxReceipt decoding failure")
 
+                                        -- TODO Reimplement this better
+                                        --Task.perform txReceiptToMsg (Task.succeed <| Err <| toString error)
                                         Nothing ->
                                             Cmd.none
                             in
@@ -455,10 +472,10 @@ update msg (TxSentry sentry) =
                 -- If block depth is reached, send DeepEnough msg
                 case getTxTrackerToMsg sentry.txs ref of
                     Just blockDepthToMsg ->
-                        let
-                            _ =
-                                debugHelp sentry.debug log.trackTx { newTxTracker | doneWatching = True }
-                        in
+                        -- let
+                        --     _ =
+                        --         debugHelp sentry.debug log.trackTx { newTxTracker | doneWatching = True }
+                        -- in
                         ( TxSentry sentry
                         , Task.perform blockDepthToMsg
                             (Eth.getTxReceipt sentry.nodePath txTracker.txHash
@@ -466,9 +483,7 @@ update msg (TxSentry sentry) =
                                 |> Task.onError
                                     (\_ ->
                                         Task.succeed <|
-                                            Debug.log
-                                                "TxTracker - Possible Chain ReOrg"
-                                                { newTxTracker | reOrg = True, doneWatching = True }
+                                            { newTxTracker | reOrg = True, doneWatching = True }
                                     )
                             )
                         )
@@ -491,10 +506,10 @@ update msg (TxSentry sentry) =
                 -- let the user know a new block depth has been reached.
                 case getTxTrackerToMsg sentry.txs ref of
                     Just blockDepthToMsg ->
-                        let
-                            _ =
-                                debugHelp sentry.debug log.trackTx newTxTracker
-                        in
+                        -- let
+                        --     _ =
+                        --         debugHelp sentry.debug log.trackTx newTxTracker
+                        -- in
                         ( TxSentry sentry
                         , Cmd.batch
                             [ Task.attempt (TrackTx ref newTxTracker)
@@ -510,17 +525,17 @@ update msg (TxSentry sentry) =
                         ( TxSentry sentry, Cmd.none )
 
         TrackTx ref _ (Err error) ->
-            let
-                _ =
-                    debugHelp sentry.debug log.trackTx ("Error getting latest block. Info: " ++ toString error)
-            in
+            -- let
+            --     _ =
+            --         debugHelp sentry.debug log.trackTx ("Error getting latest block. Info: " ++ toString error)
+            -- in
             ( TxSentry sentry, Cmd.none )
 
         ErrorDecoding error ->
-            let
-                _ =
-                    debugHelp sentry.debug log.decodeError error
-            in
+            -- let
+            --     _ =
+            --         debugHelp sentry.debug log.decodeError error
+            -- in
             ( TxSentry sentry, Cmd.none )
 
 
@@ -598,10 +613,11 @@ decodeTxData val =
 
                 Nothing ->
                     TxSigned result.ref
-                        (Err <| "Problem signing/broadcasting Tx. Ref #" ++ toString result.ref)
+                        (Err <| "Problem signing/broadcasting Tx. Ref #" ++ String.fromInt result.ref)
 
         Err error ->
-            ErrorDecoding error
+            -- TODO actually unpack `error` after I become not lazy and in a rush
+            ErrorDecoding "Error decoding tx data"
 
 
 txIdResponseDecoder : Decoder { ref : Int, txHash : Maybe TxHash }
@@ -612,12 +628,12 @@ txIdResponseDecoder =
 
 
 newTxState : Send -> CustomSend msg -> TxState msg
-newTxState send { onSign, onBroadcast, onMined } =
-    { params = send
+newTxState sendParams { onSign, onBroadcast, onMined } =
+    { params = sendParams
     , onSignedTagger = onSign
     , onBroadcastTagger = onBroadcast
     , onMinedTagger = onMined
-    , status = Signing send
+    , status = Signing sendParams
     }
 
 

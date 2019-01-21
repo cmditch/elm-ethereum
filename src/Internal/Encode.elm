@@ -1,5 +1,11 @@
 module Internal.Encode exposing (address, bigInt, blockHash, blockId, hex, hexInt, listOfMaybesToVal, logFilter, topicsList, txCall, txHash)
 
+{-|
+
+@docs address, bigInt, blockHash, blockId, hex, hexInt, listOfMaybesToVal, logFilter, topicsList, txCall, txHash
+
+-}
+
 import BigInt exposing (BigInt)
 import Eth.Types exposing (..)
 import Eth.Utils exposing (..)
@@ -34,6 +40,7 @@ blockHash =
 -- Complex
 
 
+{-| -}
 listOfMaybesToVal : List ( String, Maybe Value ) -> Value
 listOfMaybesToVal keyValueList =
     keyValueList
@@ -42,29 +49,41 @@ listOfMaybesToVal keyValueList =
         |> Encode.object
 
 
+
+-- {-| -}
+-- txCall : Call a -> Value
+-- txCall { to, from, gas, gasPrice, value, data } =
+--     let
+--         toVal callData =
+--             listOfMaybesToVal
+--                 [ ( "to", Maybe.map address to )
+--                 , ( "from", Maybe.map address from )
+--                 , ( "gas", Maybe.map hexInt gas )
+--                 , ( "gasPrice", Maybe.map bigInt gasPrice )
+--                 , ( "value", Maybe.map bigInt value )
+--                 , ( "data", Maybe.map hex callData )
+--                 ]
+--     in
+--     case data of
+--         Nothing ->
+--             Ok <| toVal Nothing
+--         Just (Ok data_) ->
+--             Ok <| toVal (Just data_)
+--         Just (Err err) ->
+--             Err err
+
+
 {-| -}
-txCall : Call a -> Result Eth.Error Value
+txCall : Call a -> Value
 txCall { to, from, gas, gasPrice, value, data } =
-    let
-        toVal callData =
-            listOfMaybesToVal
-                [ ( "to", Maybe.map address to )
-                , ( "from", Maybe.map address from )
-                , ( "gas", Maybe.map hexInt gas )
-                , ( "gasPrice", Maybe.map bigInt gasPrice )
-                , ( "value", Maybe.map bigInt value )
-                , ( "data", Maybe.map hex callData )
-                ]
-    in
-    case data of
-        Nothing ->
-            Ok <| toVal Nothing
-
-        Just (Ok data_) ->
-            Ok <| toVal (Just data_)
-
-        Just (Err err) ->
-            Err err
+    listOfMaybesToVal
+        [ ( "to", Maybe.map address to )
+        , ( "from", Maybe.map address from )
+        , ( "gas", Maybe.map hexInt gas )
+        , ( "gasPrice", Maybe.map bigInt gasPrice )
+        , ( "value", Maybe.map bigInt value )
+        , ( "data", Maybe.map hex data )
+        ]
 
 
 {-| -}
@@ -97,6 +116,7 @@ logFilter lf =
         ]
 
 
+{-| -}
 topicsList : List (Maybe Hex) -> Value
 topicsList topics =
     let

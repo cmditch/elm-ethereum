@@ -46,11 +46,11 @@ type alias Post =
 
 {-| -}
 post : HttpProvider -> Post -> Task Http.Error Bool
-post ethNode post =
+post ethNode post_ =
     RPC.toTask
         { url = ethNode
         , method = "shh_post"
-        , params = [ encodePost post ]
+        , params = [ encodePost post_ ]
         , decoder = Decode.bool
         }
 
@@ -112,7 +112,7 @@ encodePost { to, from, topics, payload, priority, ttl } =
     listOfMaybesToVal
         [ ( "to", Maybe.map Encode.string to )
         , ( "from", Maybe.map Encode.string from )
-        , ( "topics", Maybe.map Encode.list (Just <| List.map Encode.string topics) )
+        , ( "topics", Just (Encode.list Encode.string topics) )
         , ( "payload", Maybe.map Encode.string (Just payload) )
         , ( "priority", Maybe.map Encode.hexInt (Just priority) )
         , ( "ttl", Maybe.map Encode.hexInt (Just ttl) )
