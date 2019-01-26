@@ -192,7 +192,7 @@ hexInt =
 {-| -}
 bigInt : Decoder BigInt
 bigInt =
-    resultToDecoder (add0x >> BigInt.fromString >> Result.fromMaybe "Error decoding hex to BigInt")
+    resultToDecoder (add0x >> BigInt.fromHexString >> Result.fromMaybe "Error decoding hex to BigInt")
 
 
 {-| -}

@@ -163,7 +163,7 @@ uint =
         \(Tape original altered) ->
             take64 altered
                 |> add0x
-                |> BigInt.fromString
+                |> BigInt.fromHexString
                 |> Result.fromMaybe "Error Decoding Uint into BigInt"
                 |> Result.map (newTape original altered)
 
@@ -369,7 +369,7 @@ ipfsHash =
         \(Tape original altered) ->
             take64 altered
                 |> (++) "0x1220"
-                |> BigInt.fromString
+                |> BigInt.fromHexString
                 |> Maybe.map Base58.encode
                 |> Result.fromMaybe "Error Encoding IPFS Hash from BigInt"
                 |> Result.andThen U.toIPFSHash
