@@ -112,10 +112,10 @@ toAddress str =
     -- Address is always stored without "0x"
     if String.length noZeroX == 64 && String.all ((==) '0') emptyZerosInBytes32 then
         if isUpperCaseAddress bytes32Address || isLowerCaseAddress bytes32Address then
-            Ok <| Internal.Address bytes32Address
+            Ok <| Internal.Address <| String.toLower bytes32Address
 
         else if isChecksumAddress bytes32Address then
-            Ok <| Internal.Address bytes32Address
+            Ok <| Internal.Address <| String.toLower bytes32Address
 
         else
             Err <| "Given address " ++ quote str ++ " failed the EIP-55 checksum test."
@@ -127,10 +127,10 @@ toAddress str =
         Err <| "Given address " ++ quote str ++ " contains invalid hex characters."
 
     else if isUpperCaseAddress noZeroX || isLowerCaseAddress noZeroX then
-        Ok <| Internal.Address noZeroX
+        Ok <| Internal.Address <| String.toLower noZeroX
 
     else if isChecksumAddress noZeroX then
-        Ok <| Internal.Address noZeroX
+        Ok <| Internal.Address <| String.toLower noZeroX
 
     else
         Err <| "Given address " ++ quote str ++ " failed the EIP-55 checksum test."
