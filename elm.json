@@ -3,7 +3,7 @@
     "name": "cmditch/elm-ethereum",
     "summary": "feed the tree some ether.",
     "license": "MIT",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "exposed-modules": [
         "Eth",
         "Eth.Decode",
@@ -26,6 +26,7 @@
     "dependencies": {
         "Chadtech/elm-bool-extra": "2.1.0 <= v < 3.0.0",
         "NoRedInk/elm-json-decode-pipeline": "1.0.0 <= v < 2.0.0",
+        "cmditch/elm-bigint": "1.0.1 <= v < 2.0.0",
         "elm/core": "1.0.0 <= v < 2.0.0",
         "elm/http": "1.0.0 <= v < 2.0.0",
         "elm/json": "1.0.0 <= v < 2.0.0",
@@ -38,8 +39,7 @@
         "elm-community/string-extra": "4.0.0 <= v < 5.0.0",
         "prozacchiwawa/elm-keccak": "1.0.3 <= v < 2.0.0",
         "rtfeldman/elm-hex": "1.0.0 <= v < 2.0.0",
-        "zwilias/elm-utf-tools": "2.0.1 <= v < 3.0.0",
-        "cmditch/elm-bigint": "1.0.1 <= v < 2.0.0"
+        "zwilias/elm-utf-tools": "2.0.1 <= v < 3.0.0"
     },
     "test-dependencies": {}
 }

@@ -22,10 +22,10 @@ fromString str =
             |> String.fromList
             |> add0x
             |> String.cons '-'
-            |> BigInt.fromString
+            |> BigInt.fromHexString
 
     else
-        BigInt.fromString (add0x str)
+        BigInt.fromHexString (add0x str)
 
 
 toString : BigInt -> String
