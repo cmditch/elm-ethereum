@@ -746,5 +746,6 @@ tillMod64 n =
 stringToHex : String -> String
 stringToHex strVal =
     UTF8.toBytes strVal
-        |> List.map Hex.toString
+        |> List.map
+            (Hex.toString >> String.padLeft 2 '0')
         |> String.join ""
