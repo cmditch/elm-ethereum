@@ -2,18 +2,10 @@ module Eth.Sentry.Event exposing (init)
 
 {- -}
 
-import BigInt
 import Dict exposing (Dict)
 import Eth
-import Eth.Defaults as Default
-import Eth.RPC as RPC
 import Eth.Types exposing (..)
-import Eth.Utils as U exposing (addressToString, keccak256)
 import Http
-import Internal.Decode as Decode
-import Internal.Encode as Encode
-import Json.Decode as Decode exposing (Decoder, Value)
-import Json.Encode as Encode
 import Maybe.Extra
 import Process
 import Set exposing (Set)
