@@ -215,7 +215,7 @@ type alias Event a =
     }
 
 
-{-| NOTE: Different from JSON RPC API, removed some optionality to reduce complexity
+{-| NOTE: Different from JSON RPC API, removed some optionality to reduce complexity (array with array)
 -}
 type alias LogFilter =
     { fromBlock : BlockId

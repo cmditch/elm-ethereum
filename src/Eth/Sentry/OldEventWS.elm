@@ -89,19 +89,6 @@ temp =
 
 
 -}
--- {-| The `eventOut` port.
--- Where information from your elm app is sent OUT to javascript land.
---     port eventOut : Value -> Cmd msg
--- -}
--- type alias OutPort =
---     Value -> Cmd Msg
--- {-| The `eventIn` subscription.
--- Where information from the outside comes IN to your elm app.
---      port eventIn : (Value -> msg) -> Sub msg
--- -}
--- type alias InPort =
---     (Value -> Msg) -> Sub Msg
--- {-| -}
 -- type EventSentry msg
 --     = EventSentry
 --         { nodePath : String

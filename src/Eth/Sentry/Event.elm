@@ -14,8 +14,10 @@ import Internal.Decode as Decode
 import Internal.Encode as Encode
 import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
+import Maybe.Extra
+import Process
 import Set exposing (Set)
-import Task
+import Task exposing (Task)
 
 
 {-|
@@ -25,7 +27,7 @@ import Task
     requests : Dictionary to keep track of user's event requests
     ref : RPC ID Reference
     blockNumber : The last known block number - `Nothing` if response to first block number request is yet to come.
-    deadLetters : If current block number is `Nothing`, event requests will be filed away for another attempt.
+    watching : List of events currently being watched for.
 
 -}
 type EventSentry msg
@@ -33,9 +35,10 @@ type EventSentry msg
         { nodePath : HttpProvider
         , tagger : Msg -> msg
         , requests : Dict Int (RequestState msg)
-        , ref : Int
+        , ref : Ref
         , blockNumber : Maybe Int
-        , deadLetters : Set Int
+        , watching : Set Int
+        , errors : List Http.Error
         }
 
 
@@ -48,26 +51,18 @@ init tagger nodePath =
         , requests = Dict.empty
         , ref = 1
         , blockNumber = Nothing
-        , deadLetters = Set.empty
+        , watching = Set.empty
+        , errors = []
         }
     , Task.attempt (BlockNumber >> tagger) (Eth.getBlockNumber nodePath)
     )
 
 
-type alias RequestState msg =
-    { tagger : Value -> msg
-    , ref : Int
-    , logFilter : LogFilter
-    , watchOnce : Bool
-    , logCount : Int
-    }
-
-
 {-| -}
-watchOnce : (Value -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg )
+watchOnce : (Log -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg )
 watchOnce onReceive (EventSentry sentry) logFilter =
     let
-        filterState =
+        requestState =
             { tagger = onReceive
             , ref = sentry.ref
             , logFilter = logFilter
@@ -77,35 +72,126 @@ watchOnce onReceive (EventSentry sentry) logFilter =
 
         newEventSentry =
             { sentry
-                | requests = Dict.insert sentry.ref filterState sentry.requests
+                | requests = Dict.insert sentry.ref requestState sentry.requests
                 , ref = sentry.ref + 1
             }
     in
     case sentry.blockNumber of
         Nothing ->
-            ( EventSentry { newEventSentry | deadLetters = Set.insert sentry.ref sentry.deadLetters }
+            ( EventSentry { newEventSentry | watching = Set.insert sentry.ref sentry.watching }
             , Cmd.none
             )
 
         Just blockNumber ->
             ( EventSentry newEventSentry
-            , Cmd.none
+            , logFilterAtBlock blockNumber logFilter
+                |> Eth.getLogs sentry.nodePath
+                |> Task.attempt (GetLogs sentry.ref >> sentry.tagger)
             )
 
 
+
+-- Internal
+
+
+type alias RequestState msg =
+    { tagger : Log -> msg
+    , ref : Ref
+    , logFilter : LogFilter
+    , watchOnce : Bool
+    , logCount : Int
+    }
+
+
+type alias Ref =
+    Int
+
+
+
+-- Update
+
+
 type Msg
-    = NoOp
-    | BlockNumber (Result Http.Error Int)
+    = BlockNumber (Result Http.Error Int)
+    | GetLogs Ref (Result Http.Error (List Log))
 
 
 update : Msg -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 update msg ((EventSentry sentry) as sentry_) =
     case msg of
-        NoOp ->
-            ( sentry_, Cmd.none )
-
         BlockNumber (Ok blockNumber) ->
-            ( sentry_, Cmd.none )
+            case Just blockNumber == sentry.blockNumber of
+                False ->
+                    ( EventSentry { sentry | blockNumber = Just blockNumber }
+                    , Cmd.batch
+                        [ Task.attempt (BlockNumber >> sentry.tagger) (pollBlockNumber sentry.nodePath)
+                        , requestEvents blockNumber sentry_
+                        ]
+                    )
 
-        BlockNumber (Err blockNumber) ->
-            ( sentry_, Cmd.none )
+                True ->
+                    ( EventSentry { sentry | blockNumber = Just blockNumber }
+                    , Task.attempt (BlockNumber >> sentry.tagger) (pollBlockNumber sentry.nodePath)
+                    )
+
+        BlockNumber (Err err) ->
+            ( EventSentry { sentry | errors = err :: sentry.errors }
+            , Task.attempt (BlockNumber >> sentry.tagger) (pollBlockNumber sentry.nodePath)
+            )
+
+        GetLogs ref (Ok logs) ->
+            handleLogs sentry_ ref logs
+
+        GetLogs _ (Err err) ->
+            ( EventSentry { sentry | errors = err :: sentry.errors }
+            , Cmd.none
+            )
+
+
+requestEvents : Int -> EventSentry msg -> Cmd msg
+requestEvents blockNumber (EventSentry sentry) =
+    Set.toList sentry.watching
+        |> List.map (\ref -> Dict.get ref sentry.requests)
+        |> Maybe.Extra.values
+        |> List.map
+            (\requestState ->
+                logFilterAtBlock blockNumber requestState.logFilter
+                    |> Eth.getLogs sentry.nodePath
+                    |> Task.attempt (GetLogs requestState.ref >> sentry.tagger)
+            )
+        |> Cmd.batch
+
+
+logFilterAtBlock : Int -> LogFilter -> LogFilter
+logFilterAtBlock blockNumber logFilter =
+    { logFilter | fromBlock = BlockNum blockNumber, toBlock = BlockNum blockNumber }
+
+
+handleLogs : EventSentry msg -> Ref -> List Log -> ( EventSentry msg, Cmd msg )
+handleLogs (EventSentry sentry) ref logs =
+    case Dict.get ref sentry.requests of
+        Nothing ->
+            ( EventSentry sentry, Cmd.none )
+
+        Just requestState ->
+            case ( requestState.watchOnce, List.head logs ) of
+                ( _, Nothing ) ->
+                    ( EventSentry sentry
+                    , Cmd.none
+                    )
+
+                ( True, Just log ) ->
+                    ( EventSentry sentry
+                    , Cmd.none
+                    )
+
+                ( False, _ ) ->
+                    ( EventSentry sentry
+                    , Cmd.none
+                    )
+
+
+pollBlockNumber : HttpProvider -> Task Http.Error Int
+pollBlockNumber nodePath =
+    Process.sleep 2
+        |> Task.andThen (\_ -> Eth.getBlockNumber nodePath)
