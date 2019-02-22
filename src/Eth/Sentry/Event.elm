@@ -20,6 +20,19 @@ import Set exposing (Set)
 import Task exposing (Task)
 
 
+
+{-
+   HTTP Polling Event Sentry - How it works:
+       Upon EventySentry initialization, the block number is polled every 2 seconds.
+       When you want to watch for a particular event, it is added to a set of events to be watched for (`watching`).
+       When a new block is mined, we check to see if it contains any events we are interested in watching.
+
+   Note: We do not use eth_newFilter, or any of the filter RPC endpoints,
+         as these are not supported by Infura (in favor of websockets).
+
+-}
+
+
 {-|
 
     nodePath : HTTP Address of Ethereum Node
@@ -60,13 +73,33 @@ init tagger nodePath =
 
 {-| -}
 watchOnce : (Log -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg )
-watchOnce onReceive (EventSentry sentry) logFilter =
+watchOnce onReceive eventSentry logFilter =
+    watch_ True onReceive eventSentry logFilter
+        |> (\( eventSentry_, cmd, _ ) -> ( eventSentry_, cmd ))
+
+
+watch : (Log -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg, Ref )
+watch =
+    watch_ False
+
+
+stopWatching : Ref -> EventSentry msg -> EventSentry msg
+stopWatching ref (EventSentry sentry) =
+    EventSentry { sentry | watching = Set.remove ref sentry.watching }
+
+
+
+-- Internal
+
+
+watch_ : Bool -> (Log -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg, Ref )
+watch_ onlyOnce onReceive (EventSentry sentry) logFilter =
     let
         requestState =
             { tagger = onReceive
             , ref = sentry.ref
             , logFilter = logFilter
-            , watchOnce = True
+            , watchOnce = onlyOnce
             , logCount = 0
             }
 
@@ -80,6 +113,7 @@ watchOnce onReceive (EventSentry sentry) logFilter =
         Nothing ->
             ( EventSentry { newEventSentry | watching = Set.insert sentry.ref sentry.watching }
             , Cmd.none
+            , sentry.ref
             )
 
         Just blockNumber ->
@@ -87,11 +121,8 @@ watchOnce onReceive (EventSentry sentry) logFilter =
             , logFilterAtBlock blockNumber logFilter
                 |> Eth.getLogs sentry.nodePath
                 |> Task.attempt (GetLogs sentry.ref >> sentry.tagger)
+            , sentry.ref
             )
-
-
-
--- Internal
 
 
 type alias RequestState msg =
@@ -124,19 +155,19 @@ update msg ((EventSentry sentry) as sentry_) =
                 False ->
                     ( EventSentry { sentry | blockNumber = Just blockNumber }
                     , Cmd.batch
-                        [ Task.attempt (BlockNumber >> sentry.tagger) (pollBlockNumber sentry.nodePath)
+                        [ pollBlockNumber sentry_
                         , requestEvents blockNumber sentry_
                         ]
                     )
 
                 True ->
                     ( EventSentry { sentry | blockNumber = Just blockNumber }
-                    , Task.attempt (BlockNumber >> sentry.tagger) (pollBlockNumber sentry.nodePath)
+                    , pollBlockNumber sentry_
                     )
 
         BlockNumber (Err err) ->
             ( EventSentry { sentry | errors = err :: sentry.errors }
-            , Task.attempt (BlockNumber >> sentry.tagger) (pollBlockNumber sentry.nodePath)
+            , pollBlockNumber sentry_
             )
 
         GetLogs ref (Ok logs) ->
@@ -146,6 +177,17 @@ update msg ((EventSentry sentry) as sentry_) =
             ( EventSentry { sentry | errors = err :: sentry.errors }
             , Cmd.none
             )
+
+
+
+-- Update Helpers
+
+
+pollBlockNumber : EventSentry msg -> Cmd msg
+pollBlockNumber (EventSentry sentry) =
+    Process.sleep 2
+        |> Task.andThen (\_ -> Eth.getBlockNumber sentry.nodePath)
+        |> Task.attempt (BlockNumber >> sentry.tagger)
 
 
 requestEvents : Int -> EventSentry msg -> Cmd msg
@@ -162,11 +204,6 @@ requestEvents blockNumber (EventSentry sentry) =
         |> Cmd.batch
 
 
-logFilterAtBlock : Int -> LogFilter -> LogFilter
-logFilterAtBlock blockNumber logFilter =
-    { logFilter | fromBlock = BlockNum blockNumber, toBlock = BlockNum blockNumber }
-
-
 handleLogs : EventSentry msg -> Ref -> List Log -> ( EventSentry msg, Cmd msg )
 handleLogs (EventSentry sentry) ref logs =
     case Dict.get ref sentry.requests of
@@ -181,17 +218,24 @@ handleLogs (EventSentry sentry) ref logs =
                     )
 
                 ( True, Just log ) ->
-                    ( EventSentry sentry
-                    , Cmd.none
+                    ( EventSentry { sentry | watching = Set.remove ref sentry.watching }
+                    , Task.perform requestState.tagger (Task.succeed log)
                     )
 
                 ( False, _ ) ->
                     ( EventSentry sentry
-                    , Cmd.none
+                    , List.map (\log -> Task.perform requestState.tagger (Task.succeed log)) logs
+                        |> Cmd.batch
                     )
 
 
-pollBlockNumber : HttpProvider -> Task Http.Error Int
-pollBlockNumber nodePath =
-    Process.sleep 2
-        |> Task.andThen (\_ -> Eth.getBlockNumber nodePath)
+
+-- Misc
+
+
+logFilterAtBlock : Int -> LogFilter -> LogFilter
+logFilterAtBlock blockNumber logFilter =
+    { logFilter
+        | fromBlock = BlockNum blockNumber
+        , toBlock = BlockNum blockNumber
+    }
