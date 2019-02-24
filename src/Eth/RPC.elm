@@ -37,8 +37,43 @@ type alias RpcRequest a =
 {-| -}
 toTask : RpcRequest a -> Task Http.Error a
 toTask { url, method, params, decoder } =
-    Http.post url (toHttpBody 1 method params) (Decode.field "result" decoder)
-        |> Http.toTask
+    Http.task
+        { method = "POST"
+        , headers = []
+        , url = url
+        , body = toHttpBody 1 method params
+        , resolver = Http.stringResolver (expectJson decoder)
+        , timeout = Nothing
+        }
+
+
+
+-- Http.post url (toHttpBody 1 method params) (Decode.field "result" decoder)
+--     |> Http.toTask
+
+
+expectJson : Decoder a -> Http.Response String -> Result Http.Error a
+expectJson decoder response =
+    case response of
+        Http.BadUrl_ url ->
+            Err (Http.BadUrl url)
+
+        Http.Timeout_ ->
+            Err Http.Timeout
+
+        Http.NetworkError_ ->
+            Err Http.NetworkError
+
+        Http.BadStatus_ metadata body ->
+            Err (Http.BadStatus metadata.statusCode)
+
+        Http.GoodStatus_ metadata body ->
+            case Decode.decodeString (Decode.field "result" decoder) body of
+                Ok value ->
+                    Ok value
+
+                Err err ->
+                    Err (Http.BadBody (Decode.errorToString err))
 
 
 
