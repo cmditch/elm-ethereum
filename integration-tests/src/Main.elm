@@ -67,14 +67,26 @@ init =
 
 view : Model -> Html Msg
 view model =
-    div [] <|
-        [ text <|
-            String.fromInt (List.length model.responses)
-                ++ "/6 tests complete.\n\n"
-                ++ "WatchOnce event test is watching random ERC20 coin's transfer events.\n"
-                ++ "Give it a minute to pick one up.\n\n"
-        ]
-            ++ List.map text model.responses
+    let
+        br =
+            Html.br [] []
+
+        header =
+            [ String.fromInt (List.length model.responses)
+                ++ "/8 tests complete (Continous watching will keep adding \"successes\")."
+            , "EventSentry tests are watching for DAI ERC20 transfer events."
+            , "Give it a minute to pick one up."
+            , ""
+            ]
+                |> List.map text
+                |> List.intersperse br
+
+        testData =
+            List.intersperse "" model.responses
+                |> List.map text
+                |> List.intersperse br
+    in
+    div [] (header ++ [ br, br ] ++ testData)
 
 
 
@@ -84,6 +96,7 @@ view model =
 type Msg
     = InitTest
     | WatchOnce
+    | ContinousWatching
     | NewResponse String
     | EventSentryMsg EventSentry.Msg
 
@@ -100,13 +113,23 @@ update msg model =
                 , blockCmd
                 , contractCmds
                 , watchOnceEvent
+                , continuousWatchingEvent
                 ]
             )
 
         WatchOnce ->
             let
+                ( subModel, subCmd ) =
+                    EventSentry.watchOnce (logToString >> (++) "WatchOnce Cmd: " >> NewResponse)
+                        model.eventSentry
+                        daiTransferFilter
+            in
+            ( { model | eventSentry = subModel }, subCmd )
+
+        ContinousWatching ->
+            let
                 ( subModel, subCmd, _ ) =
-                    EventSentry.watch (logToString >> (++) "WatchOnce Cmd: \n\t" >> NewResponse)
+                    EventSentry.watch (logToString >> (++) "ContinousWatching Cmd: " >> NewResponse)
                         model.eventSentry
                         daiTransferFilter
             in
@@ -132,12 +155,17 @@ watchOnceEvent =
     Task.perform (\_ -> WatchOnce) (Task.succeed ())
 
 
+continuousWatchingEvent : Cmd Msg
+continuousWatchingEvent =
+    Task.perform (\_ -> ContinousWatching) (Task.succeed ())
+
+
 logCmd : Cmd Msg
 logCmd =
     Eth.getLogs ethNode erc20TransferFilter
         |> Task.attempt
             (responseToString
-                (List.map logToString >> String.join ", " >> (++) "Log Cmds: \n\t")
+                (List.map logToString >> String.join ", " >> (++) "Log Cmds: ")
                 >> NewResponse
             )
 
@@ -152,7 +180,7 @@ addressCmd =
         |> Task.map BigInt.toString
         |> Task.attempt
             (responseToString
-                ((++) "Address Cmds: \n\t")
+                ((++) "Address Cmds: ")
                 >> NewResponse
             )
 
@@ -168,7 +196,7 @@ transactionCmd =
             )
         |> Task.attempt
             (responseToString
-                (.hash >> Utils.txHashToString >> (++) "Tx Cmds: \n\t")
+                (.hash >> Utils.txHashToString >> (++) "Tx Cmds: ")
                 >> NewResponse
             )
 
@@ -193,7 +221,7 @@ blockCmd =
             )
         |> Task.attempt
             (responseToString
-                (.hash >> Utils.blockHashToString >> (++) "Block Cmds: \n\t")
+                (.hash >> Utils.blockHashToString >> (++) "Block Cmds: ")
                 >> NewResponse
             )
 
@@ -271,29 +299,7 @@ blockHash =
 
 logToString : Log -> String
 logToString log =
-    log.data
-
-
-
--- "{ address : "
---     ++ log.ddress
---     ++ ", data : "
---     ++ String
---     ++ ", topics : "
---     ++ List Hex
---     ++ ", removed : "
---     ++ Bool
---     ++ ", logIndex : "
---     ++ Int
---     ++ ", transactionIndex : "
---     ++ Int
---     ++ ", transactionHash : "
---     ++ TxHash
---     ++ ", blockHash : "
---     ++ BlockHash
---     ++ ", blockNumber : "
---     ++ Int
---     ++ " }"
+    Utils.txHashToString log.transactionHash
 
 
 responseToString : (a -> String) -> Result Http.Error a -> String
