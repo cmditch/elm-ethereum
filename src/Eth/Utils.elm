@@ -76,7 +76,7 @@ import Internal.Types as Internal
 import Internal.Utils as Internal exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
-import Keccak exposing (ethereum_keccak_256)
+import Keccak.Int exposing (ethereum_keccak_256)
 import Legacy.Base58 as Base58
 import Process
 import Regex exposing (Regex)
