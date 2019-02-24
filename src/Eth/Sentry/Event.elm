@@ -1,4 +1,13 @@
-module Eth.Sentry.Event exposing (init)
+module Eth.Sentry.Event exposing
+    ( EventSentry
+    , Msg
+    , Ref
+    , init
+    , stopWatching
+    , update
+    , watch
+    , watchOnce
+    )
 
 {- -}
 
@@ -39,7 +48,7 @@ type EventSentry msg
     = EventSentry
         { nodePath : HttpProvider
         , tagger : Msg -> msg
-        , requests : Dict Int (RequestState msg)
+        , requests : Dict Ref (RequestState msg)
         , ref : Ref
         , blockNumber : Maybe Int
         , watching : Set Int
@@ -70,11 +79,13 @@ watchOnce onReceive eventSentry logFilter =
         |> (\( eventSentry_, cmd, _ ) -> ( eventSentry_, cmd ))
 
 
+{-| -}
 watch : (Log -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg, Ref )
 watch =
     watch_ False
 
 
+{-| -}
 stopWatching : Ref -> EventSentry msg -> EventSentry msg
 stopWatching ref (EventSentry sentry) =
     EventSentry { sentry | watching = Set.remove ref sentry.watching }
@@ -153,7 +164,7 @@ update msg ((EventSentry sentry) as sentry_) =
                     )
 
                 True ->
-                    ( EventSentry { sentry | blockNumber = Just blockNumber }
+                    ( sentry_
                     , pollBlockNumber sentry_
                     )
 
@@ -177,7 +188,7 @@ update msg ((EventSentry sentry) as sentry_) =
 
 pollBlockNumber : EventSentry msg -> Cmd msg
 pollBlockNumber (EventSentry sentry) =
-    Process.sleep 2
+    Process.sleep 2000
         |> Task.andThen (\_ -> Eth.getBlockNumber sentry.nodePath)
         |> Task.attempt (BlockNumber >> sentry.tagger)
 
@@ -210,15 +221,26 @@ handleLogs (EventSentry sentry) ref logs =
                     )
 
                 ( True, Just log ) ->
-                    ( EventSentry { sentry | watching = Set.remove ref sentry.watching }
+                    ( EventSentry
+                        { sentry
+                            | watching = Set.remove ref sentry.watching
+                            , requests = updateRequests ref logs sentry.requests
+                        }
                     , Task.perform requestState.tagger (Task.succeed log)
                     )
 
                 ( False, _ ) ->
-                    ( EventSentry sentry
+                    ( EventSentry { sentry | requests = updateRequests ref logs sentry.requests }
                     , List.map (\log -> Task.perform requestState.tagger (Task.succeed log)) logs
                         |> Cmd.batch
                     )
+
+
+updateRequests : Ref -> List Log -> Dict Ref (RequestState msg) -> Dict Ref (RequestState msg)
+updateRequests ref logs requests =
+    Dict.update ref
+        (Maybe.map (\requestState -> { requestState | logCount = List.length logs + requestState.logCount }))
+        requests
 
 
 
