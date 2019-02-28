@@ -223,7 +223,7 @@ string =
         \(Tape original altered) ->
             take64 altered
                 |> buildBytes original
-                |> Result.map (StringExtra.break 2)
+                |> Result.map (StringExtra.break 2 >> List.filter (not << String.isEmpty))
                 |> Result.andThen (List.map Hex.fromString >> ResultExtra.combine)
                 |> Result.andThen UTF8.toString
                 |> Result.map (newTape original altered)
