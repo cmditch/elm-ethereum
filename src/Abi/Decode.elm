@@ -224,6 +224,7 @@ string =
             take64 altered
                 |> buildBytes original
                 |> Result.map (StringExtra.break 2)
+                |> Result.map (List.filter (String.isEmpty >> not))
                 |> Result.andThen (List.map Hex.fromString >> ResultExtra.combine)
                 |> Result.andThen UTF8.toString
                 |> Result.map (newTape original altered)
@@ -321,7 +322,7 @@ dynamicArray valDecoder =
                 |> Result.andThen getArrayData
                 |> Result.andThen
                     (\( arrayLength, rawArrayData ) ->
-                        Tape original rawArrayData
+                        Tape rawArrayData rawArrayData
                             |> arrayHelp [] arrayLength valDecoder
                             |> Result.map
                                 (\( Tape _ _, arrayData ) ->
@@ -339,7 +340,7 @@ dynamicArray valDecoder =
     The old versions of array decoding assumed all values inside the array were 32 bytes chunks.
     And would break the string into 32 byte chunks and map a decoder over them.
     This new fold style approach, vs the previous map style approach,
-    helps us deal with array elements of arbitrary lengths.
+    helps us deal with array elements of arbitrary lengths, and even arrays within arrays.
 
 -}
 arrayHelp : List a -> Int -> AbiDecoder a -> Tape -> Result String ( Tape, List a )

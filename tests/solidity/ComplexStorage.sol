@@ -3,23 +3,24 @@ pragma experimental ABIEncoderV2;
 
 
 contract ComplexStorage {
-    uint public uintVal = 123;
-    int public intVal = -128;
-    bool public boolVal = true;
-    int224 public int224Val = -999999999999999999999999999999999999999999999999999999999999999;
-    bool[2] public boolVectorVal = [true, false];
-    int[] public intListVal = [1, 2, 3, int224Val, -10, 1, 2, 34];
-    uint[] public emptyArray;
-    string public stringVal = "wtf mate";
-    bytes16 public bytes16Val = "1234567890123456";
-    bytes2 public bytes2Val = 0xffff;
+    uint uintVal = 123;
+    int intVal = -128;
+    bool boolVal = true;
+    int224 int224Val = -999999999999999999999999999999999999999999999999999999999999999;
+    bool[2] boolVectorVal = [true, false];
+    int[] intListVal = [1, 2, 3, int224Val, -10, 1, 2, 34];
+    string stringVal = "wtf mate";
+    bytes16 bytes16Val = "1234567890123456";
     bytes2 a = 0x1234;
     bytes2 b = 0x5678;
-    bytes2[4] public bytes2Vector = [a, b, bytes2Val];
-    bytes2[4][] public bytes2VectorListVal = [bytes2Vector, bytes2Vector, bytes2Vector];
-    string[]   public arrayOfString = ["testingthisshouldbequiteabitlongerthan1word", "shorter", "s"];
-    string[][] public dynArrayOfDynVal = [["testingthisshouldbequiteabitlongerthan1word"], ["shorter"], ["s"]];
-    string public emptyString = "";
+    bytes2 c = 0xffff;
+    bytes2[4] bytes2Vector = [a, b, c];
+    bytes2[4][] bytes2VectorListVal = [bytes2Vector, bytes2Vector, bytes2Vector];
+    string[] arrayOfString = ["testingthisshouldbequiteabitlongerthan1word", "", "shorter", "s"];
+    string[][] dynArrayOfDynVal = [["testingthisshouldbequiteabitlongerthan1word"], [""], ["shorter"], ["s"]];
+    uint[] emptyArray;
+    string emptyString;
+    bytes emptyBytes;
 
     event ValsSet(uint a, int b, bool c, int224 d, bool[2] e, int[] f, string g, string h, bytes16 i, bytes2[4][] j);
 
@@ -38,7 +39,7 @@ contract ComplexStorage {
          emit ValsSet(_uintVal, _intVal, _boolVal, _int224Val, _boolVectorVal, _intListVal, _stringVal, emptyString, _bytes16Val, _bytes2VectorListVal);
     }
 
-    function getVals () view public returns (
+    function test1 () public view returns (
       uint,
       int,
       bool,
@@ -49,9 +50,9 @@ contract ComplexStorage {
       string memory,
       string memory,
       bytes16,
-      bytes2[4][]
-      memory,
-      string[] memory)
+      bytes2[4][] memory,
+      bytes memory
+    )
     {
       return (
         uintVal,
@@ -65,19 +66,19 @@ contract ComplexStorage {
         emptyString,
         bytes16Val,
         bytes2VectorListVal,
-        arrayOfString
+        emptyBytes
       );
     }
 
-    function getEmptyVals () view public returns (string memory, uint[] memory) {
-        return (emptyString, emptyArray);
-    }
-
-    event DynString (string[] a);
-
-    function arrayOfStrings() public returns(string[] memory) {
-        emit DynString(arrayOfString);
-        return arrayOfString;
+    function test2 () public view returns (
+      // string[][] memory,
+      string[] memory
+    )
+    {
+      return (
+        // dynArrayOfDynVal,
+        arrayOfString
+      );
     }
 }
 
