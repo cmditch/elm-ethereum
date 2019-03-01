@@ -1,10 +1,11 @@
-module EncodeAbi exposing (..)
+module EncodeAbi exposing (encodeInt)
 
+import Abi.Encode as Abi
 import BigInt exposing (BigInt)
+import Eth.Utils as EthUtil
 import Expect
 import Test exposing (..)
-import Abi.Encode as Abi
-import Eth.Utils as EthUtil
+
 
 
 -- Abi Encoders
