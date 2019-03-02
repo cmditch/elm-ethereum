@@ -9,6 +9,8 @@ contract ComplexStorage {
     int224 int224Val = -999999999999999999999999999999999999999999999999999999999999999;
     bool[2] boolVectorVal = [true, false];
     int[] intListVal = [1, 2, 3, int224Val, -10, 1, 2, 34];
+    uint[] public uintListVal = [1, 2, 3];
+    address[] addressList = [address(this), address(0x123123123), address(this)];
     string stringVal = "wtf mate";
     bytes16 bytes16Val = "1234567890123456";
     bytes2 a = 0x1234;
@@ -21,6 +23,27 @@ contract ComplexStorage {
     uint[] emptyArray;
     string emptyString;
     bytes emptyBytes;
+
+    struct StructOne {
+        bool structBool;
+        uint[] structUintArray;
+    }
+
+    struct StructTwo {
+        address[] structDynArray;
+        int structInt;
+        StructOne structOne;
+    }
+
+    struct StructThree {
+        uint aaa;
+        bool bbb;
+        address ccc;
+    }
+
+    StructOne public structOne = StructOne(true, uintListVal);
+    StructTwo structTwo = StructTwo(addressList, -100, structOne);
+    StructThree public structThree = StructThree(9, true, address(this));
 
     event ValsSet(uint a, int b, bool c, int224 d, bool[2] e, int[] f, string g, string h, bytes16 i, bytes2[4][] j);
 
@@ -70,15 +93,30 @@ contract ComplexStorage {
       );
     }
 
+
     function test2 () public view returns (
-      // string[][] memory,
+      string[][] memory,
       string[] memory
     )
     {
       return (
-        // dynArrayOfDynVal,
+        dynArrayOfDynVal,
         arrayOfString
       );
+    }
+
+
+    function test3 () public view returns (
+        StructThree memory,
+        StructOne memory,
+        StructTwo memory
+    )
+    {
+        return (
+          structThree,
+          structOne,
+          structTwo
+        );
     }
 }
 
