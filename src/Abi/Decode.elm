@@ -189,8 +189,7 @@ address =
                 |> Result.map (newTape original altered)
 
 
-{-| testing again
--}
+{-| -}
 string : AbiDecoder String
 string =
     AbiDecoder <|
