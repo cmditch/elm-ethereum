@@ -1,4 +1,4 @@
-# [![elm-ethereum](https://bl.ocks.org/cmditch/raw/f7bb1cf73516829fa468f31f23278dcf)](https://github.com/cmditch/elm-ethereum) elm-ethereum
+# [![elm-ethereum](https://cmdit.ch/images/elm-ethereum-logo.svg)](https://github.com/cmditch/elm-ethereum) elm-ethereum
 
 **Examples:**  
 [Simple starter example](https://github.com/cmditch/elm-ethereum/tree/master/examples/simple/src/Main.elm)  
