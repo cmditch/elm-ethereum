@@ -5,3 +5,4 @@ elm.js
 node_modules/
 *-notes.*
 index.html
+.idea/
