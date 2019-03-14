@@ -564,8 +564,8 @@ Use the correct decoder for the given filter type:
 
 For a `newFilter`:
 
+    import Eth.Abi.Decode as Abi
     import Eth.Decode as Decode
-    import Eth.Evm.Decode as Evm
     import Json.Decode exposing (Decoder)
     import Json.Decode.Pipeline exposing (custom)
 
@@ -582,9 +582,9 @@ For a `newFilter`:
     erc20TransferDecoder : Decoder Erc20Transfer
     erc20TransferDecoder =
         decode Transfer
-            |> custom (Evm.topic 1 Evm.address)
-            |> custom (Evm.topic 2 Evm.address)
-            |> custom (Evm.data 0 Evm.uint)
+            |> custom (Evm.topic 1 Abi.address)
+            |> custom (Evm.topic 2 Abi.address)
+            |> custom (Evm.data 0 Abi.uint)
 
 For a `newBlockFilter`:
 

@@ -2,7 +2,7 @@ module EncodeAbi exposing (encodeInt)
 
 import Abi.Encode as Abi
 import BigInt exposing (BigInt)
-import Eth.Utils as EthUtil
+import Eth.Utils
 import Expect
 import Test exposing (..)
 
@@ -17,22 +17,22 @@ encodeInt =
         [ test "-120" <|
             \_ ->
                 Abi.abiEncode (Abi.int <| BigInt.fromInt -120)
-                    |> EthUtil.hexToString
+                    |> Eth.Utils.hexToString
                     |> Expect.equal "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff88"
         , test "120" <|
             \_ ->
                 Abi.abiEncode (Abi.int <| BigInt.fromInt 120)
-                    |> EthUtil.hexToString
+                    |> Eth.Utils.hexToString
                     |> Expect.equal "0x0000000000000000000000000000000000000000000000000000000000000078"
         , test "max positive int256" <|
             \_ ->
                 BigInt.fromString "57896044618658097711785492504343953926634992332820282019728792003956564819967"
-                    |> Maybe.map (Abi.int >> Abi.abiEncode >> EthUtil.hexToString)
+                    |> Maybe.map (Abi.int >> Abi.abiEncode >> Eth.Utils.hexToString)
                     |> Expect.equal (Just "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
         , test "max negative int256" <|
             \_ ->
                 BigInt.fromString "-57896044618658097711785492504343953926634992332820282019728792003956564819968"
-                    |> Maybe.map (Abi.int >> Abi.abiEncode >> EthUtil.hexToString)
+                    |> Maybe.map (Abi.int >> Abi.abiEncode >> Eth.Utils.hexToString)
                     |> Expect.equal (Just "0x8000000000000000000000000000000000000000000000000000000000000000")
         ]
 

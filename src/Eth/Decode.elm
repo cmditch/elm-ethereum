@@ -1,4 +1,4 @@
-module Eth.Decode exposing (address, hex, txHash, blockHash, ipfsHash, event, blockHead, tx)
+module Eth.Decode exposing (address, hex, txHash, blockHash, event, blockHead, tx)
 
 {-| Eth Decoders
 
@@ -7,8 +7,8 @@ module Eth.Decode exposing (address, hex, txHash, blockHash, ipfsHash, event, bl
 -}
 
 import Eth.Types exposing (..)
-import Eth.Utils exposing (toAddress, toBlockHash, toHex, toIPFSHash, toTxHash)
-import Internal.Decode exposing (bigInt, hexBool, hexInt, hexTime, nonZero, resultToDecoder, stringInt)
+import Eth.Utils exposing (toAddress, toBlockHash, toHex, toTxHash)
+import Internal.Decode exposing (bigInt, hexInt, hexTime, nonZero, resultToDecoder)
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (custom, required)
 
@@ -35,12 +35,6 @@ txHash =
 blockHash : Decoder BlockHash
 blockHash =
     resultToDecoder toBlockHash
-
-
-{-| -}
-ipfsHash : Decoder IPFSHash
-ipfsHash =
-    resultToDecoder toIPFSHash
 
 
 {-| Used by [elm-ethereum-generator](https://github.com/cmditch/elm-ethereum-generator)

@@ -2,7 +2,6 @@ module Abi.Decode exposing
     ( AbiDecoder, uint, int, bool, address, string
     , staticBytes, dynamicBytes
     , staticArray, dynamicArray
-    , ipfsHash
     , abiDecode, andMap, toElmDecoder, fromString
     , topic, data
     )
@@ -45,13 +44,12 @@ module Abi.Decode exposing
 
 import Abi.Int as AbiInt
 import BigInt exposing (BigInt)
-import Eth.Types exposing (Address, IPFSHash)
+import Eth.Types exposing (Address)
 import Eth.Utils
 import Hex
 import Internal.Decode
 import Internal.Utils exposing (..)
 import Json.Decode as Decode exposing (Decoder)
-import Legacy.Base58 as Base58
 import Result.Extra as ResultExtra
 import String.Extra as StringExtra
 import String.UTF8 as UTF8
@@ -353,25 +351,6 @@ parsePointer (Tape _ altered) =
 
 
 -- Special
-
-
-{-| Decodes bytes32 into IPFS Hash (assuming use of 32 byte sha256)
-Not IPFS future proof. See <https://ethereum.stackexchange.com/questions/17094/how-to-store-ipfs-hash-using-bytes>
--}
-ipfsHash : AbiDecoder IPFSHash
-ipfsHash =
-    AbiDecoder <|
-        \(Tape original altered) ->
-            take64 altered
-                |> (++) "0x1220"
-                |> BigInt.fromHexString
-                |> Maybe.map Base58.encode
-                |> Result.fromMaybe "Error Encoding IPFS Hash from BigInt"
-                |> Result.andThen Eth.Utils.toIPFSHash
-                |> Result.map (newTape original altered)
-
-
-
 -- Events/Logs
 -- TODO Consider re-writing this to get it to play nicer with Logs instead of Events
 

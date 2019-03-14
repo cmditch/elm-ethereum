@@ -4,8 +4,7 @@ module Eth.Utils exposing
     , toTxHash, txHashToString, isTxHash
     , toBlockHash, blockHashToString, isBlockHash
     , functionSig, keccak256, isSha256, lowLevelKeccak256
-    , ipfsHashToString, ipfsToBytes32, toIPFSHash, isIPFSHash
-    , unsafeToHex, unsafeToAddress, unsafeToTxHash, unsafeToBlockHash, unsafeToIPFSHash
+    , unsafeToHex, unsafeToAddress, unsafeToTxHash, unsafeToBlockHash
     , Retry, retry, valueToMsg
     -- TX-HASH
     --SHA3
@@ -67,7 +66,6 @@ All values coming from the outside world, like user input or server responses, s
 
 -}
 
-import BigInt exposing (BigInt)
 import Bool.Extra exposing (all)
 import Char
 import Eth.Types exposing (..)
@@ -77,14 +75,12 @@ import Internal.Utils as Internal exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 import Keccak.Int exposing (ethereum_keccak_256)
-import Legacy.Base58 as Base58
 import Process
 import Regex exposing (Regex)
 import Result.Extra as Result
 import String.Extra as String
 import String.UTF8 as UTF8
 import Task exposing (Task)
-import Time
 
 
 
@@ -393,65 +389,6 @@ lowLevelKeccak256 =
 
 
 
--- IPFS
-
-
-{-| Convert an IPFSHash to a string.
--}
-ipfsHashToString : IPFSHash -> String
-ipfsHashToString (Internal.IPFSHash str) =
-    str
-
-
-{-| Prepares IPFS Hash to store as soldity bytes32
-
-**Note**: This assumes a SHA256 IPFS hash is used and chops off the "Qm".
-An "opinionated" feature of this library that helps save gas costs
-by avoiding the more expensive dynamic types like `string` or `bytes`.
-The "Qm" is there to help future proof IPFS, and allow for other hashing algorithms to be used.
-
-    U.toIPFSHash "QmNXnCWPS2szLaQGVA6TFtiUAJB2YnFTJJFTXPGuc4wocQ"
-        |> Result.map U.ipfsToBytes32
-        > Ok (Hex "02d9db84e21354dd4cc160eca9d13fa6f1b1bb44324013204098ae24090e717d")
-
-Can be decoded safely decoded back to it's "Qm"-edness with `Evm.Decode.ipfsHash`.
-
--}
-ipfsToBytes32 : IPFSHash -> Hex
-ipfsToBytes32 (Internal.IPFSHash str) =
-    Base58.decode str
-        |> Result.map (BigInt.toHexString >> String.dropLeft 4 >> Internal.Hex)
-        |> Result.withDefault (Internal.Hex "Impossible error on ipfsToBytes32. Please report this bug on github.")
-
-
-{-| Safely convert a stringy IPFS Hash to it's properly typed form.
--}
-toIPFSHash : String -> Result String IPFSHash
-toIPFSHash str =
-    if String.length str /= 46 then
-        Err <| str ++ " is an invalid IPFS Hash. Must be 46 chars long."
-
-    else if String.left 2 str /= "Qm" then
-        Err <| str ++ " is an invalid \"elm-ethereum friendly\" IPFS Hash. Must begin with \"Qm\"."
-
-    else
-        Base58.decode str
-            |> Result.andThen (\_ -> Ok <| Internal.IPFSHash str)
-
-
-{-| Check if given string is a valid IPFS Hash.
--}
-isIPFSHash : String -> Bool
-isIPFSHash str =
-    case toIPFSHash str of
-        Err _ ->
-            False
-
-        Ok _ ->
-            True
-
-
-
 -- Unsafe
 
 
@@ -477,12 +414,6 @@ unsafeToTxHash =
 unsafeToBlockHash : String -> BlockHash
 unsafeToBlockHash =
     remove0x >> String.toLower >> Internal.BlockHash
-
-
-{-| -}
-unsafeToIPFSHash : String -> IPFSHash
-unsafeToIPFSHash =
-    Internal.IPFSHash
 
 
 

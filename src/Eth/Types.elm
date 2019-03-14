@@ -1,7 +1,7 @@
 module Eth.Types exposing
     ( Address, TxHash, BlockHash, Hex
     , Call, Send, Tx, TxReceipt, BlockId(..), Block, Uncle, BlockHead, Log, Event, LogFilter, SyncStatus
-    , HttpProvider, WebsocketProvider, FilterId, IPFSHash
+    , HttpProvider, WebsocketProvider, FilterId
     )
 
 {-| Types
@@ -252,8 +252,3 @@ type alias WebsocketProvider =
 {-| -}
 type alias FilterId =
     String
-
-
-{-| -}
-type alias IPFSHash =
-    Internal.IPFSHash

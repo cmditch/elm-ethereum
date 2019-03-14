@@ -2,8 +2,9 @@ module Abi.Encode exposing
     ( Encoding(..), functionCall
     , uint, int, staticBytes
     , string, list, bytes
-    , address, bool, ipfsHash, custom
+    , address, bool, custom
     , abiEncode, abiEncodeList
+    , stringToHex
     )
 
 {-| Encode before sending RPC Calls
@@ -34,7 +35,7 @@ module Abi.Encode exposing
 
 import Abi.Int as AbiInt
 import BigInt exposing (BigInt)
-import Eth.Types exposing (Address, Hex, IPFSHash)
+import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Hex
 import Internal.Types as Internal
@@ -52,7 +53,6 @@ type Encoding
     | BytesE Hex
     | StringE String
     | ListE (List Encoding)
-    | IPFSHashE IPFSHash
     | CustomE String
 
 
@@ -553,12 +553,6 @@ string =
 
 
 {-| -}
-ipfsHash : IPFSHash -> Encoding
-ipfsHash =
-    IPFSHashE
-
-
-{-| -}
 custom : String -> Encoding
 custom =
     CustomE
@@ -675,13 +669,6 @@ lowLevelEncode enc =
                         toDynamicLLEncoding hexString
                    )
 
-        IPFSHashE ipfsHash_ ->
-            Eth.Utils.ipfsToBytes32 ipfsHash_
-                |> (\(Internal.Hex zerolessHex) ->
-                        zerolessHex
-                            |> toStaticLLEncoding
-                   )
-
         CustomE string_ ->
             IU.remove0x string_
                 |> toStaticLLEncoding
@@ -746,5 +733,5 @@ tillMod64 n =
 stringToHex : String -> String
 stringToHex strVal =
     UTF8.toBytes strVal
-        |> List.map Hex.toString
+        |> List.map (Hex.toString >> String.padLeft 2 '0')
         |> String.join ""

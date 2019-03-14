@@ -1,11 +1,11 @@
-module Address exposing (..)
+module Address exposing (toAddressTests)
 
 -- import Fuzz exposing (Fuzzer, int, list, string)
 
-import Expect
-import Test exposing (..)
 import Eth.Utils as Eth
+import Expect
 import Internal.Types as Internal
+import Test exposing (..)
 
 
 toAddressTests : Test
