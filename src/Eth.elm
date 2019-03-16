@@ -5,6 +5,7 @@ module Eth exposing
     , getBlockNumber, getBlock, getBlockByHash, getBlockWithTxObjs, getBlockByHashWithTxObjs, getBlockTxCount, getBlockTxCountByHash, getUncleCount, getUncleCountByHash, getUncleAtIndex, getUncleByBlockHashAtIndex
     , getLogs, newFilter, newBlockFilter, newPendingTxFilter, getFilterChanges, getFilterLogs, uninstallFilter
     , sign, protocolVersion, syncing, coinbase, mining, hashrate, gasPrice, accounts
+    , estimateGas
     )
 
 {-| Ethereum RPC Methods
@@ -60,11 +61,11 @@ Geth, Parity, and Infura support websockets.
 -}
 
 import BigInt exposing (BigInt)
+import Eth.Decode as Decode
+import Eth.Encode as Encode
 import Eth.RPC as RPC
 import Eth.Types exposing (..)
 import Http
-import Internal.Decode as Decode
-import Internal.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 import Task exposing (Task)
@@ -87,23 +88,18 @@ call ethNode txParams =
     callAtBlock ethNode txParams LatestBlock
 
 
-
--- {-| Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
--- **Note** that the estimate may be significantly more than the amount of gas actually used by the transaction,
--- for a variety of reasons including EVM mechanics and node performance.
--- -}
--- estimateGas : HttpProvider -> Call a -> Task Http.Error Int
--- estimateGas ethNode txParams =
---     case Encode.txCall txParams of
---         Ok txParams_ ->
---             RPC.toTask
---                 { url = ethNode
---                 , method = "eth_estimateGas"
---                 , params = [ txParams_ ]
---                 , decoder = Decode.hexInt
---                 }
---         Err err ->
---             Task.fail err
+{-| Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
+**Note** that the estimate may be significantly more than the amount of gas actually used by the transaction,
+for a variety of reasons including EVM mechanics and node performance.
+-}
+estimateGas : HttpProvider -> Call a -> Task Http.Error Int
+estimateGas ethNode txParams =
+    RPC.toTask
+        { url = ethNode
+        , method = "eth_estimateGas"
+        , params = [ Encode.txCall txParams ]
+        , decoder = Decode.hexInt
+        }
 
 
 {-| Returns the value from a storage position at a given address.
@@ -568,8 +564,8 @@ Use the correct decoder for the given filter type:
 
 For a `newFilter`:
 
+    import Eth.Abi.Decode as Abi
     import Eth.Decode as Decode
-    import Eth.Evm.Decode as Evm
     import Json.Decode exposing (Decoder)
     import Json.Decode.Pipeline exposing (custom)
 
@@ -586,9 +582,9 @@ For a `newFilter`:
     erc20TransferDecoder : Decoder Erc20Transfer
     erc20TransferDecoder =
         decode Transfer
-            |> custom (Evm.topic 1 Evm.address)
-            |> custom (Evm.topic 2 Evm.address)
-            |> custom (Evm.data 0 Evm.uint)
+            |> custom (Evm.topic 1 Abi.address)
+            |> custom (Evm.topic 2 Abi.address)
+            |> custom (Evm.data 0 Abi.uint)
 
 For a `newBlockFilter`:
 

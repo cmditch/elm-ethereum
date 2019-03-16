@@ -4,3 +4,5 @@ elm.js
 .DS_Store
 node_modules/
 *-notes.*
+index.html
+.idea/

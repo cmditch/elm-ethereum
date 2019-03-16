@@ -2,8 +2,7 @@ module Abi.Decode exposing
     ( AbiDecoder, uint, int, bool, address, string
     , staticBytes, dynamicBytes
     , staticArray, dynamicArray
-    , ipfsHash
-    , abiDecode, andMap, toElmDecoder, toElmDecoderWithDebug, fromString
+    , abiDecode, andMap, toElmDecoder, fromString
     , topic, data
     )
 
@@ -45,16 +44,32 @@ module Abi.Decode exposing
 
 import Abi.Int as AbiInt
 import BigInt exposing (BigInt)
-import Eth.Types exposing (Address, IPFSHash)
-import Eth.Utils as U exposing (toAddress)
+import Eth.Decode
+import Eth.Types exposing (Address)
+import Eth.Utils
 import Hex
-import Internal.Decode exposing (resultToDecoder)
 import Internal.Utils exposing (..)
 import Json.Decode as Decode exposing (Decoder)
-import Legacy.Base58 as Base58
 import Result.Extra as ResultExtra
 import String.Extra as StringExtra
 import String.UTF8 as UTF8
+
+
+{-|
+
+    type Tape = Tape Original Altered
+
+    Original : Untouched copy of the initial return value of the JSON RPC call.
+                This remains untouched during the entire decoding process,
+                and is needed to help grab dynamic values.
+                E.g. 'bytes', 'string', `tuple` (structs), 'address[]', or 'uint256[][]'
+
+    Altered : JSON RPC call return value that is being read and eaten up word by word,
+              or 32 byte / 64 character chunks, and passed down to the next decoder.
+
+-}
+type Tape
+    = Tape String String
 
 
 {-| -}
@@ -62,23 +77,7 @@ type AbiDecoder a
     = AbiDecoder (Tape -> Result String ( Tape, a ))
 
 
-{-|
-
-    type Tape = Tape Original Altered
-
-    Altered : Tape of bytes that is being read and eaten up in 32 byte / 64 character chunks, and passed down to the next decoder
-
-    Original : Untouched copy of the initial input string, i.e., the full hex return from a JSON RPC Call.
-               This remains untouched during the entire decoding process,
-               and is needed to help grab dynamic values, such as 'bytes', 'string', 'address[]', or 'uint256[][]'
-
--}
-type Tape
-    = Tape String String
-
-
-{-| Similar to Json.Decode.Pipeline.decode
-also a synonym for Json.Decode.succeed
+{-| Similar to Json.Decode.succeed, or `pure` in Haskell
 -}
 abiDecode : a -> AbiDecoder a
 abiDecode val =
@@ -93,37 +92,7 @@ andMap dVal dFunc =
 
 {-| -}
 fromString : AbiDecoder a -> String -> Result String a
-fromString =
-    decodeStringWithDebug Nothing
-
-
-{-| -}
-toElmDecoder : AbiDecoder a -> Decoder a
-toElmDecoder =
-    decodeStringWithDebug Nothing >> resultToDecoder
-
-
-{-| -}
-toElmDecoderWithDebug : String -> AbiDecoder a -> Decoder a
-toElmDecoderWithDebug functionName =
-    decodeStringWithDebug (Just functionName) >> resultToDecoder
-
-
-
--- Internal Runners
-
-
-{-| -}
-decodeStringWithDebug : Maybe String -> AbiDecoder a -> String -> Result String a
-decodeStringWithDebug debug (AbiDecoder abiDecoder) abiString =
-    -- let
-    --     _ =
-    --         case debug of
-    --             Just function ->
-    --                 Debug.log ("Debug Contract Call Response " ++ function) abiString
-    --             Nothing ->
-    --                 abiString
-    -- in
+fromString (AbiDecoder abiDecoder) abiString =
     remove0x abiString
         |> (\a -> Tape a a)
         |> abiDecoder
@@ -131,6 +100,11 @@ decodeStringWithDebug debug (AbiDecoder abiDecoder) abiString =
 
 
 {-| -}
+toElmDecoder : AbiDecoder a -> Decoder a
+toElmDecoder =
+    fromString >> Eth.Decode.resultToDecoder
+
+
 map : (a -> b) -> AbiDecoder a -> AbiDecoder b
 map f (AbiDecoder decA) =
     AbiDecoder <|
@@ -139,7 +113,6 @@ map f (AbiDecoder decA) =
                 |> Result.map (Tuple.mapSecond f)
 
 
-{-| -}
 map2 : (a -> b -> c) -> AbiDecoder a -> AbiDecoder b -> AbiDecoder c
 map2 f (AbiDecoder decA) (AbiDecoder decB) =
     AbiDecoder <|
@@ -212,7 +185,7 @@ address =
     AbiDecoder <|
         \(Tape original altered) ->
             take64 altered
-                |> toAddress
+                |> Eth.Utils.toAddress
                 |> Result.map (newTape original altered)
 
 
@@ -224,6 +197,7 @@ string =
             take64 altered
                 |> buildBytes original
                 |> Result.map (StringExtra.break 2)
+                |> Result.map (List.filter (String.isEmpty >> not))
                 |> Result.andThen (List.map Hex.fromString >> ResultExtra.combine)
                 |> Result.andThen UTF8.toString
                 |> Result.map (newTape original altered)
@@ -272,17 +246,14 @@ staticArray len dec =
 
 
 {-| Decode Dynamically Sized Arrays
-
-    dynamicArray address == address []
-
 -}
 
 
 
-{- Dev Notes for Dynamic array decoder
+{- Dev Notes for Dynamic array decoder:
 
    Example array-of-vectors `uint[2][]` returned from the ABI
-   We'll use a multi-return value data type of `myFunc(uint256[2][],uint,bool)`
+   We'll use a multi-return value data type of `myFunc() returns (uint256[2][], uint, bool)`
    And use 4 byte words, instead of 32 byte words.
    -----------------------------------
    0000000c  -  arrayDataPointer - says array data starts after 12 bytes (0xc == 12 == 24 chars)
@@ -303,25 +274,20 @@ staticArray len dec =
 dynamicArray : AbiDecoder a -> AbiDecoder (List a)
 dynamicArray valDecoder =
     AbiDecoder <|
-        \(Tape original altered) ->
+        \((Tape original altered) as tape) ->
             let
-                getPointerToArrayData : Result String Int
-                getPointerToArrayData =
-                    take64 altered
-                        |> Hex.fromString
-                        |> Result.map ((*) 2)
-
+                -- Result String ( Array Length, Array Data )
                 getArrayData : Int -> Result String ( Int, String )
                 getArrayData lengthIndex =
                     String.slice lengthIndex (lengthIndex + 64) original
                         |> Hex.fromString
                         |> Result.map (\arrayLength -> ( arrayLength, String.dropLeft (lengthIndex + 64) original ))
             in
-            getPointerToArrayData
+            parsePointer tape
                 |> Result.andThen getArrayData
                 |> Result.andThen
                     (\( arrayLength, rawArrayData ) ->
-                        Tape original rawArrayData
+                        Tape rawArrayData rawArrayData
                             |> arrayHelp [] arrayLength valDecoder
                             |> Result.map
                                 (\( Tape _ _, arrayData ) ->
@@ -339,7 +305,7 @@ dynamicArray valDecoder =
     The old versions of array decoding assumed all values inside the array were 32 bytes chunks.
     And would break the string into 32 byte chunks and map a decoder over them.
     This new fold style approach, vs the previous map style approach,
-    helps us deal with array elements of arbitrary lengths.
+    helps us deal with array elements of arbitrary lengths, and even arrays within arrays.
 
 -}
 arrayHelp : List a -> Int -> AbiDecoder a -> Tape -> Result String ( Tape, List a )
@@ -356,28 +322,37 @@ arrayHelp accum len (AbiDecoder decoder) tape =
                     )
 
 
+{-| DO NOT USE YET, IN PROGRESS.
+odd Struct behavior in Solidity
+-}
+struct : AbiDecoder a -> AbiDecoder a
+struct (AbiDecoder decoder) =
+    AbiDecoder <|
+        \((Tape original altered) as tape) ->
+            parsePointer tape
+                |> Result.map (\dataIndex -> String.dropLeft dataIndex original)
+                |> Result.andThen (\rawStructData -> decoder (Tape rawStructData rawStructData))
+                |> Result.map
+                    (\( Tape _ _, structData ) ->
+                        ( Tape original (drop64 altered), structData )
+                    )
+
+
+{-| Grabs the first word off the `altered` tape,
+a uint pointing to some part of the unlatered tape, or `original`, where the relevant data exists.
+Pointers are used for dynamic data types like arrays, strings, bytes, and structs.
+-}
+parsePointer : Tape -> Result String Int
+parsePointer (Tape _ altered) =
+    take64 altered
+        |> Hex.fromString
+        |> Result.map ((*) 2)
+
+
 
 -- Special
-
-
-{-| Decodes bytes32 into IPFS Hash (assuming use of 32 byte sha256)
-Not IPFS future proof. See <https://ethereum.stackexchange.com/questions/17094/how-to-store-ipfs-hash-using-bytes>
--}
-ipfsHash : AbiDecoder IPFSHash
-ipfsHash =
-    AbiDecoder <|
-        \(Tape original altered) ->
-            take64 altered
-                |> (++) "0x1220"
-                |> BigInt.fromHexString
-                |> Maybe.map Base58.encode
-                |> Result.fromMaybe "Error Encoding IPFS Hash from BigInt"
-                |> Result.andThen U.toIPFSHash
-                |> Result.map (newTape original altered)
-
-
-
 -- Events/Logs
+-- TODO Consider re-writing this to get it to play nicer with Logs instead of Events
 
 
 {-| Useful for decoding data withing events/logs.
@@ -425,7 +400,6 @@ Example -
 -}
 buildBytes : String -> String -> Result String String
 buildBytes fullTape lengthIndex =
-    -- TODO Test this works with dynamic lists
     let
         hexToLength =
             Hex.fromString >> Result.map ((*) 2)

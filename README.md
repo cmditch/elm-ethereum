@@ -1,4 +1,4 @@
-# <img src="https://cdn.rawgit.com/cmditch/elm-ethereum/master/elm-ethereum-logo.svg" width="75"> elm-ethereum
+# [![elm-ethereum](https://cmdit.ch/images/elm-ethereum-logo.svg)](https://github.com/cmditch/elm-ethereum) elm-ethereum
 
 **Examples:**  
 [Simple starter example](https://github.com/cmditch/elm-ethereum/tree/master/examples/simple/src/Main.elm)  

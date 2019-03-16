@@ -1,7 +1,7 @@
 module Eth.Types exposing
     ( Address, TxHash, BlockHash, Hex
     , Call, Send, Tx, TxReceipt, BlockId(..), Block, Uncle, BlockHead, Log, Event, LogFilter, SyncStatus
-    , HttpProvider, WebsocketProvider, FilterId, IPFSHash
+    , HttpProvider, WebsocketProvider, FilterId
     )
 
 {-| Types
@@ -215,7 +215,7 @@ type alias Event a =
     }
 
 
-{-| NOTE: Different from JSON RPC API, removed some optionality to reduce complexity
+{-| NOTE: Different from JSON RPC API, removed some optionality to reduce complexity (array with array)
 -}
 type alias LogFilter =
     { fromBlock : BlockId
@@ -252,8 +252,3 @@ type alias WebsocketProvider =
 {-| -}
 type alias FilterId =
     String
-
-
-{-| -}
-type alias IPFSHash =
-    Internal.IPFSHash
