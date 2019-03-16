@@ -44,10 +44,10 @@ module Abi.Decode exposing
 
 import Abi.Int as AbiInt
 import BigInt exposing (BigInt)
+import Eth.Decode
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Hex
-import Internal.Decode
 import Internal.Utils exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Result.Extra as ResultExtra
@@ -102,7 +102,7 @@ fromString (AbiDecoder abiDecoder) abiString =
 {-| -}
 toElmDecoder : AbiDecoder a -> Decoder a
 toElmDecoder =
-    fromString >> Internal.Decode.resultToDecoder
+    fromString >> Eth.Decode.resultToDecoder
 
 
 map : (a -> b) -> AbiDecoder a -> AbiDecoder b

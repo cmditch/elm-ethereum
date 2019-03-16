@@ -38,12 +38,12 @@ module Eth.Sentry.Event exposing (temp)
 
 import BigInt
 import Dict exposing (Dict)
+import Eth.Decode as Decode
 import Eth.Defaults as Default
+import Eth.Encode as Encode
 import Eth.RPC as RPC
 import Eth.Types exposing (..)
 import Eth.Utils as U exposing (addressToString, keccak256)
-import Internal.Decode as Decode
-import Internal.Encode as Encode
 import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
 import Task

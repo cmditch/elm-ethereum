@@ -6,10 +6,10 @@ module Eth.Net exposing (NetworkId(..), version, clientVersion, listening, peerC
 
 -}
 
+import Eth.Decode as Decode
 import Eth.RPC as RPC
 import Eth.Types exposing (HttpProvider)
 import Http
-import Internal.Decode as Decode
 import Json.Decode as Decode exposing (Decoder)
 import Task exposing (Task)
 

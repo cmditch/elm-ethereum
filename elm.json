@@ -16,7 +16,6 @@
         "Eth.Units",
         "Eth.Utils",
         "Internal.Encode",
-        "Internal.Decode",
         "Internal.Utils",
         "Abi.Decode",
         "Abi.Encode",

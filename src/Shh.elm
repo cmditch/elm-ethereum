@@ -17,12 +17,12 @@ module Shh exposing
 
 -}
 
+import Eth.Decode as Decode
+import Eth.Encode as Encode exposing (listOfMaybesToVal)
 import Eth.RPC as RPC
 import Eth.Types exposing (..)
 import Eth.Utils exposing (..)
 import Http
-import Internal.Decode as Decode
-import Internal.Encode as Encode exposing (listOfMaybesToVal)
 import Internal.Types as Internal
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
