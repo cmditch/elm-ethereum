@@ -44,11 +44,6 @@ module Eth.Utils exposing
 @docs functionSig, keccak256, isSha256, lowLevelKeccak256
 
 
-# IPFS
-
-@docs ipfsHashToString, ipfsToBytes32, toIPFSHash, isIPFSHash
-
-
 # Unsafe
 
 User beware!! These are sidestepping the power of Elm, and it's static types.
@@ -57,7 +52,7 @@ Undoubtedly convenient for baking values, like contract addresses, into your sou
 
 All values coming from the outside world, like user input or server responses, should use the safe functions.
 
-@docs unsafeToHex, unsafeToAddress, unsafeToTxHash, unsafeToBlockHash, unsafeToIPFSHash
+@docs unsafeToHex, unsafeToAddress, unsafeToTxHash, unsafeToBlockHash
 
 
 # Application Helpers

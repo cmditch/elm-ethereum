@@ -4,8 +4,7 @@ module Eth exposing
     , getBalance, getTxCount, getBalanceAtBlock, getTxCountAtBlock
     , getBlockNumber, getBlock, getBlockByHash, getBlockWithTxObjs, getBlockByHashWithTxObjs, getBlockTxCount, getBlockTxCountByHash, getUncleCount, getUncleCountByHash, getUncleAtIndex, getUncleByBlockHashAtIndex
     , getLogs, newFilter, newBlockFilter, newPendingTxFilter, getFilterChanges, getFilterLogs, uninstallFilter
-    , sign, protocolVersion, syncing, coinbase, mining, hashrate, gasPrice, accounts
-    , estimateGas
+    , sign, protocolVersion, syncing, coinbase, mining, hashrate, gasPrice, accounts, estimateGas
     )
 
 {-| Ethereum RPC Methods
@@ -56,7 +55,7 @@ Geth, Parity, and Infura support websockets.
 
 # Misc
 
-@docs sign, protocolVersion, syncing, coinbase, mining, hashrate, gasPrice, accounts
+@docs sign, protocolVersion, syncing, coinbase, mining, hashrate, gasPrice, accounts, estimateGas
 
 -}
 

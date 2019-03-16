@@ -1,15 +1,10 @@
-module Eth.Sentry.Event exposing
-    ( EventSentry
-    , Msg
-    , Ref
-    , init
-    , stopWatching
-    , update
-    , watch
-    , watchOnce
-    )
+module Eth.Sentry.Event exposing (EventSentry, Msg, Ref, init, stopWatching, update, watch, watchOnce)
 
-{- -}
+{-| Event Sentry - HTTP Style - Polling ftw
+
+@docs EventSentry, Msg, Ref, init, stopWatching, update, watch, watchOnce
+
+-}
 
 import Dict exposing (Dict)
 import Eth
@@ -137,6 +132,7 @@ type alias RequestState msg =
     }
 
 
+{-| -}
 type alias Ref =
     Int
 
@@ -145,11 +141,13 @@ type alias Ref =
 -- Update
 
 
+{-| -}
 type Msg
     = BlockNumber (Result Http.Error Int)
     | GetLogs Ref (Result Http.Error (List Log))
 
 
+{-| -}
 update : Msg -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 update msg ((EventSentry sentry) as sentry_) =
     case msg of

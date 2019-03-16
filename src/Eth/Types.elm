@@ -19,7 +19,7 @@ module Eth.Types exposing
 
 # Misc
 
-@docs HttpProvider, WebsocketProvider, FilterId, IPFSHash
+@docs HttpProvider, WebsocketProvider, FilterId
 
 -}
 

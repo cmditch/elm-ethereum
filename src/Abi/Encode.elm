@@ -3,8 +3,7 @@ module Abi.Encode exposing
     , uint, int, staticBytes
     , string, list, bytes
     , address, bool, custom
-    , abiEncode, abiEncodeList
-    , stringToHex
+    , abiEncode, abiEncodeList, stringToHex
     )
 
 {-| Encode before sending RPC Calls
@@ -24,12 +23,12 @@ module Abi.Encode exposing
 
 # Misc
 
-@docs address, bool, ipfsHash, custom
+@docs address, bool, custom
 
 
 # Low-Level
 
-@docs abiEncode, abiEncodeList
+@docs abiEncode, abiEncodeList, stringToHex
 
 -}
 

@@ -26,14 +26,9 @@ module Abi.Decode exposing
 @docs staticArray, dynamicArray
 
 
-# Special
-
-@docs ipfsHash
-
-
 # Run Decoders
 
-@docs abiDecode, andMap, toElmDecoder, toElmDecoderWithDebug, fromString
+@docs abiDecode, andMap, toElmDecoder, fromString
 
 
 # Events/Logs
