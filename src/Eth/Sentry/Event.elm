@@ -48,6 +48,7 @@ type EventSentry msg
         , ref : Ref
         , blockNumber : Maybe Int
         , watching : Set Int
+        , pending : Set Int
         , errors : List Http.Error
         }
 
@@ -62,6 +63,7 @@ init tagger nodePath =
         , ref = 1
         , blockNumber = Nothing
         , watching = Set.empty
+        , pending = Set.empty
         , errors = []
         }
     , Task.attempt (BlockNumber >> tagger) (Eth.getBlockNumber nodePath)
@@ -135,40 +137,39 @@ watch_ onlyOnce onReceive (EventSentry sentry) logFilter =
             }
 
         newSentry =
-            EventSentry
-                { sentry
-                    | requests = Dict.insert sentry.ref requestState sentry.requests
-                    , ref = sentry.ref + 1
-                }
+            { sentry
+                | requests = Dict.insert sentry.ref requestState sentry.requests
+                , ref = sentry.ref + 1
+            }
 
         return task =
-            Task.attempt (GetLogs sentry.ref >> sentry.tagger) task
-                |> (\cmd -> ( newSentry, cmd, sentry.ref ))
+            ( EventSentry { newSentry | watching = Set.insert sentry.ref newSentry.watching }
+            , Task.attempt (GetLogs sentry.ref >> sentry.tagger) task
+            , sentry.ref
+            )
     in
-    case requestState.logFilter.toBlock of
-        BlockNum _ ->
-            -- Grab logs in the intitially defined block range, then grab the latest blocks events.
-            Eth.getLogs sentry.nodePath logFilter
-                |> Task.andThen
-                    (\logs ->
-                        Eth.getLogs sentry.nodePath { logFilter | fromBlock = LatestBlock, toBlock = LatestBlock }
-                            |> Task.map ((::) logs)
-                    )
-                |> return
+    case sentry.blockNumber of
+        Just blockNum ->
+            case requestState.logFilter.toBlock of
+                BlockNum _ ->
+                    -- Grab logs in the intitially defined block range, then grab the latest blocks events.
+                    requestInitialEvents sentry.nodePath logFilter ( blockNum, blockNum )
+                        |> return
 
-        _ ->
-            -- Otherwise, just grab the full block range, which will include the latest.
-            Eth.getLogs sentry.nodePath logFilter
-                |> return
+                _ ->
+                    -- Otherwise, just grab the full block range, where we'll include the latest.
+                    Eth.getLogs sentry.nodePath logFilter
+                        |> return
+
+        Nothing ->
+            -- If sentry is still waiting for blocknumber, mark request as pending.
+            ( EventSentry { newSentry | pending = Set.insert sentry.ref newSentry.pending }
+            , Cmd.none
+            , sentry.ref
+            )
 
 
 
---
---watchHelp : RequestState msg -> EventSentry msg -> ( EventSentry msg, Cmd msg, Ref )
---watchHelp requestState (EventSentry sentry) =
---
---
---
 -- Update
 
 
@@ -182,16 +183,16 @@ type Msg
 update : Msg -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 update msg ((EventSentry sentry) as sentry_) =
     case msg of
-        BlockNumber (Ok blockNumber) ->
+        BlockNumber (Ok newBlockNum) ->
             case sentry.blockNumber of
-                Just storedBlockNumber ->
-                    if blockNumber - storedBlockNumber == 0 then
+                Just oldBlockNum ->
+                    if newBlockNum - oldBlockNum == 0 then
                         ( sentry_
                         , pollBlockNumber sentry.nodePath sentry.tagger
                         )
 
                     else
-                        requestEvents ( storedBlockNumber + 1, blockNumber ) sentry_
+                        requestEventHelper ( oldBlockNum + 1, newBlockNum ) sentry_
 
                 Nothing ->
                     ( sentry_
@@ -213,7 +214,7 @@ update msg ((EventSentry sentry) as sentry_) =
 
 
 
--- Update Helpers
+-- BlockNumber Helpers
 
 
 pollBlockNumber : HttpProvider -> (Msg -> msg) -> Cmd msg
@@ -223,40 +224,58 @@ pollBlockNumber ethNode tagger =
         |> Task.attempt (BlockNumber >> tagger)
 
 
+{-| Request logs found within the latest block range.
 
--- TODO - Fix the whole lastCheckedBlock abstraction
+Defined as a "latest block range" instead of "latest block",
+since the possibility of multiple blocks being mined between Eth.getBlockNumber requests is a possibility.
+
+-}
+requestWatchedEvents : HttpProvider -> LogFilter -> ( Int, Int ) -> Task Http.Error (List Log)
+requestWatchedEvents nodePath logFilter ( fromBlock, toBlock ) =
+    Eth.getLogs nodePath
+        { logFilter | fromBlock = BlockNum fromBlock, toBlock = BlockNum toBlock }
 
 
-requestEvents : ( Int, Int ) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-requestEvents ( fromBlock, currentBlock ) (EventSentry sentry) =
+{-| Request logs within the LogFilter's initially defined range,
+and combine it with any logs found in the latest block range.
+-}
+requestInitialEvents : HttpProvider -> LogFilter -> ( Int, Int ) -> Task Http.Error (List Log)
+requestInitialEvents nodePath logFilter ( fromBlock, toBlock ) =
+    Eth.getLogs nodePath logFilter
+        |> Task.andThen
+            (\logs ->
+                Eth.getLogs nodePath
+                    { logFilter | fromBlock = BlockNum fromBlock, toBlock = BlockNum toBlock }
+                    |> Task.map ((++) logs)
+            )
+
+
+requestEventHelper : ( Int, Int ) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
+requestEventHelper ( fromBlock, toBlock ) (EventSentry sentry) =
     let
-        getLogs =
-            Set.toList sentry.watching
+        helper set toTask =
+            Set.toList set
                 |> List.map (\ref -> Dict.get ref sentry.requests)
                 |> Maybe.Extra.values
                 |> List.map
                     (\requestState ->
-                        case requestState.lastCheckedBlock of
-                            Just lastCheckedBlock ->
-                                if lastCheckedBlock < fromBlock then
-                                    updateRange ( fromBlock, currentBlock ) requestState.logFilter
-                                        |> Eth.getLogs sentry.nodePath
-                                        |> Task.attempt (GetLogs requestState.ref >> sentry.tagger)
-
-                                else
-                                    Cmd.none
-
-                            Nothing ->
-                                Cmd.none
+                        toTask sentry.nodePath requestState.logFilter ( fromBlock, toBlock )
+                            |> Task.attempt (GetLogs requestState.ref >> sentry.tagger)
                     )
-                |> Cmd.batch
 
-        newRequests =
-            Dict.map (\key req -> { req | lastCheckedBlock = Just currentBlock }) sentry.requests
+        pending =
+            helper sentry.pending requestInitialEvents
+
+        watching =
+            helper sentry.watching requestWatchedEvents
     in
-    ( EventSentry { sentry | blockNumber = Just currentBlock, requests = newRequests }
-    , Cmd.none
+    ( EventSentry { sentry | blockNumber = Just toBlock, pending = Set.empty }
+    , Cmd.batch (pending ++ watching)
     )
+
+
+
+-- GetLog Helpers
 
 
 handleLogs : EventSentry msg -> Ref -> List Log -> ( EventSentry msg, Cmd msg )
@@ -288,7 +307,7 @@ handleLogs (EventSentry sentry) ref logs =
                     )
 
 
-{-| Keeps track of log count for each request, and mutates the LogFilter range to watch the latest block.
+{-| Keeps track of log count for each request.
 -}
 updateRequests : Ref -> List Log -> Dict Ref (RequestState msg) -> Dict Ref (RequestState msg)
 updateRequests ref logs requests =
@@ -297,15 +316,3 @@ updateRequests ref logs requests =
             (\requestState -> { requestState | logCount = List.length logs + requestState.logCount })
         )
         requests
-
-
-
--- Misc
-
-
-updateRange : ( Int, Int ) -> LogFilter -> LogFilter
-updateRange ( fromBlock, toBlock ) logFilter =
-    { logFilter
-        | fromBlock = BlockNum fromBlock
-        , toBlock = BlockNum toBlock
-    }
