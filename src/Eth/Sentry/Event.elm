@@ -20,8 +20,13 @@ import Task exposing (Task)
 {-
    HTTP Polling Event Sentry - How it works:
        Upon EventySentry initialization, the block number is polled every 2 seconds.
+
        When you want to watch for a particular event, it is added to a set of events to be watched for (`watching`).
        When a new block is mined, we check to see if it contains any events we are interested in watching.
+
+      If any watches/requests are made before a block-number is found, the requests are marked as pending,
+      and requested once a block-number is received.
+
 
    Note: We do not use eth_newFilter, or any of the filter RPC endpoints,
          as these are not supported by Infura (in favor of websockets).
@@ -35,7 +40,8 @@ import Task exposing (Task)
    ref : RPC ID Reference
    blockNumber : The last known block number - `Nothing` if response to first block number request is yet to come.
    watching : List of events currently being watched for.
-
+   pending : List of events to be requested once the sentry.blockNumber is received.
+   errors : Any HTTP errors made during RPC calls.
 -}
 
 
@@ -75,7 +81,7 @@ init tagger nodePath =
     Returns the first log found.
 
     If a block range is defined in the LogFilter,
-    then returns the first log found within a given block range.
+    this will only return the first log found within that given block range.
 
 -}
 watchOnce : (Log -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg )
@@ -89,10 +95,10 @@ watchOnce onReceive eventSentry logFilter =
     Continuously polls for logs in newly mined blocks.
 
     If the range within the LogFilter includes past blocks,
-    then all the events within the given range are returned.
+    then all events within the given block range are returned,
+    along with events in the latest block.
 
-    Polling continues until `stopWatching` is called,
-    using the `Ref` returned from this function.
+    Polling continues until `stopWatching` is called.
 
 -}
 watch : (Log -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg, Ref )
