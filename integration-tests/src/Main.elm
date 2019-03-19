@@ -95,8 +95,9 @@ view model =
 
 type Msg
     = InitTest
-    | WatchOnce
-    | ContinousWatching
+    | WatchLatest
+    | WatchRanged
+    | WatchOnceRangeToLatest
     | NewResponse String
     | EventSentryMsg EventSentry.Msg
 
@@ -112,26 +113,36 @@ update msg model =
                 , transactionCmd
                 , blockCmd
                 , contractCmds
-                , watchOnceEvent
-                , continuousWatchingEvent
+                , watchLatest
+                , watchRanged
+                , watchOnceRangeToLatest
                 ]
             )
 
-        WatchOnce ->
+        WatchLatest ->
             let
-                ( subModel, subCmd ) =
-                    EventSentry.watchOnce (logToString >> (++) "WatchOnce Cmd: " >> NewResponse)
+                ( subModel, subCmd, _ ) =
+                    EventSentry.watch watchLatestHelper
                         model.eventSentry
-                        daiTransferFilter
+                        filterLatest
             in
             ( { model | eventSentry = subModel }, subCmd )
 
-        ContinousWatching ->
+        WatchRanged ->
             let
                 ( subModel, subCmd, _ ) =
-                    EventSentry.watch (logToString >> (++) "ContinousWatching Cmd: " >> NewResponse)
+                    EventSentry.watch watchRangedHelper
                         model.eventSentry
-                        daiTransferFilter
+                        filterRanged
+            in
+            ( { model | eventSentry = subModel }, subCmd )
+
+        WatchOnceRangeToLatest ->
+            let
+                ( subModel, subCmd ) =
+                    EventSentry.watchOnce watchOnceRangeToLatestHelper
+                        model.eventSentry
+                        filterRangeToLatest
             in
             ( { model | eventSentry = subModel }, subCmd )
 
@@ -148,16 +159,6 @@ update msg model =
 
 
 -- Test Cmds
-
-
-watchOnceEvent : Cmd Msg
-watchOnceEvent =
-    Task.perform (\_ -> WatchOnce) (Task.succeed ())
-
-
-continuousWatchingEvent : Cmd Msg
-continuousWatchingEvent =
-    Task.perform (\_ -> ContinousWatching) (Task.succeed ())
 
 
 logCmd : Cmd Msg
@@ -268,15 +269,6 @@ erc20TransferFilter =
     }
 
 
-daiTransferFilter : LogFilter
-daiTransferFilter =
-    { fromBlock = LatestBlock
-    , toBlock = LatestBlock
-    , address = Utils.unsafeToAddress "0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359"
-    , topics = [ Just <| Utils.unsafeToHex "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" ]
-    }
-
-
 erc20Contract : Address
 erc20Contract =
     Utils.unsafeToAddress "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2"
@@ -310,3 +302,68 @@ responseToString okToString result =
 
         Err err ->
             String.Conversions.fromHttpError err
+
+
+
+-- EventSentry Helpers
+-- ( Using DAI transfer event )
+
+
+watchLatest : Cmd Msg
+watchLatest =
+    Task.perform (\_ -> WatchLatest) (Task.succeed ())
+
+
+watchLatestHelper =
+    logToString >> (++) "WatchLatest Cmd: " >> NewResponse
+
+
+filterLatest : LogFilter
+filterLatest =
+    { fromBlock = LatestBlock
+    , toBlock = LatestBlock
+    , address = Utils.unsafeToAddress "0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359"
+    , topics = [ Just <| Utils.unsafeToHex "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" ]
+    }
+
+
+
+--
+
+
+watchRanged : Cmd Msg
+watchRanged =
+    Task.perform (\_ -> WatchRanged) (Task.succeed ())
+
+
+watchRangedHelper =
+    logToString >> (++) "WatchRanged Cmd: " >> NewResponse
+
+
+filterRanged : LogFilter
+filterRanged =
+    { filterLatest
+        | fromBlock = BlockNum 7396400
+        , toBlock = BlockNum 7396404
+    }
+
+
+
+--
+
+
+watchOnceRangeToLatest : Cmd Msg
+watchOnceRangeToLatest =
+    Task.perform (\_ -> WatchOnceRangeToLatest) (Task.succeed ())
+
+
+watchOnceRangeToLatestHelper =
+    logToString >> (++) "WatchOnceRangeToLatest Cmd: " >> NewResponse
+
+
+filterRangeToLatest : LogFilter
+filterRangeToLatest =
+    { filterLatest
+        | fromBlock = BlockNum 7396400
+        , toBlock = LatestBlock
+    }
