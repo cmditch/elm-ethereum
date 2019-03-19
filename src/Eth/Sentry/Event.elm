@@ -182,6 +182,18 @@ update : Msg -> EventSentry msg -> ( EventSentry msg, Cmd msg )
 update msg ((EventSentry sentry) as sentry_) =
     case msg of
         BlockNumber (Ok newBlockNum) ->
+            let
+                requestHelper blockRange set toTask =
+                    Set.toList set
+                        |> List.map (\ref -> Dict.get ref sentry.requests)
+                        |> Maybe.Extra.values
+                        |> List.map
+                            (\requestState ->
+                                toTask sentry.nodePath requestState.logFilter blockRange
+                                    |> Task.attempt (GetLogs requestState.ref >> sentry.tagger)
+                            )
+                        |> Cmd.batch
+            in
             case sentry.blockNumber of
                 Just oldBlockNum ->
                     if newBlockNum - oldBlockNum == 0 then
@@ -190,11 +202,25 @@ update msg ((EventSentry sentry) as sentry_) =
                         )
 
                     else
-                        requestEventHelper ( oldBlockNum + 1, newBlockNum ) sentry_
+                        ( EventSentry { sentry | blockNumber = Just newBlockNum }
+                        , Cmd.batch
+                            [ pollBlockNumber sentry.nodePath sentry.tagger
+                            , requestHelper ( oldBlockNum + 1, newBlockNum ) sentry.watching requestWatchedEvents
+                            ]
+                        )
 
                 Nothing ->
-                    ( sentry_
-                    , pollBlockNumber sentry.nodePath sentry.tagger
+                    ( EventSentry
+                        { sentry
+                            | blockNumber = Just newBlockNum
+                            , pending = Set.empty
+                            , watching = Set.union sentry.watching sentry.pending
+                        }
+                    , Cmd.batch
+                        [ pollBlockNumber sentry.nodePath sentry.tagger
+                        , requestHelper ( newBlockNum, newBlockNum ) sentry.pending requestInitialEvents
+                        , requestHelper ( newBlockNum, newBlockNum ) sentry.watching requestWatchedEvents
+                        ]
                     )
 
         BlockNumber (Err err) ->
@@ -253,30 +279,6 @@ requestInitialEvents nodePath logFilter ( fromBlock, toBlock ) =
         _ ->
             -- Otherwise, just grab the full block range, where we'll include the latest.
             Eth.getLogs nodePath logFilter
-
-
-requestEventHelper : ( Int, Int ) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
-requestEventHelper ( fromBlock, toBlock ) (EventSentry sentry) =
-    let
-        helper set toTask =
-            Set.toList set
-                |> List.map (\ref -> Dict.get ref sentry.requests)
-                |> Maybe.Extra.values
-                |> List.map
-                    (\requestState ->
-                        toTask sentry.nodePath requestState.logFilter ( fromBlock, toBlock )
-                            |> Task.attempt (GetLogs requestState.ref >> sentry.tagger)
-                    )
-
-        pending =
-            helper sentry.pending requestInitialEvents
-
-        watching =
-            helper sentry.watching requestWatchedEvents
-    in
-    ( EventSentry { sentry | blockNumber = Just toBlock, pending = Set.empty }
-    , Cmd.batch (pending ++ watching)
-    )
 
 
 
