@@ -156,16 +156,8 @@ watch_ onlyOnce onReceive (EventSentry sentry) logFilter =
     in
     case sentry.blockNumber of
         Just blockNum ->
-            case requestState.logFilter.toBlock of
-                BlockNum _ ->
-                    -- Grab logs in the intitially defined block range, then grab the latest blocks events.
-                    requestInitialEvents sentry.nodePath logFilter ( blockNum, blockNum )
-                        |> return
-
-                _ ->
-                    -- Otherwise, just grab the full block range, where we'll include the latest.
-                    Eth.getLogs sentry.nodePath logFilter
-                        |> return
+            requestInitialEvents sentry.nodePath logFilter ( blockNum, blockNum )
+                |> return
 
         Nothing ->
             -- If sentry is still waiting for blocknumber, mark request as pending.
@@ -247,13 +239,20 @@ and combine it with any logs found in the latest block range.
 -}
 requestInitialEvents : HttpProvider -> LogFilter -> ( Int, Int ) -> Task Http.Error (List Log)
 requestInitialEvents nodePath logFilter ( fromBlock, toBlock ) =
-    Eth.getLogs nodePath logFilter
-        |> Task.andThen
-            (\logs ->
-                Eth.getLogs nodePath
-                    { logFilter | fromBlock = BlockNum fromBlock, toBlock = BlockNum toBlock }
-                    |> Task.map ((++) logs)
-            )
+    case logFilter.toBlock of
+        BlockNum _ ->
+            -- Grab logs in the intitially defined block range, then grab the latest blocks events.
+            Eth.getLogs nodePath logFilter
+                |> Task.andThen
+                    (\logs ->
+                        Eth.getLogs nodePath
+                            { logFilter | fromBlock = BlockNum fromBlock, toBlock = BlockNum toBlock }
+                            |> Task.map ((++) logs)
+                    )
+
+        _ ->
+            -- Otherwise, just grab the full block range, where we'll include the latest.
+            Eth.getLogs nodePath logFilter
 
 
 requestEventHelper : ( Int, Int ) -> EventSentry msg -> ( EventSentry msg, Cmd msg )
