@@ -99,14 +99,17 @@ toAddress str =
 
         emptyZerosInBytes32 =
             String.left 24 noZeroX
+
+        normalize =
+            String.toLower >> Internal.Address >> Ok
     in
     -- Address is always stored without "0x"
     if String.length noZeroX == 64 && String.all ((==) '0') emptyZerosInBytes32 then
         if isUpperCaseAddress bytes32Address || isLowerCaseAddress bytes32Address then
-            Ok <| Internal.Address bytes32Address
+            normalize bytes32Address
 
         else if isChecksumAddress bytes32Address then
-            Ok <| Internal.Address bytes32Address
+            normalize bytes32Address
 
         else
             Err <| "Given address " ++ quote str ++ " failed the EIP-55 checksum test."
@@ -118,10 +121,10 @@ toAddress str =
         Err <| "Given address " ++ quote str ++ " contains invalid hex characters."
 
     else if isUpperCaseAddress noZeroX || isLowerCaseAddress noZeroX then
-        Ok <| Internal.Address noZeroX
+        normalize noZeroX
 
     else if isChecksumAddress noZeroX then
-        Ok <| Internal.Address noZeroX
+        normalize noZeroX
 
     else
         Err <| "Given address " ++ quote str ++ " failed the EIP-55 checksum test."

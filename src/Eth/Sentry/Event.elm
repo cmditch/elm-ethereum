@@ -76,12 +76,10 @@ init tagger nodePath =
     )
 
 
-{-|
+{-| Returns the first log found.
 
-    Returns the first log found.
-
-    If a block range is defined in the LogFilter,
-    this will only return the first log found within that given block range.
+If a block range is defined in the LogFilter,
+this will only return the first log found within that given block range.
 
 -}
 watchOnce : (Log -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg )
@@ -90,15 +88,13 @@ watchOnce onReceive eventSentry logFilter =
         |> (\( eventSentry_, cmd, _ ) -> ( eventSentry_, cmd ))
 
 
-{-|
+{-| Continuously polls for logs in newly mined blocks.
 
-    Continuously polls for logs in newly mined blocks.
+If the range within the LogFilter includes past blocks,
+then all events within the given block range are returned,
+along with events in the latest block.
 
-    If the range within the LogFilter includes past blocks,
-    then all events within the given block range are returned,
-    along with events in the latest block.
-
-    Polling continues until `stopWatching` is called.
+Polling continues until `stopWatching` is called.
 
 -}
 watch : (Log -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg, Ref )
