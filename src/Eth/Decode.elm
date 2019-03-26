@@ -25,7 +25,7 @@ block txsDecoder =
         |> required "number" hexInt
         |> required "hash" blockHash
         |> required "parentHash" blockHash
-        |> required "nonce" string
+        |> optional "nonce" string "not provided by node"
         |> required "sha3Uncles" string
         |> required "logsBloom" string
         |> required "transactionsRoot" string
@@ -58,7 +58,7 @@ blockHead =
         |> required "number" hexInt
         |> required "hash" blockHash
         |> required "parentHash" blockHash
-        |> required "nonce" string
+        |> optional "nonce" string "not provided by node"
         |> required "sha3Uncles" string
         |> required "logsBloom" string
         |> required "transactionsRoot" string
