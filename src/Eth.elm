@@ -1,6 +1,6 @@
 module Eth exposing
     ( call, getStorageAt, getCode, callAtBlock, getStorageAtBlock, getCodeAtBlock
-    , getTx, getTxReceipt, toSend, encodeSend, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
+    , getTx, getTxReceipt, encodeCall, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
     , getBalance, getTxCount, getBalanceAtBlock, getTxCountAtBlock
     , getBlockNumber, getBlock, getBlockByHash, getBlockWithTxObjs, getBlockByHashWithTxObjs, getBlockTxCount, getBlockTxCountByHash, getUncleCount, getUncleCountByHash, getUncleAtIndex, getUncleByBlockHashAtIndex
     , getLogs, newFilter, newBlockFilter, newPendingTxFilter, getFilterChanges, getFilterLogs, uninstallFilter
@@ -32,7 +32,7 @@ convert it to a `Send`, and use `Eth.Sentry.Tx` to hand it off to your browser's
 
 # Transactions
 
-@docs getTx, getTxReceipt, toSend, encodeSend, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
+@docs getTx, getTxReceipt, encodeCall, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
 
 
 # Address/Accounts
@@ -172,26 +172,21 @@ getCodeAtBlock ethNode address blockId =
 -- Transactions
 
 
-{-| Prepare a Call to be executed on chain.
-Used in `Eth.Sentry.Tx`, a means to interact with MetaMask.
--}
-toSend : Call a -> Send
-toSend callData =
-    { to = callData.to
-    , from = callData.from
-    , gas = callData.gas
-    , gasPrice = callData.gasPrice
-    , value = callData.value
-    , data = callData.data
-    , nonce = callData.nonce
-    }
-
-
 {-| Useful if your handling txParams in javascript land yourself.
-Will return Error if params are invalid. e.g., buffer overflow
 -}
-encodeSend : Send -> Value
-encodeSend callData =
+encodeCall :
+    { a
+        | to : Maybe Address
+        , from : Maybe Address
+        , gas : Maybe Int
+        , gasPrice : Maybe BigInt
+        , value : Maybe BigInt
+        , data : Maybe Hex
+        , nonce : Maybe Int
+    }
+    -> Value
+encodeCall callData =
+    -- TODO Think about returning Error if params are invalid, e.g. buffer overflow.
     Encode.listOfMaybesToVal
         [ ( "to", Maybe.map Encode.address callData.to )
         , ( "from", Maybe.map Encode.address callData.from )
@@ -201,30 +196,6 @@ encodeSend callData =
         , ( "data", Maybe.map Encode.hex callData.data )
         , ( "nonce", Maybe.map Encode.hexInt callData.nonce )
         ]
-
-
-
--- encodeSend : Send -> Result String Value
--- encodeSend callData =
---     let
---         paramsToValue data_ =
---             Encode.listOfMaybesToVal
---                 [ ( "to", Maybe.map Encode.address callData.to )
---                 , ( "from", Maybe.map Encode.address callData.from )
---                 , ( "gas", Maybe.map Encode.hexInt callData.gas )
---                 , ( "gasPrice", Maybe.map Encode.bigInt callData.gasPrice )
---                 , ( "value", Maybe.map Encode.bigInt callData.value )
---                 , ( "data", Maybe.map Encode.hex callData.data_ )
---                 , ( "nonce", Maybe.map Encode.hexInt callData.nonce )
---                 ]
---     in
---     case data of
---         Nothing ->
---             paramsToValue Nothing
---         Just (Ok data_) ->
---             paramsToValue (Just data_)
---         Just (Err err) ->
---             Err err
 
 
 {-| Get transaction information from it's hash.
@@ -288,12 +259,12 @@ NOTE: You probably don't need this.
 If you're writing a proper dApp, look at using the `Eth.Sentry.Tx` to interface with wallets like MetaMask.
 
 -}
-sendTx : HttpProvider -> Send -> Task Http.Error TxHash
+sendTx : HttpProvider -> Call a -> Task Http.Error TxHash
 sendTx ethNode txParams =
     RPC.toTask
         { url = ethNode
         , method = "eth_sendTransaction"
-        , params = [ encodeSend txParams ]
+        , params = [ encodeCall txParams ]
         , decoder = Decode.txHash
         }
 

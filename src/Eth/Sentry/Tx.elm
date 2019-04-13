@@ -30,11 +30,12 @@ module Eth.Sentry.Tx exposing
 
 -}
 
+import BigInt exposing (BigInt)
 import Dict exposing (Dict)
 import Eth
 import Eth.Decode as Decode
 import Eth.Types exposing (..)
-import Eth.Utils exposing (Retry, retry, txHashToString)
+import Eth.Utils exposing (Retry, retry)
 import Http
 import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
@@ -115,13 +116,13 @@ listen (TxSentry sentry) =
 
 
 {-| -}
-send : (Result String Tx -> msg) -> TxSentry msg -> Send -> ( TxSentry msg, Cmd msg )
+send : (Result String Tx -> msg) -> TxSentry msg -> Call a -> ( TxSentry msg, Cmd msg )
 send onBroadcast sentry txParams =
     send_ sentry { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Nothing } txParams
 
 
 {-| -}
-sendWithReceipt : (Result String Tx -> msg) -> (Result String TxReceipt -> msg) -> TxSentry msg -> Send -> ( TxSentry msg, Cmd msg )
+sendWithReceipt : (Result String Tx -> msg) -> (Result String TxReceipt -> msg) -> TxSentry msg -> Call a -> ( TxSentry msg, Cmd msg )
 sendWithReceipt onBroadcast onMined sentry txParams =
     send_ sentry { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Just ( onMined, Nothing ) } txParams
 
@@ -156,7 +157,7 @@ type alias TxTracker =
 
 
 {-| -}
-customSend : TxSentry msg -> CustomSend msg -> Send -> ( TxSentry msg, Cmd msg )
+customSend : TxSentry msg -> CustomSend msg -> Call a -> ( TxSentry msg, Cmd msg )
 customSend =
     send_
 
@@ -209,22 +210,37 @@ changeNode newNodePath (TxSentry sentry) =
 --             )
 
 
-send_ : TxSentry msg -> CustomSend msg -> Send -> ( TxSentry msg, Cmd msg )
-send_ (TxSentry sentry) sendParams txParams =
+{-| -}
+type alias TxParams =
+    { to : Maybe Address
+    , from : Maybe Address
+    , gas : Maybe Int
+    , gasPrice : Maybe BigInt
+    , value : Maybe BigInt
+    , data : Maybe Hex
+    , nonce : Maybe Int
+    }
+
+
+send_ : TxSentry msg -> CustomSend msg -> Call a -> ( TxSentry msg, Cmd msg )
+send_ (TxSentry sentry) customSendParams callParams =
     let
-        txParamVal =
-            Eth.encodeSend txParams
+        txParamsVal =
+            Eth.encodeCall callParams
+
+        txParams =
+            toTxParams callParams
 
         newTxs =
-            Dict.insert sentry.ref (newTxState txParams sendParams) sentry.txs
+            Dict.insert sentry.ref (newTxState txParams customSendParams) sentry.txs
     in
     ( TxSentry { sentry | txs = newTxs, ref = sentry.ref + 1 }
-    , Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref txParamVal)
+    , Cmd.map sentry.tagger <| sentry.outPort (encodeTxData sentry.ref txParamsVal)
     )
 
 
 type TxStatus
-    = Signing Send
+    = Signing TxParams
     | Signed TxHash
     | Sent Tx
     | Mined TxReceipt
@@ -232,7 +248,7 @@ type TxStatus
 
 
 type alias TxState msg =
-    { params : Send
+    { params : TxParams
     , onSignedTagger : Maybe (Result String TxHash -> msg)
     , onBroadcastTagger : Maybe (Result String Tx -> msg)
     , onMinedTagger : Maybe ( Result String TxReceipt -> msg, Maybe { confirmations : Int, toMsg : TxTracker -> msg } )
@@ -627,13 +643,25 @@ txIdResponseDecoder =
         (Decode.field "txHash" (Decode.maybe Decode.txHash))
 
 
-newTxState : Send -> CustomSend msg -> TxState msg
-newTxState sendParams { onSign, onBroadcast, onMined } =
-    { params = sendParams
+newTxState : TxParams -> CustomSend msg -> TxState msg
+newTxState txParams { onSign, onBroadcast, onMined } =
+    { params = txParams
     , onSignedTagger = onSign
     , onBroadcastTagger = onBroadcast
     , onMinedTagger = onMined
-    , status = Signing sendParams
+    , status = Signing txParams
+    }
+
+
+toTxParams : Call a -> TxParams
+toTxParams { to, from, gas, gasPrice, value, data, nonce } =
+    { to = to
+    , from = from
+    , gas = gas
+    , gasPrice = gasPrice
+    , value = value
+    , data = data
+    , nonce = nonce
     }
 
 
