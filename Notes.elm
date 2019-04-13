@@ -27,17 +27,6 @@ import Result.Extra
       - Better parser
       - Dynamic types
 
-  - Make 0.19 compatible
-      - Remove Debug.logs
-      - Replace any flip, (%), etc.
-      - Fix var shadowing
-
-  - Allow parsing events from TxReceipts
-
-  - Create Encode/Decode modules, make all that private stuff public.
-
-  - Change all BigInt.fromString to BigInt.fromHexString where necessary.
-
 -}
 
 

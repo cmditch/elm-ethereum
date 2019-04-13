@@ -106,7 +106,7 @@ toWei unit amount =
                     _ ->
                         "ImpossibleError"
         in
-        case BigInt.fromString finalResult of
+        case BigInt.fromIntString finalResult of
             Just result ->
                 Ok result
 
