@@ -1,8 +1,12 @@
-module Eth.Sentry.Event exposing (EventSentry, Msg, Ref, init, stopWatching, update, watch, watchOnce)
+module Eth.Sentry.Event exposing
+    ( EventSentry, Msg, Ref, init, stopWatching, update, watch, watchOnce
+    , currentBlock
+    )
 
 {-| Event Sentry - HTTP Style - Polling ftw
 
 @docs EventSentry, Msg, Ref, init, stopWatching, update, watch, watchOnce
+@docs currentBlock
 
 -}
 
@@ -106,6 +110,13 @@ watch =
 stopWatching : Ref -> EventSentry msg -> EventSentry msg
 stopWatching ref (EventSentry sentry) =
     EventSentry { sentry | watching = Set.remove ref sentry.watching }
+
+
+{-| The Event Sentry polls for the latest block. Might as well allow the user to see it.
+-}
+currentBlock : EventSentry msg -> Maybe Int
+currentBlock (EventSentry { blockNumber }) =
+    blockNumber
 
 
 

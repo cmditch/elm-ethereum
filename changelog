@@ -9,3 +9,4 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [4.0.0] - 2019-05-??
 -- No need to convert from Call to Send, as the latter was removed. TxSentry will accept `Call` now.
+-- Track the latest block number if you're running an EventSentry.
