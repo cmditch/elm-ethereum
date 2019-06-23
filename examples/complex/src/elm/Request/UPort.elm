@@ -1,9 +1,9 @@
-module Request.UPort exposing (..)
+module Request.UPort exposing (ErrorData, Message(..), RequestData, SuccessData, User, authEndpoint, decodeMessage, errorDecoder, messageDecoder, requestDecoder, successDecoder, userDecoder, userJWTDecoder)
 
 import Base64
-import List.Extra as ListExtra
 import Json.Decode as Decode exposing (Decoder, decodeString, map, oneOf, string)
 import Json.Decode.Pipeline exposing (custom, decode, required, requiredAt)
+import List.Extra as ListExtra
 
 
 authEndpoint : String
@@ -76,7 +76,7 @@ errorDecoder =
 
 {-| Turns a JWT into a User.
 
-1.  Receive JWT from uPort a service: {'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXQiOnsiQGN...M0NjQ3fQ.3b9Io8IFmmGjJWljGBGzKR7U2AR209QF_WYp61qpgbc'}
+1.  Receive JWT from uPort a service: {'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXQiOnsiQGN...M0NjQ3fQ.3b9Io8IFmmGjJWljGBGzKR7U2AR209QF\_WYp61qpgbc'}
 2.  Convert "token" field data from base64 to json string. "{'dat': { 'name': ..., 'email': ...} }"
 3.  Decode "dat" field into User type
 
@@ -98,16 +98,16 @@ userJWTDecoder =
                 |> Result.andThen Base64.decode
                 |> Result.andThen (Decode.decodeString (Decode.field "dat" userDecoder))
     in
-        Decode.string
-            |> Decode.andThen
-                (\str ->
-                    case base64ToUser str of
-                        Err err ->
-                            Decode.fail err
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                case base64ToUser str of
+                    Err err ->
+                        Decode.fail err
 
-                        Ok suc ->
-                            Decode.succeed suc
-                )
+                    Ok suc ->
+                        Decode.succeed suc
+            )
 
 
 userDecoder : Decoder User

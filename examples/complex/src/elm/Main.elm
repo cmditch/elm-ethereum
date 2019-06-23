@@ -1,30 +1,46 @@
-module Main exposing (..)
+module Main exposing
+    ( EthNetworkId
+    , Flags
+    , Modal(..)
+    , Model
+    , Msg(..)
+    , Page(..)
+    , init
+    , main
+    , modalOpen
+    , pageSubscriptions
+    , setRoute
+    , subscriptions
+    , update
+    , updatePage
+    , view
+    , viewNetworkStatus
+    , viewOverlay
+    , viewSidebar
+    )
 
 -- Libraries
-
-import Element exposing (..)
-import Element.Attributes exposing (..)
-import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
-import Eth.Sentry.ChainCmd as ChainCmd exposing (ChainCmd)
-import Eth.Sentry.Event as EventSentry exposing (EventSentry)
-import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
-import Eth.Types exposing (..)
-import Eth.Net as EthNet exposing (NetworkId(..))
-import Html exposing (Html)
-import Navigation exposing (Location)
-
-
 --Internal
 
 import Data.Chain as ChainData
+import Element exposing (..)
+import Element.Attributes exposing (..)
+import Eth.Net as EthNet exposing (NetworkId(..))
+import Eth.Sentry.ChainCmd as ChainCmd exposing (ChainCmd)
+import Eth.Sentry.Event as EventSentry exposing (EventSentry)
+import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
+import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
+import Eth.Types exposing (..)
+import Html exposing (Html)
+import Navigation exposing (Location)
 import Page.Home as Home
 import Page.Login as Login
 import Page.Widget as Widget
-import Ports
-import Route exposing (Route)
-import Request.UPort as UPort
-import Views.Styles exposing (Styles(..), Variations(..), stylesheet)
 import Page.WidgetWizard as WidgetWizard
+import Ports
+import Request.UPort as UPort
+import Route exposing (Route)
+import Views.Styles exposing (Styles(..), Variations(..), stylesheet)
 
 
 main : Program Flags Model Msg
@@ -79,21 +95,21 @@ init rawNetworkID location =
             Maybe.withDefault Mainnet networkId
                 |> ChainData.nodePath
     in
-        setRoute (Route.fromLocation location)
-            { page = Login (Tuple.first Login.init)
-            , account = Nothing
-            , uPortUser = Nothing
-            , networkId = networkId
-            , nodePath = nodePath
-            , isLoggedIn = False
-            , eventSentry =
-                EventSentry.init EventSentryMsg nodePath.ws
-                    |> EventSentry.withDebug
-            , txSentry =
-                TxSentry.init ( Ports.txOut, Ports.txIn ) TxSentryMsg nodePath.http
-                    |> TxSentry.withDebug
-            , errors = []
-            }
+    setRoute (Route.fromLocation location)
+        { page = Login (Tuple.first Login.init)
+        , account = Nothing
+        , uPortUser = Nothing
+        , networkId = networkId
+        , nodePath = nodePath
+        , isLoggedIn = False
+        , eventSentry =
+            EventSentry.init EventSentryMsg nodePath.ws
+                |> EventSentry.withDebug
+        , txSentry =
+            TxSentry.init ( Ports.txOut, Ports.txIn ) TxSentryMsg nodePath.http
+                |> TxSentry.withDebug
+        , errors = []
+        }
 
 
 
@@ -110,7 +126,7 @@ view model =
             , inlineStyle [ ( "position", "fixed" ) ]
             ]
             [ when (modalOpen model.page) viewOverlay
-            , when (model.isLoggedIn) <| viewSidebar model
+            , when model.isLoggedIn <| viewSidebar model
             , el None [ height fill, width fill, yScrollbar ] <|
                 case model.page of
                     NotFound ->
@@ -172,11 +188,11 @@ viewSidebar model =
                 , el WidgetText [ vary WidgetWhite True, vary Small True ] <| text user.email
                 ]
     in
-        column Sidebar
-            [ center, height (percent 100), minHeight (percent 100), padding 30, spacing 30 ]
-            [ whenJust model.uPortUser (\user -> avatar user)
-            , viewNetworkStatus model.networkId
-            ]
+    column Sidebar
+        [ center, height (percent 100), minHeight (percent 100), padding 30, spacing 30 ]
+        [ whenJust model.uPortUser (\user -> avatar user)
+        , viewNetworkStatus model.networkId
+        ]
 
 
 viewNetworkStatus : Maybe NetworkId -> Element Styles Variations msg
@@ -193,11 +209,11 @@ viewNetworkStatus networkId =
                 Just network ->
                     ( StatusAlert, EthNet.networkIdToString network )
     in
-        row Status
-            [ verticalCenter, center, spacing 5, height fill, width fill, alignBottom ]
-            [ circle 5.0 style [ verticalCenter ] empty
-            , text display
-            ]
+    row Status
+        [ verticalCenter, center, spacing 5, height fill, width fill, alignBottom ]
+        [ circle 5.0 style [ verticalCenter ] empty
+        , text display
+        ]
 
 
 modalOpen : Page -> Bool
@@ -241,8 +257,8 @@ updatePage page msg model =
                 ( newModel, newCmd ) =
                     subUpdate subMsg subModel
             in
-                { model | page = (toModel newModel) }
-                    ! [ Cmd.map toMsg newCmd ]
+            { model | page = toModel newModel }
+                ! [ Cmd.map toMsg newCmd ]
 
         toChainEffPage toModel toMsg subUpdate subMsg subModel =
             let
@@ -252,70 +268,70 @@ updatePage page msg model =
                 ( ( newTxSentry, newEventSentry ), chainCmds ) =
                     ChainCmd.execute ( model.txSentry, model.eventSentry ) (ChainCmd.map toMsg chainEff)
             in
-                { model
-                    | txSentry = newTxSentry
-                    , eventSentry = newEventSentry
-                    , page = (toModel newModel)
-                }
-                    ! [ chainCmds, Cmd.map toMsg newCmd ]
+            { model
+                | txSentry = newTxSentry
+                , eventSentry = newEventSentry
+                , page = toModel newModel
+            }
+                ! [ chainCmds, Cmd.map toMsg newCmd ]
     in
-        case ( page, msg ) of
-            {- Route Updates -}
-            ( _, SetRoute route ) ->
-                setRoute route model
+    case ( page, msg ) of
+        {- Route Updates -}
+        ( _, SetRoute route ) ->
+            setRoute route model
 
-            {- Page Updates -}
-            ( Login subModel, LoginMsg subMsg ) ->
-                case subMsg of
-                    Login.LoggedIn user ->
-                        { model | isLoggedIn = True, uPortUser = Just user } ! [ Navigation.newUrl "#" ]
+        {- Page Updates -}
+        ( Login subModel, LoginMsg subMsg ) ->
+            case subMsg of
+                Login.LoggedIn user ->
+                    { model | isLoggedIn = True, uPortUser = Just user } ! [ Navigation.newUrl "#" ]
 
-                    Login.SkipLogin ->
-                        { model | isLoggedIn = True } ! [ Navigation.newUrl "#" ]
+                Login.SkipLogin ->
+                    { model | isLoggedIn = True } ! [ Navigation.newUrl "#" ]
 
-                    _ ->
-                        toPage Login LoginMsg Login.update subMsg subModel
+                _ ->
+                    toPage Login LoginMsg Login.update subMsg subModel
 
-            ( Home subModel, HomeMsg subMsg ) ->
-                toChainEffPage Home HomeMsg (Home.update model.nodePath) subMsg subModel
+        ( Home subModel, HomeMsg subMsg ) ->
+            toChainEffPage Home HomeMsg (Home.update model.nodePath) subMsg subModel
 
-            ( Widget subModel, WidgetMsg subMsg ) ->
-                toChainEffPage Widget WidgetMsg (Widget.update model.nodePath) subMsg subModel
+        ( Widget subModel, WidgetMsg subMsg ) ->
+            toChainEffPage Widget WidgetMsg (Widget.update model.nodePath) subMsg subModel
 
-            {- Sentry -}
-            ( _, WalletStatus walletSentry ) ->
-                { model
-                    | account = walletSentry.account
-                    , nodePath = ChainData.nodePath walletSentry.networkId
-                }
-                    ! []
+        {- Sentry -}
+        ( _, WalletStatus walletSentry ) ->
+            { model
+                | account = walletSentry.account
+                , nodePath = ChainData.nodePath walletSentry.networkId
+            }
+                ! []
 
-            ( _, TxSentryMsg subMsg ) ->
-                let
-                    ( newTxSentry, newMsg ) =
-                        TxSentry.update subMsg model.txSentry
-                in
-                    { model | txSentry = newTxSentry }
-                        ! [ newMsg ]
+        ( _, TxSentryMsg subMsg ) ->
+            let
+                ( newTxSentry, newMsg ) =
+                    TxSentry.update subMsg model.txSentry
+            in
+            { model | txSentry = newTxSentry }
+                ! [ newMsg ]
 
-            ( _, EventSentryMsg subMsg ) ->
-                let
-                    ( newEventSentry, newSubMsg ) =
-                        EventSentry.update subMsg model.eventSentry
-                in
-                    { model | eventSentry = newEventSentry }
-                        ! [ newSubMsg ]
+        ( _, EventSentryMsg subMsg ) ->
+            let
+                ( newEventSentry, newSubMsg ) =
+                    EventSentry.update subMsg model.eventSentry
+            in
+            { model | eventSentry = newEventSentry }
+                ! [ newSubMsg ]
 
-            {- Failures and NoOps -}
-            ( _, NoOp ) ->
-                model ! []
+        {- Failures and NoOps -}
+        ( _, NoOp ) ->
+            model ! []
 
-            ( _, Fail str ) ->
-                { model | errors = str :: model.errors }
-                    ! []
+        ( _, Fail str ) ->
+            { model | errors = str :: model.errors }
+                ! []
 
-            ( _, _ ) ->
-                model ! []
+        ( _, _ ) ->
+            model ! []
 
 
 setRoute : Maybe Route -> Model -> ( Model, Cmd Msg )
@@ -326,8 +342,8 @@ setRoute maybeRoute model =
                 ( subModel, subCmd ) =
                     Login.init
             in
-                { model | page = Login subModel }
-                    ! [ Cmd.map LoginMsg subCmd ]
+            { model | page = Login subModel }
+                ! [ Cmd.map LoginMsg subCmd ]
 
         ( Just Route.Login, True ) ->
             model ! [ Navigation.newUrl "#" ]
@@ -343,16 +359,16 @@ setRoute maybeRoute model =
                 ( subModel, subCmd ) =
                     Home.init model.nodePath
             in
-                { model | page = (Home subModel) }
-                    ! [ Cmd.map HomeMsg subCmd ]
+            { model | page = Home subModel }
+                ! [ Cmd.map HomeMsg subCmd ]
 
         ( Just (Route.Widget id), _ ) ->
             let
                 ( widgetSubModel, widgetSubCmd ) =
                     Widget.init model.nodePath id
             in
-                { model | page = Widget widgetSubModel }
-                    ! [ Cmd.map WidgetMsg widgetSubCmd ]
+            { model | page = Widget widgetSubModel }
+                ! [ Cmd.map WidgetMsg widgetSubCmd ]
 
 
 

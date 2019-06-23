@@ -1,26 +1,26 @@
-module Contracts.WidgetFactory
-    exposing
-        ( newWidget
-        , sellWidget
-        , widgetCount
-        , Widget
-        , widgets
-        , widgetsDecoder
-        , WidgetCreated
-        , widgetCreatedEvent
-        , widgetCreatedDecoder
-        , WidgetSold
-        , widgetSoldEvent
-        , widgetSoldDecoder
-        )
+module Contracts.WidgetFactory exposing
+    ( Widget
+    , WidgetCreated
+    , WidgetSold
+    , newWidget
+    , sellWidget
+    , widgetCount
+    , widgetCreatedDecoder
+    , widgetCreatedEvent
+    , widgetSoldDecoder
+    , widgetSoldEvent
+    , widgets
+    , widgetsDecoder
+    )
 
+import Abi.Decode as AbiDecode exposing (abiDecode, andMap, data, toElmDecoder, topic)
+import Abi.Encode as AbiEncode exposing (Encoding(..), abiEncode)
 import BigInt exposing (BigInt)
-import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline exposing (custom, decode)
 import Eth.Types exposing (..)
 import Eth.Utils as U
-import Abi.Decode as AbiDecode exposing (abiDecode, andMap, toElmDecoder, topic, data)
-import Abi.Encode as AbiEncode exposing (Encoding(..), abiEncode)
+import Json.Decode as Decode exposing (Decoder)
+import Json.Decode.Pipeline exposing (custom, decode)
+
 
 
 {-
