@@ -1,4 +1,4 @@
-var elm_ethereum_ports = require('./assets/elm-ethereum-ports');
+var elm_ethereum_ports = require('elm-ethereum-ports');
 
 const {Elm} = require('./Main');
 var node = document.getElementById("elm-app")
