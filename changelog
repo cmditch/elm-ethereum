@@ -4,9 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.0.0-3.0.3] - ¯\_(ツ)_/¯
+## [1.0.0-3.0.3] - ¯\_(ツ)_/¯ sry :(
 
 
-## [4.0.0] - 2019-05-??
+## [4.0.0] - 2019-06-22
 -- No need to convert from Call to Send, as the latter was removed. TxSentry will accept `Call` now.
--- Track the latest block number if you're running an EventSentry.
+-- You can now track the latest block number if you're running an EventSentry.
+-- Bytes decoders in Abi.Decode now return Hex instead of String
+-- staticBytes encoder no longer returns Result, until new "safer" API is fully fleshed out
+-- Updated version of bigint library
+-- Encoder.functionCall now takes the 4-byte hashed function signature (ABI formatted). Elm no longer needs to do the costly Keccak work.
+-- Changed Abi module to Eth.Abi
+-- Replaced all uses of Eth.Types.Call with Eth.Sentry.Tx.Send extensible type alias
+-- Expose new Eth.Utils functions
+-- Remove Internal.Utils

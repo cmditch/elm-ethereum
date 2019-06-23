@@ -1,5 +1,8 @@
+# !! WIP - updating this to Elm 0.19 and the latest version of elm-ethereum !!
+
 # elm-ethereum complex example 
 ### Single Page Decentralized App (SPDA)
+
 
 ```bash
 git clone git@github.com:cmditch/elm-ethereum.git
