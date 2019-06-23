@@ -1,9 +1,8 @@
 module Eth.Sentry.Tx exposing
-    ( TxSentry, Msg, update, init, OutPort, InPort, listen
+    ( TxSentry, Msg, Send, update, init, OutPort, InPort, listen
     , send, sendWithReceipt
     , CustomSend, TxTracker, customSend
     , changeNode
-    -- , Error(..)
     )
 
 {-|
@@ -11,7 +10,7 @@ module Eth.Sentry.Tx exposing
 
 # Core
 
-@docs TxSentry, Msg, update, init, OutPort, InPort, listen
+@docs TxSentry, Msg, Send, update, init, OutPort, InPort, listen
 
 
 # Send Txs
@@ -109,6 +108,23 @@ type alias InPort =
     (Value -> Msg) -> Sub Msg
 
 
+{-| Same as Eth.Types.Call sans decoder.
+
+**Note** You can just pass your Call shaped record into any function that accepts a Send
+
+-}
+type alias Send a =
+    { a
+        | to : Maybe Address
+        , from : Maybe Address
+        , gas : Maybe Int
+        , gasPrice : Maybe BigInt
+        , value : Maybe BigInt
+        , data : Maybe Hex
+        , nonce : Maybe Int
+    }
+
+
 {-| -}
 listen : TxSentry msg -> Sub msg
 listen (TxSentry sentry) =
@@ -116,13 +132,13 @@ listen (TxSentry sentry) =
 
 
 {-| -}
-send : (Result String Tx -> msg) -> TxSentry msg -> Call a -> ( TxSentry msg, Cmd msg )
+send : (Result String Tx -> msg) -> TxSentry msg -> Send a -> ( TxSentry msg, Cmd msg )
 send onBroadcast sentry txParams =
     send_ sentry { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Nothing } txParams
 
 
 {-| -}
-sendWithReceipt : (Result String Tx -> msg) -> (Result String TxReceipt -> msg) -> TxSentry msg -> Call a -> ( TxSentry msg, Cmd msg )
+sendWithReceipt : (Result String Tx -> msg) -> (Result String TxReceipt -> msg) -> TxSentry msg -> Send a -> ( TxSentry msg, Cmd msg )
 sendWithReceipt onBroadcast onMined sentry txParams =
     send_ sentry { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Just ( onMined, Nothing ) } txParams
 
@@ -157,7 +173,7 @@ type alias TxTracker =
 
 
 {-| -}
-customSend : TxSentry msg -> CustomSend msg -> Call a -> ( TxSentry msg, Cmd msg )
+customSend : TxSentry msg -> CustomSend msg -> Send a -> ( TxSentry msg, Cmd msg )
 customSend =
     send_
 
@@ -222,7 +238,7 @@ type alias TxParams =
     }
 
 
-send_ : TxSentry msg -> CustomSend msg -> Call a -> ( TxSentry msg, Cmd msg )
+send_ : TxSentry msg -> CustomSend msg -> Send a -> ( TxSentry msg, Cmd msg )
 send_ (TxSentry sentry) customSendParams callParams =
     let
         txParamsVal =
@@ -653,7 +669,7 @@ newTxState txParams { onSign, onBroadcast, onMined } =
     }
 
 
-toTxParams : Call a -> TxParams
+toTxParams : Send a -> TxParams
 toTxParams { to, from, gas, gasPrice, value, data, nonce } =
     { to = to
     , from = from
