@@ -10,7 +10,6 @@ import BigInt exposing (BigInt)
 import Eth.Types exposing (..)
 import Eth.Utils exposing (..)
 import Hex
-import Internal.Utils exposing (..)
 import Json.Encode as Encode exposing (Value, int, list, null, object, string)
 
 

@@ -9,9 +9,8 @@ module Eth.Decode exposing (address, bigInt, block, blockHash, blockHead, hex, h
 import BigInt exposing (BigInt)
 import Eth.Encode
 import Eth.Types exposing (..)
-import Eth.Utils exposing (toAddress, toBlockHash, toHex, toTxHash)
+import Eth.Utils exposing (add0x, remove0x, toAddress, toBlockHash, toHex, toTxHash)
 import Hex
-import Internal.Utils exposing (add0x, remove0x)
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (custom, optional, required)
 import Json.Encode as Encode

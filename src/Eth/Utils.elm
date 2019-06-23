@@ -6,14 +6,7 @@ module Eth.Utils exposing
     , functionSig, keccak256, isSha256, lowLevelKeccak256
     , unsafeToHex, unsafeToAddress, unsafeToTxHash, unsafeToBlockHash
     , Retry, retry, valueToMsg
-    -- TX-HASH
-    --SHA3
-    -- HEX
-    -- UNSAFE
-    -- BLOCK-HASH
-    -- IPFS-HASH
-    -- ADDRESS
-    -- APPLICATION UTILS
+    , add0x, remove0x, toByteLength, take64, drop64, leftPadTo64
     )
 
 {-| String/Type Conversion and Application Helpers
@@ -59,6 +52,11 @@ All values coming from the outside world, like user input or server responses, s
 
 @docs Retry, retry, valueToMsg
 
+
+# Misc
+
+@docs add0x, remove0x, toByteLength, take64, drop64, leftPadTo64
+
 -}
 
 import Bool.Extra exposing (all)
@@ -66,7 +64,6 @@ import Char
 import Eth.Types exposing (..)
 import Hex
 import Internal.Types as Internal
-import Internal.Utils as Internal exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 import Keccak.Int exposing (ethereum_keccak_256)
@@ -513,7 +510,7 @@ Comes in handy with Eth.Sentry.Event values.
 
     type Msg
         = Transfer (Event Transfer)
-        | Error String
+        | Error Decode.Error
 
 -}
 valueToMsg : (a -> msg) -> (Decode.Error -> msg) -> Decoder a -> (Value -> msg)
@@ -528,3 +525,72 @@ valueToMsg successMsg failureMsg decoder =
                     failureMsg error
     in
     resultToMessage << Decode.decodeValue decoder
+
+
+
+-- Misc
+
+
+{-| Prepends a string wiht "0x"
+Useful for displaying hex values
+-}
+add0x : String -> String
+add0x str =
+    if String.startsWith "0x" str || String.startsWith "0X" str then
+        str
+
+    else
+        "0x" ++ str
+
+
+{-| Removes "0x" or "0X" from string.
+Useful for dealing with hex strings that might have "0x" prepended.
+-}
+remove0x : String -> String
+remove0x str =
+    if String.startsWith "0x" str || String.startsWith "0X" str then
+        String.dropLeft 2 str
+
+    else
+        str
+
+
+{-| Makes sure a string of bytes is an even number, thus valid hexdecimal.
+-}
+toByteLength : String -> String
+toByteLength str =
+    if modBy 2 (String.length str) == 1 then
+        String.append "0" str
+
+    else
+        str
+
+
+{-| Returns 64 chars (32 bytes) from the left side of a string.
+-}
+take64 : String -> String
+take64 =
+    String.left 64
+
+
+{-| Drops 64 chars (32 bytes) from the left side of a string.
+-}
+drop64 : String -> String
+drop64 =
+    String.dropLeft 64
+
+
+{-| Pads a string with '0' till it's length is 64 chars.
+-}
+leftPadTo64 : String -> String
+leftPadTo64 str =
+    String.padLeft 64 '0' str
+
+
+
+-- Internal
+
+
+quote : String -> String
+quote str =
+    "\"" ++ str ++ "\""
