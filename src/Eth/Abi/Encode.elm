@@ -593,10 +593,16 @@ toStaticLLEncoding strVal =
     )
 
 
-{-| -}
-toDynamicLLEncoding : String -> LowLevelEncoding
-toDynamicLLEncoding strVal =
+bytesOrStringToDynamicLLEncoding : String -> LowLevelEncoding
+bytesOrStringToDynamicLLEncoding strVal =
     ( Just <| String.length strVal // 2
+    , rightPadMod64 strVal
+    )
+
+
+listToDynamicLLEncoding : Int -> String -> LowLevelEncoding
+listToDynamicLLEncoding listLen strVal =
+    ( Just listLen
     , rightPadMod64 strVal
     )
 
@@ -623,7 +629,7 @@ lowLevelEncode enc =
             toStaticLLEncoding "0"
 
         DBytesE (Internal.Hex hexString) ->
-            toDynamicLLEncoding hexString
+            bytesOrStringToDynamicLLEncoding hexString
 
         BytesE (Internal.Hex hexString) ->
             remove0x hexString
@@ -631,12 +637,13 @@ lowLevelEncode enc =
 
         StringE string_ ->
             stringToHex string_
-                |> toDynamicLLEncoding
+                |> bytesOrStringToDynamicLLEncoding
 
         ListE encodings ->
             abiEncodeList encodings
                 |> (\(Internal.Hex hexString) ->
-                        toDynamicLLEncoding hexString
+                        listToDynamicLLEncoding (List.length encodings)
+                            hexString
                    )
 
         CustomE string_ ->
@@ -695,7 +702,12 @@ rightPadMod64 str =
 
 tillMod64 : Int -> Int
 tillMod64 n =
-    64 - modBy 64 n
+    case modBy 64 n of
+        0 ->
+            0
+
+        n_ ->
+            64 - n_
 
 
 {-| Converts utf8 string to string of hex
