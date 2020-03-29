@@ -1,6 +1,6 @@
 module Eth.Types exposing
     ( Address, TxHash, BlockHash, Hex
-    , Call, Tx, TxReceipt, BlockId(..), Block, Uncle, BlockHead, Log, Event, LogFilter, SyncStatus
+    , Call, Send, Tx, TxReceipt, BlockId(..), Block, Uncle, BlockHead, Log, Event, LogFilter, SyncStatus
     , HttpProvider, WebsocketProvider, FilterId
     )
 
@@ -14,7 +14,7 @@ module Eth.Types exposing
 
 # Complex
 
-@docs Call, Tx, TxReceipt, BlockId, Block, Uncle, BlockHead, Log, Event, LogFilter, SyncStatus
+@docs Call, Send, Tx, TxReceipt, BlockId, Block, Uncle, BlockHead, Log, Event, LogFilter, SyncStatus
 
 
 # Misc
@@ -81,6 +81,18 @@ type alias Call a =
     , data : Maybe Hex
     , nonce : Maybe Int
     , decoder : Decoder a
+    }
+
+
+{-| -}
+type alias Send =
+    { to : Maybe Address
+    , from : Maybe Address
+    , gas : Maybe Int
+    , gasPrice : Maybe BigInt
+    , value : Maybe BigInt
+    , data : Maybe Hex
+    , nonce : Maybe Int
     }
 
 

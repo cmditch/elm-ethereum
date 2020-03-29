@@ -1,6 +1,6 @@
 module Eth exposing
     ( call, getStorageAt, getCode, callAtBlock, getStorageAtBlock, getCodeAtBlock
-    , getTx, getTxReceipt, encodeCall, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
+    , getTx, getTxReceipt, toSend, encodeSend, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
     , getBalance, getTxCount, getBalanceAtBlock, getTxCountAtBlock
     , getBlockNumber, getBlock, getBlockByHash, getBlockWithTxObjs, getBlockByHashWithTxObjs, getBlockTxCount, getBlockTxCountByHash, getUncleCount, getUncleCountByHash, getUncleAtIndex, getUncleByBlockHashAtIndex
     , getLogs, newFilter, newBlockFilter, newPendingTxFilter, getFilterChanges, getFilterLogs, uninstallFilter
@@ -32,7 +32,7 @@ convert it to a `Send`, and use `Eth.Sentry.Tx` to hand it off to your browser's
 
 # Transactions
 
-@docs getTx, getTxReceipt, encodeCall, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
+@docs getTx, getTxReceipt, toSend, encodeSend, sendTx, sendRawTx, getTxByBlockHashAndIndex, getTxByBlockNumberAndIndex
 
 
 # Address/Accounts
@@ -172,21 +172,25 @@ getCodeAtBlock ethNode address blockId =
 -- Transactions
 
 
+{-| Prepare a Call to be executed on chain.
+Used in `Eth.Sentry.Tx`, a means to interact with MetaMask.
+-}
+toSend : Call a -> Send
+toSend callData =
+    { to = callData.to
+    , from = callData.from
+    , gas = callData.gas
+    , gasPrice = callData.gasPrice
+    , value = callData.value
+    , data = callData.data
+    , nonce = callData.nonce
+    }
+
+
 {-| Useful if your handling txParams in javascript land yourself.
 -}
-encodeCall :
-    { a
-        | to : Maybe Address
-        , from : Maybe Address
-        , gas : Maybe Int
-        , gasPrice : Maybe BigInt
-        , value : Maybe BigInt
-        , data : Maybe Hex
-        , nonce : Maybe Int
-    }
-    -> Value
-encodeCall callData =
-    -- TODO Think about returning Error if params are invalid, e.g. buffer overflow.
+encodeSend : Send -> Value
+encodeSend callData =
     Encode.listOfMaybesToVal
         [ ( "to", Maybe.map Encode.address callData.to )
         , ( "from", Maybe.map Encode.address callData.from )
@@ -259,12 +263,12 @@ NOTE: You probably don't need this.
 If you're writing a proper dApp, look at using the `Eth.Sentry.Tx` to interface with wallets like MetaMask.
 
 -}
-sendTx : HttpProvider -> Call a -> Task Http.Error TxHash
+sendTx : HttpProvider -> Send -> Task Http.Error TxHash
 sendTx ethNode txParams =
     RPC.toTask
         { url = ethNode
         , method = "eth_sendTransaction"
-        , params = [ encodeCall txParams ]
+        , params = [ encodeSend txParams ]
         , decoder = Decode.txHash
         }
 

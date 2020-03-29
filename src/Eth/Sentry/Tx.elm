@@ -1,5 +1,5 @@
 module Eth.Sentry.Tx exposing
-    ( TxSentry, Msg, Send, update, init, OutPort, InPort, listen
+    ( TxSentry, Msg, update, init, OutPort, InPort, listen
     , send, sendWithReceipt
     , CustomSend, TxTracker, customSend
     , changeNode
@@ -10,7 +10,7 @@ module Eth.Sentry.Tx exposing
 
 # Core
 
-@docs TxSentry, Msg, Send, update, init, OutPort, InPort, listen
+@docs TxSentry, Msg, update, init, OutPort, InPort, listen
 
 
 # Send Txs
@@ -29,7 +29,6 @@ module Eth.Sentry.Tx exposing
 
 -}
 
-import BigInt exposing (BigInt)
 import Dict exposing (Dict)
 import Eth
 import Eth.Decode as Decode
@@ -108,23 +107,6 @@ type alias InPort =
     (Value -> Msg) -> Sub Msg
 
 
-{-| Same as Eth.Types.Call sans decoder.
-
-**Note** You can just pass your Call shaped record into any function that accepts a Send
-
--}
-type alias Send a =
-    { a
-        | to : Maybe Address
-        , from : Maybe Address
-        , gas : Maybe Int
-        , gasPrice : Maybe BigInt
-        , value : Maybe BigInt
-        , data : Maybe Hex
-        , nonce : Maybe Int
-    }
-
-
 {-| -}
 listen : TxSentry msg -> Sub msg
 listen (TxSentry sentry) =
@@ -132,13 +114,13 @@ listen (TxSentry sentry) =
 
 
 {-| -}
-send : (Result String Tx -> msg) -> TxSentry msg -> Send a -> ( TxSentry msg, Cmd msg )
+send : (Result String Tx -> msg) -> TxSentry msg -> Send -> ( TxSentry msg, Cmd msg )
 send onBroadcast sentry txParams =
     send_ sentry { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Nothing } txParams
 
 
 {-| -}
-sendWithReceipt : (Result String Tx -> msg) -> (Result String TxReceipt -> msg) -> TxSentry msg -> Send a -> ( TxSentry msg, Cmd msg )
+sendWithReceipt : (Result String Tx -> msg) -> (Result String TxReceipt -> msg) -> TxSentry msg -> Send -> ( TxSentry msg, Cmd msg )
 sendWithReceipt onBroadcast onMined sentry txParams =
     send_ sentry { onSign = Nothing, onBroadcast = Just onBroadcast, onMined = Just ( onMined, Nothing ) } txParams
 
@@ -173,7 +155,7 @@ type alias TxTracker =
 
 
 {-| -}
-customSend : TxSentry msg -> CustomSend msg -> Send a -> ( TxSentry msg, Cmd msg )
+customSend : TxSentry msg -> CustomSend msg -> Send -> ( TxSentry msg, Cmd msg )
 customSend =
     send_
 
@@ -226,26 +208,11 @@ changeNode newNodePath (TxSentry sentry) =
 --             )
 
 
-{-| -}
-type alias TxParams =
-    { to : Maybe Address
-    , from : Maybe Address
-    , gas : Maybe Int
-    , gasPrice : Maybe BigInt
-    , value : Maybe BigInt
-    , data : Maybe Hex
-    , nonce : Maybe Int
-    }
-
-
-send_ : TxSentry msg -> CustomSend msg -> Send a -> ( TxSentry msg, Cmd msg )
-send_ (TxSentry sentry) customSendParams callParams =
+send_ : TxSentry msg -> CustomSend msg -> Send -> ( TxSentry msg, Cmd msg )
+send_ (TxSentry sentry) customSendParams txParams =
     let
         txParamsVal =
-            Eth.encodeCall callParams
-
-        txParams =
-            toTxParams callParams
+            Eth.encodeSend txParams
 
         newTxs =
             Dict.insert sentry.ref (newTxState txParams customSendParams) sentry.txs
@@ -256,7 +223,7 @@ send_ (TxSentry sentry) customSendParams callParams =
 
 
 type TxStatus
-    = Signing TxParams
+    = Signing Send
     | Signed TxHash
     | Sent Tx
     | Mined TxReceipt
@@ -264,7 +231,7 @@ type TxStatus
 
 
 type alias TxState msg =
-    { params : TxParams
+    { params : Send
     , onSignedTagger : Maybe (Result String TxHash -> msg)
     , onBroadcastTagger : Maybe (Result String Tx -> msg)
     , onMinedTagger : Maybe ( Result String TxReceipt -> msg, Maybe { confirmations : Int, toMsg : TxTracker -> msg } )
@@ -659,25 +626,13 @@ txIdResponseDecoder =
         (Decode.field "txHash" (Decode.maybe Decode.txHash))
 
 
-newTxState : TxParams -> CustomSend msg -> TxState msg
+newTxState : Send -> CustomSend msg -> TxState msg
 newTxState txParams { onSign, onBroadcast, onMined } =
     { params = txParams
     , onSignedTagger = onSign
     , onBroadcastTagger = onBroadcast
     , onMinedTagger = onMined
     , status = Signing txParams
-    }
-
-
-toTxParams : Send a -> TxParams
-toTxParams { to, from, gas, gasPrice, value, data, nonce } =
-    { to = to
-    , from = from
-    , gas = gas
-    , gasPrice = gasPrice
-    , value = value
-    , data = data
-    , nonce = nonce
     }
 
 
