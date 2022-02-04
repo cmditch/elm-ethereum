@@ -71,7 +71,7 @@ I'd sum up the experience of programming in Elm with two words: **Fearless Refac
 
 This is by no means the only pleasantry the fine tree has to offer.
 
-Elm's claim to fame is zero runtime exceptions. It's compiler and static types are your best friends. Both from an error catching standpoint, but just as importantly, from a domain modeling standpoint.  
+Elm's claim to fame is zero runtime exceptions. Its compiler and static types are your best friends. Both from an error catching standpoint, but just as importantly, from a domain modeling standpoint.  
 
 **Union Types** allow you to fully leverage the compiler when modeling your business domain. See [BlockId](http://package.elm-lang.org/packages/cmditch/elm-ethereum/latest/Eth-Types#BlockId) or [NetworkId](http://package.elm-lang.org/packages/cmditch/elm-ethereum/latest/Eth-Net#NetworkId) for instance.  
 
