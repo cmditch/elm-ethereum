@@ -2,7 +2,7 @@ module DecodeAbiBeta exposing (arrayOfBytesData)
 
 -- import Fuzz exposing (Fuzzer, int, list, string)
 
-import Abi.Decode as Abi
+-- import Abi.Decode as Abi
 import BigInt exposing (BigInt)
 import Expect
 import Test exposing (..)

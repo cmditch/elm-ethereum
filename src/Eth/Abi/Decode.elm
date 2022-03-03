@@ -4,6 +4,7 @@ module Eth.Abi.Decode exposing
     , staticArray, dynamicArray
     , abiDecode, andMap, toElmDecoder, fromString
     , topic, data
+    , struct
     )
 
 {-| Decode RPC Responses
