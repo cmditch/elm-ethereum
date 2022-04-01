@@ -2,10 +2,13 @@ module DecodeAbi exposing (TestVal1, TestVal2, complexStorage, decodeInt, testVa
 
 -- import Fuzz exposing (Fuzzer, int, list, string)
 
-import Abi.Decode as Abi
 import BigInt exposing (BigInt)
+import Eth.Abi.Decode as Abi
+import Eth.Types exposing (Hex)
+import Eth.Utils exposing (hexToString)
 import Expect
 import Test exposing (..)
+import Eth.Utils exposing (unsafeToHex)
 
 
 
@@ -154,13 +157,14 @@ testVal1_elm_data : Result String TestVal1
 testVal1_elm_data =
     let
         b2Vec =
-            [ "0x1234", "0x5678", "0xffff", "0x0000" ]
+            [ "0x1234", "0x5678", "0xffff", "0x0000" ] |> List.map unsafeToHex
 
         v3Val =
-            BigInt.fromString
+            BigInt.fromIntString
                 "-999999999999999999999999999999999999999999999999999999999999999"
                 |> Result.fromMaybe "Error decoding bigInt in Tests.Abi.makeGetVals"
 
+        makeGetVals : BigInt -> TestVal1
         makeGetVals bigNegativeInt =
             { uintVal = BigInt.fromInt 123
             , intVal = BigInt.fromInt -128
@@ -180,9 +184,9 @@ testVal1_elm_data =
             , emptyArray = []
             , stringVal = "wtf mate"
             , emptyString = ""
-            , bytes16Val = "0x31323334353637383930313233343536"
+            , bytes16Val = unsafeToHex "0x31323334353637383930313233343536"
             , bytes2VectorListVal = [ b2Vec, b2Vec, b2Vec ]
-            , emptyBytes = "0x"
+            , emptyBytes = unsafeToHex "0x"
             }
     in
     Result.map makeGetVals v3Val
@@ -206,9 +210,9 @@ type alias TestVal1 =
     , emptyArray : List BigInt
     , stringVal : String
     , emptyString : String
-    , bytes16Val : String
-    , bytes2VectorListVal : List (List String)
-    , emptyBytes : String
+    , bytes16Val : Hex
+    , bytes2VectorListVal : List (List Hex)
+    , emptyBytes : Hex
     }
 
 

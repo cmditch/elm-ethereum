@@ -2,8 +2,9 @@ module Eth.Abi.Encode exposing
     ( Encoding(..), functionCall
     , uint, int, staticBytes
     , string, list, bytes
-    , address, bool, custom
+    , address, bool
     , abiEncode, abiEncodeList, stringToHex
+    , staticList, tuple
     )
 
 {-| Encode before sending RPC Calls
@@ -33,50 +34,20 @@ module Eth.Abi.Encode exposing
 -}
 
 import BigInt exposing (BigInt)
+import Dict exposing (Dict)
 import Eth.Abi.Int as AbiInt
 import Eth.Types exposing (Address, Hex)
-import Eth.Utils exposing (leftPadTo64, remove0x)
+import Eth.Utils exposing (leftPadTo64, remove0x, unsafeToHex)
 import Hex
 import Internal.Types as Internal
 import String.UTF8 as UTF8
 
 
 {-| -}
-type Encoding
-    = AddressE Address
-    | UintE BigInt
-    | IntE BigInt
-    | BoolE Bool
-    | DBytesE Hex
-    | BytesE Hex
-    | StringE String
-    | ListE (List Encoding)
-    | CustomE String
-
-
-{-| -}
-functionCall : String -> List Encoding -> Hex
-functionCall abiSig encodings =
-    let
-        byteCodeEncodings =
-            List.map lowLevelEncode encodings
-                |> lowLevelEncodeList
-    in
-    Internal.Hex (remove0x abiSig ++ byteCodeEncodings)
-
-
-functionCallWithDebug : Internal.DebugLogger String -> String -> List Encoding -> Hex
-functionCallWithDebug logger sig encodings =
-    let
-        byteCodeEncodings =
-            List.map lowLevelEncode encodings
-                |> lowLevelEncodeList
-
-        data =
-            (remove0x sig ++ byteCodeEncodings)
-                |> logger "Abi.Encode : "
-    in
-    Internal.Hex data
+functionCall : String -> List Encoding -> Result String Hex
+functionCall abiSig args =
+    abiEncodeList_ args
+        |> Result.map (\calldata -> Internal.Hex (remove0x abiSig ++ calldata))
 
 
 
@@ -86,430 +57,73 @@ functionCallWithDebug logger sig encodings =
 {-| -}
 uint : BigInt -> Encoding
 uint =
-    UintE
+    BigInt.toHexString >> leftPadTo64 >> EValue
 
 
 {-| -}
 int : BigInt -> Encoding
 int =
-    IntE
+    AbiInt.toString >> leftPadTo64 >> EValue
 
 
 {-| -}
 address : Address -> Encoding
-address =
-    AddressE
-
-
-
--- {-| -}
--- uint8 : BigInt -> Result String Encoding
--- uint8 =
---     uint 8
--- {-| -}
--- uint16 : BigInt -> Result String Encoding
--- uint16 =
---     uint 16
--- {-| -}
--- uint24 : BigInt -> Result String Encoding
--- uint24 =
---     uint 24
--- {-| -}
--- uint32 : BigInt -> Result String Encoding
--- uint32 =
---     uint 32
--- {-| -}
--- uint40 : BigInt -> Result String Encoding
--- uint40 =
---     uint 40
--- {-| -}
--- uint48 : BigInt -> Result String Encoding
--- uint48 =
---     uint 48
--- {-| -}
--- uint56 : BigInt -> Result String Encoding
--- uint56 =
---     uint 56
--- {-| -}
--- uint64 : BigInt -> Result String Encoding
--- uint64 =
---     uint 64
--- {-| -}
--- uint72 : BigInt -> Result String Encoding
--- uint72 =
---     uint 72
--- {-| -}
--- uint80 : BigInt -> Result String Encoding
--- uint80 =
---     uint 80
--- {-| -}
--- uint88 : BigInt -> Result String Encoding
--- uint88 =
---     uint 88
--- {-| -}
--- uint96 : BigInt -> Result String Encoding
--- uint96 =
---     uint 96
--- {-| -}
--- uint104 : BigInt -> Result String Encoding
--- uint104 =
---     uint 104
--- {-| -}
--- uint112 : BigInt -> Result String Encoding
--- uint112 =
---     uint 112
--- {-| -}
--- uint120 : BigInt -> Result String Encoding
--- uint120 =
---     uint 120
--- {-| -}
--- uint128 : BigInt -> Result String Encoding
--- uint128 =
---     uint 128
--- {-| -}
--- uint136 : BigInt -> Result String Encoding
--- uint136 =
---     uint 136
--- {-| -}
--- uint144 : BigInt -> Result String Encoding
--- uint144 =
---     uint 144
--- {-| -}
--- uint152 : BigInt -> Result String Encoding
--- uint152 =
---     uint 152
--- {-| -}
--- uint160 : BigInt -> Result String Encoding
--- uint160 =
---     uint 160
--- {-| -}
--- uint168 : BigInt -> Result String Encoding
--- uint168 =
---     uint 168
--- {-| -}
--- uint176 : BigInt -> Result String Encoding
--- uint176 =
---     uint 176
--- {-| -}
--- uint184 : BigInt -> Result String Encoding
--- uint184 =
---     uint 184
--- {-| -}
--- uint192 : BigInt -> Result String Encoding
--- uint192 =
---     uint 192
--- {-| -}
--- uint200 : BigInt -> Result String Encoding
--- uint200 =
---     uint 200
--- {-| -}
--- uint208 : BigInt -> Result String Encoding
--- uint208 =
---     uint 208
--- {-| -}
--- uint216 : BigInt -> Result String Encoding
--- uint216 =
---     uint 216
--- {-| -}
--- uint224 : BigInt -> Result String Encoding
--- uint224 =
---     uint 224
--- {-| -}
--- uint232 : BigInt -> Result String Encoding
--- uint232 =
---     uint 232
--- {-| -}
--- uint240 : BigInt -> Result String Encoding
--- uint240 =
---     uint 240
--- {-| -}
--- uint248 : BigInt -> Result String Encoding
--- uint248 =
---     uint 248
--- {-| -}
--- uint256 : BigInt -> Result String Encoding
--- uint256 =
---     uint 256
--- {-| -}
--- int8 : BigInt -> Result String Encoding
--- int8 =
---     int 8
--- {-| -}
--- int16 : BigInt -> Result String Encoding
--- int16 =
---     int 16
--- {-| -}
--- int24 : BigInt -> Result String Encoding
--- int24 =
---     int 24
--- {-| -}
--- int32 : BigInt -> Result String Encoding
--- int32 =
---     int 32
--- {-| -}
--- int40 : BigInt -> Result String Encoding
--- int40 =
---     int 40
--- {-| -}
--- int48 : BigInt -> Result String Encoding
--- int48 =
---     int 48
--- {-| -}
--- int56 : BigInt -> Result String Encoding
--- int56 =
---     int 56
--- {-| -}
--- int64 : BigInt -> Result String Encoding
--- int64 =
---     int 64
--- {-| -}
--- int72 : BigInt -> Result String Encoding
--- int72 =
---     int 72
--- {-| -}
--- int80 : BigInt -> Result String Encoding
--- int80 =
---     int 80
--- {-| -}
--- int88 : BigInt -> Result String Encoding
--- int88 =
---     int 88
--- {-| -}
--- int96 : BigInt -> Result String Encoding
--- int96 =
---     int 96
--- {-| -}
--- int104 : BigInt -> Result String Encoding
--- int104 =
---     int 104
--- {-| -}
--- int112 : BigInt -> Result String Encoding
--- int112 =
---     int 112
--- {-| -}
--- int120 : BigInt -> Result String Encoding
--- int120 =
---     int 120
--- {-| -}
--- int128 : BigInt -> Result String Encoding
--- int128 =
---     int 128
--- {-| -}
--- int136 : BigInt -> Result String Encoding
--- int136 =
---     int 136
--- {-| -}
--- int144 : BigInt -> Result String Encoding
--- int144 =
---     int 144
--- {-| -}
--- int152 : BigInt -> Result String Encoding
--- int152 =
---     int 152
--- {-| -}
--- int160 : BigInt -> Result String Encoding
--- int160 =
---     int 160
--- {-| -}
--- int168 : BigInt -> Result String Encoding
--- int168 =
---     int 168
--- {-| -}
--- int176 : BigInt -> Result String Encoding
--- int176 =
---     int 176
--- {-| -}
--- int184 : BigInt -> Result String Encoding
--- int184 =
---     int 184
--- {-| -}
--- int192 : BigInt -> Result String Encoding
--- int192 =
---     int 192
--- {-| -}
--- int200 : BigInt -> Result String Encoding
--- int200 =
---     int 200
--- {-| -}
--- int208 : BigInt -> Result String Encoding
--- int208 =
---     int 208
--- {-| -}
--- int216 : BigInt -> Result String Encoding
--- int216 =
---     int 216
--- {-| -}
--- int224 : BigInt -> Result String Encoding
--- int224 =
---     int 224
--- {-| -}
--- int232 : BigInt -> Result String Encoding
--- int232 =
---     int 232
--- {-| -}
--- int240 : BigInt -> Result String Encoding
--- int240 =
---     int 240
--- {-| -}
--- int248 : BigInt -> Result String Encoding
--- int248 =
---     int 248
--- {-| -}
--- int256 : BigInt -> Result String Encoding
--- int256 =
---     int 256
--- {-| -}
--- bytes1 : Hex -> Result String Encoding
--- bytes1 =
---     staticBytes 1
--- {-| -}
--- bytes2 : Hex -> Result String Encoding
--- bytes2 =
---     staticBytes 2
--- {-| -}
--- bytes3 : Hex -> Result String Encoding
--- bytes3 =
---     staticBytes 3
--- {-| -}
--- bytes4 : Hex -> Result String Encoding
--- bytes4 =
---     staticBytes 4
--- {-| -}
--- bytes5 : Hex -> Result String Encoding
--- bytes5 =
---     staticBytes 5
--- {-| -}
--- bytes6 : Hex -> Result String Encoding
--- bytes6 =
---     staticBytes 6
--- {-| -}
--- bytes7 : Hex -> Result String Encoding
--- bytes7 =
---     staticBytes 7
--- {-| -}
--- bytes8 : Hex -> Result String Encoding
--- bytes8 =
---     staticBytes 8
--- {-| -}
--- bytes9 : Hex -> Result String Encoding
--- bytes9 =
---     staticBytes 9
--- {-| -}
--- bytes10 : Hex -> Result String Encoding
--- bytes10 =
---     staticBytes 10
--- {-| -}
--- bytes11 : Hex -> Result String Encoding
--- bytes11 =
---     staticBytes 11
--- {-| -}
--- bytes12 : Hex -> Result String Encoding
--- bytes12 =
---     staticBytes 12
--- {-| -}
--- bytes13 : Hex -> Result String Encoding
--- bytes13 =
---     staticBytes 13
--- {-| -}
--- bytes14 : Hex -> Result String Encoding
--- bytes14 =
---     staticBytes 14
--- {-| -}
--- bytes15 : Hex -> Result String Encoding
--- bytes15 =
---     staticBytes 15
--- {-| -}
--- bytes16 : Hex -> Result String Encoding
--- bytes16 =
---     staticBytes 16
--- {-| -}
--- bytes17 : Hex -> Result String Encoding
--- bytes17 =
---     staticBytes 17
--- {-| -}
--- bytes18 : Hex -> Result String Encoding
--- bytes18 =
---     staticBytes 18
--- {-| -}
--- bytes19 : Hex -> Result String Encoding
--- bytes19 =
---     staticBytes 19
--- {-| -}
--- bytes20 : Hex -> Result String Encoding
--- bytes20 =
---     staticBytes 20
--- {-| -}
--- bytes21 : Hex -> Result String Encoding
--- bytes21 =
---     staticBytes 21
--- {-| -}
--- bytes22 : Hex -> Result String Encoding
--- bytes22 =
---     staticBytes 22
--- {-| -}
--- bytes23 : Hex -> Result String Encoding
--- bytes23 =
---     staticBytes 23
--- {-| -}
--- bytes24 : Hex -> Result String Encoding
--- bytes24 =
---     staticBytes 24
--- {-| -}
--- bytes25 : Hex -> Result String Encoding
--- bytes25 =
---     staticBytes 25
--- {-| -}
--- bytes26 : Hex -> Result String Encoding
--- bytes26 =
---     staticBytes 26
--- {-| -}
--- bytes27 : Hex -> Result String Encoding
--- bytes27 =
---     staticBytes 27
--- {-| -}
--- bytes28 : Hex -> Result String Encoding
--- bytes28 =
---     staticBytes 28
--- {-| -}
--- bytes29 : Hex -> Result String Encoding
--- bytes29 =
---     staticBytes 29
--- {-| -}
--- bytes30 : Hex -> Result String Encoding
--- bytes30 =
---     staticBytes 30
--- {-| -}
--- bytes31 : Hex -> Result String Encoding
--- bytes31 =
---     staticBytes 31
--- {-| -}
--- bytes32 : Hex -> Result String Encoding
--- bytes32 =
---     staticBytes 32
+address (Internal.Address addr) =
+    addr |> leftPadTo64 |> EValue
 
 
 {-| -}
 bool : Bool -> Encoding
-bool =
-    BoolE
+bool v =
+    (if v then
+        "1"
+
+     else
+        "0"
+    )
+        |> leftPadTo64
+        |> EValue
 
 
-{-| -}
-staticBytes : Int -> Hex -> Encoding
-staticBytes size =
-    BytesE
+{-| Encodes inline bytes (fixed size byte array)
+-}
+staticBytes : Hex -> Encoding
+staticBytes (Internal.Hex hex) =
+    hex |> remove0x |> EValue
 
 
-{-| -}
+{-| Creates a pointer to a byte array
+-}
 bytes : Hex -> Encoding
 bytes =
-    DBytesE
+    EDynamicBytes >> EPointerTo
 
 
-{-| -}
+{-| Inline list (fixed size)
+-}
+staticList : List Encoding -> Encoding
+staticList =
+    EInline
+
+
+tuple : List Encoding -> Encoding
+tuple props =
+    -- Tuples are stored as a pointer when any of their members are pointers
+    -- but as inlines when all members are fixed-sized
+    -- Why ? 🤷‍♂️ No idea... (their dynamic members could be stored as a fixed-size pointer, removing the need for a pointer to the structure body itself)
+    -- see js implem here https://github.com/ethers-io/ethers.js/blob/master/packages/abi/src.ts/coders/tuple.ts
+    if List.any isDynamic props then
+        EPointerTo (EInline props)
+
+    else
+        EInline props
+
+
+{-| Dynamic list
+-}
 list : List Encoding -> Encoding
 list =
-    ListE
+    EDynamicList
 
 
 
@@ -519,177 +133,245 @@ list =
 {-| -}
 string : String -> Encoding
 string =
-    StringE
+    stringToHex >> unsafeToHex >> EDynamicBytes >> EPointerTo
 
 
 {-| -}
-custom : String -> Encoding
-custom =
-    CustomE
-
-
-
--- Low Level
+abiEncode : Encoding -> Result String Hex
+abiEncode e =
+    [ e ] |> abiEncodeList
 
 
 {-| -}
-abiEncode : Encoding -> Hex
-abiEncode =
-    lowLevelEncode >> (\v -> lowLevelEncodeList [ v ]) >> Internal.Hex
-
-
-{-| -}
-abiEncodeList : List Encoding -> Hex
+abiEncodeList : List Encoding -> Result String Hex
 abiEncodeList =
-    List.map lowLevelEncode >> lowLevelEncodeList >> Internal.Hex
+    abiEncodeList_ >> Result.map Internal.Hex
+
+
+abiEncodeList_ : List Encoding -> Result String String
+abiEncodeList_ data =
+    computeLayout 2 [ { id = 1, offset = 0, data = data } ]
+        |> layoutToHex
+
+
+type Encoding
+    = -- A 32 bytes value (or shorter, which will be padded with zeros)
+      EValue String
+      -- Will write dynamic bytes (32 bytes for length, then data) in place
+    | EDynamicBytes Hex
+      -- Will write a dynamic list (32 bytes for length, then data) in place
+    | EDynamicList (List Encoding)
+      -- Write multiple elements, one after another, in place
+    | EInline (List Encoding)
+      -- Write a pointer to a value, and defers the writing of those values actual bodies
+    | EPointerTo Encoding
+
+
+type DataItem
+    = -- a value, with an id
+      DValue String -- value
+    | DPointerTo Int Int -- pointer to a given block ID, its origin block ID
 
 
 
--- Internal
--- {-| Low level uint helper
--- -}
--- uint : Int -> BigInt -> Result String Encoding
--- uint size num =
---     if modBy 8 size /= 0 || size <= 0 || size > 256 then
---         Err <| "Invalid size: " ++ String.fromInt size
---     else if BigInt.lt num (BigInt.pow (BigInt.fromInt 2) (BigInt.fromInt size)) then
---         -- TODO Figure out if it's 2^n or (2^n - 1), e.g. uint8 should not be over 255 or 256 ?
---         Ok <| UintE num
---     else
---         Err <|
---             "Uint overflow: "
---                 ++ BigInt.toString num
---                 ++ " is larger than uint"
---                 ++ String.fromInt size
--- {-| Low level int helper
--- -}
--- int : Int -> BigInt -> Result String Encoding
--- int size num =
---     if modBy 8 size /= 0 || size <= 0 || size > 256 then
---         Err <| "Invalid size: " ++ String.fromInt size
---     else if ... then
---         -- TODO Figure out if int8 should not be over 127 or 128 ?
---         Ok <| IntE num
---     else
---         -- Account for overflow and underflow
---         Err <|
---             "Int overflow/underflow: "
---                 ++ BigInt.toString num
---                 ++ " is larger than uint"
---                 ++ String.fromInt size
+-- Block id, block header size (pointer address offset), and data
 
 
-{-| (Maybe (Size of Dynamic Value), Value)
--}
-type alias LowLevelEncoding =
-    ( Maybe Int, String )
+type alias DataBlock =
+    { id : Int, offset : Int, data : List DataItem }
 
 
-{-| -}
-toStaticLLEncoding : String -> LowLevelEncoding
-toStaticLLEncoding strVal =
-    ( Nothing
-    , leftPadTo64 strVal
-    )
+type alias BlockToLayout =
+    { id : Int
+    , offset : Int
+    , data : List Encoding
+    }
 
 
-bytesOrStringToDynamicLLEncoding : String -> LowLevelEncoding
-bytesOrStringToDynamicLLEncoding strVal =
-    ( Just <| String.length strVal // 2
-    , rightPadMod64 strVal
-    )
+computeLayout : Int -> List BlockToLayout -> List DataBlock
+computeLayout cnt toLayout =
+    case toLayout of
+        [] ->
+            []
+
+        b :: bs ->
+            let
+                -- compute this block's layout, and get back some queued blocks
+                ( newCnt, blockLayout, queuedBlocks ) =
+                    computeOneLayout b.id b.data cnt
+
+                block =
+                    { id = b.id, offset = b.offset, data = blockLayout }
+            in
+            block :: computeLayout newCnt (queuedBlocks ++ bs)
 
 
-listToDynamicLLEncoding : Int -> String -> LowLevelEncoding
-listToDynamicLLEncoding listLen strVal =
-    ( Just listLen
-    , rightPadMod64 strVal
-    )
+computeOneLayout : Int -> List Encoding -> Int -> ( Int, List DataItem, List BlockToLayout )
+computeOneLayout blockId toLayout cnt =
+    case toLayout of
+        [] ->
+            ( cnt, [], [] )
 
-
-{-| -}
-lowLevelEncode : Encoding -> LowLevelEncoding
-lowLevelEncode enc =
-    case enc of
-        AddressE (Internal.Address address_) ->
-            toStaticLLEncoding address_
-
-        UintE uint_ ->
-            BigInt.toHexString uint_
-                |> toStaticLLEncoding
-
-        IntE int_ ->
-            AbiInt.toString int_
-                |> toStaticLLEncoding
-
-        BoolE True ->
-            toStaticLLEncoding "1"
-
-        BoolE False ->
-            toStaticLLEncoding "0"
-
-        DBytesE (Internal.Hex hexString) ->
-            bytesOrStringToDynamicLLEncoding hexString
-
-        BytesE (Internal.Hex hexString) ->
-            remove0x hexString
-                |> toStaticLLEncoding
-
-        StringE string_ ->
-            stringToHex string_
-                |> bytesOrStringToDynamicLLEncoding
-
-        ListE encodings ->
-            abiEncodeList encodings
-                |> (\(Internal.Hex hexString) ->
-                        listToDynamicLLEncoding (List.length encodings)
-                            hexString
-                   )
-
-        CustomE string_ ->
-            remove0x string_
-                |> toStaticLLEncoding
-
-
-lowLevelEncodeList : List LowLevelEncoding -> String
-lowLevelEncodeList vals =
-    let
-        reducer : LowLevelEncoding -> ( Int, String, String ) -> ( Int, String, String )
-        reducer ( mLength, val ) ( dynValPointer, staticVals, dynamicVals ) =
-            case mLength of
-                Just length ->
+        i :: is ->
+            case i of
+                EValue x ->
+                    ---------- simple values are stored as it, grouped 64-by-64 (i.e. 256 bits-by-256 bits)
                     let
-                        newDynValPointer =
-                            dynValPointer + 32 + (String.length val // 2)
+                        -- build next values
+                        ( newCnt, nexts, queue ) =
+                            computeOneLayout blockId is cnt
 
-                        newStaticVals =
-                            Hex.toString dynValPointer
-                                |> leftPadTo64
+                        -- all values must be a multiple of 64
+                        paddedValue =
+                            rightPadMod64 x
 
-                        newDynVals =
-                            Hex.toString length
-                                |> leftPadTo64
-                                |> (\lengthInHex -> lengthInHex ++ val)
+                        -- build this value
+                        this =
+                            DValue paddedValue
                     in
-                    ( newDynValPointer
-                      -- newPointer - = previousPointer + (length of hexLengthWord) + (length of val words)
-                    , staticVals ++ newStaticVals
-                    , dynamicVals ++ newDynVals
-                    )
+                    ( newCnt, this :: nexts, queue )
 
-                Nothing ->
-                    ( dynValPointer
-                    , staticVals ++ val
-                    , dynamicVals
+                EPointerTo toData ->
+                    ---------- pointers are stored as a pointer to the inner value
+                    let
+                        pointedId =
+                            cnt
+
+                        -- build next values
+                        ( newCnt, nexts, queue ) =
+                            computeOneLayout blockId is (cnt + 1)
+
+                        -- build this value
+                        this =
+                            DPointerTo pointedId blockId
+
+                        dataBlock : BlockToLayout
+                        dataBlock =
+                            { id = pointedId, offset = 0, data = [ toData ] }
+                    in
+                    -- build the pointer
+                    ( newCnt, this :: nexts, dataBlock :: queue )
+
+                EDynamicBytes (Internal.Hex hex) ->
+                    let
+                        -- bits (*4) ? or bytes (//2) ?
+                        bytesLen =
+                            (String.length hex // 2)
+                                |> BigInt.fromInt
+                    in
+                    computeOneLayout blockId (uint bytesLen :: EValue hex :: is) cnt
+
+                EDynamicList listVals ->
+                    ---------- dynamic lists are stored as a pointer to the array length (which wil lbe followed by list elements) somewhere in encoded value
+                    let
+                        -- encode array elements on a new stack
+                        listLen =
+                            List.length listVals |> BigInt.fromInt |> uint
+
+                        -- build next values
+                        ( newCnt, nexts, queue ) =
+                            computeOneLayout blockId is (cnt + 1)
+
+                        -- build this value
+                        this =
+                            DPointerTo cnt blockId
+
+                        listBody : BlockToLayout
+                        listBody =
+                            { id = cnt, offset = 32, data = listLen :: listVals }
+                    in
+                    -- build the pointer
+                    ( newCnt, this :: nexts, listBody :: queue )
+
+                EInline vals ->
+                    ---------- Consecutive inline elements
+                    computeOneLayout blockId (vals ++ is) cnt
+
+
+measureLayout : List DataBlock -> ( List DataItem, Dict Int ( Int, Int ) )
+measureLayout blocks =
+    let
+        ( _, lst, retPos ) =
+            blocks
+                |> List.foldl
+                    (\{ id, offset, data } ( thisPos, prev, posById ) ->
+                        let
+                            newPos =
+                                thisPos + measureBlock data
+                        in
+                        ( newPos, prev ++ data, Dict.insert id ( thisPos, thisPos + offset ) posById )
                     )
+                    ( 0, [], Dict.empty )
     in
-    List.foldl reducer ( List.length vals * 32, "", "" ) vals
-        |> (\( _, sVals, dVals ) -> sVals ++ dVals)
+    ( lst, retPos )
 
 
+measureBlock : List DataItem -> Int
+measureBlock =
+    List.foldl
+        (\val acc ->
+            case val of
+                DValue str ->
+                    acc + String.length str // 2
 
--- Helpers
--- Move to utils
+                DPointerTo _ _ ->
+                    acc + 32
+        )
+        0
+
+
+layoutToHex : List DataBlock -> Result String String
+layoutToHex stack =
+    let
+        ( lst, pos ) =
+            measureLayout stack
+    in
+    lst
+        |> List.foldl
+            (\v acc ->
+                case acc of
+                    Err e ->
+                        Err e
+
+                    Ok prev ->
+                        case v of
+                            DValue str ->
+                                Ok (str :: prev)
+
+                            DPointerTo to from ->
+                                case ( Dict.get to pos, Dict.get from pos ) of
+                                    ( Just ( toPos, _ ), Just ( _, fromPos ) ) ->
+                                        let
+                                            encodedPtr =
+                                                (toPos - fromPos) |> BigInt.fromInt |> BigInt.toHexString |> leftPadTo64
+                                        in
+                                        Ok (encodedPtr :: prev)
+
+                                    _ ->
+                                        Err <| "LayoutToHex: Pointer not found"
+            )
+            (Ok [])
+        |> Result.map List.reverse
+        |> Result.map (String.join "")
+
+
+{-| Function that takes a list of values to encode, the current ID of the first value to encode,
+and which returns the next avaialble ID and the flatten layout of encoded values (with their ids)
+-}
+isDynamic : Encoding -> Bool
+isDynamic e =
+    case e of
+        EDynamicBytes _ ->
+            True
+
+        EDynamicList _ ->
+            True
+
+        EPointerTo _ ->
+            True
+
+        _ ->
+            False
 
 
 {-| Right pads a string with "0"'s till (strLength % 64 == 0)
